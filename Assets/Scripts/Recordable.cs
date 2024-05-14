@@ -36,6 +36,7 @@ public class Recordable : MonoBehaviour
         public float[] data;
     }
     
+    public string prefabName;
     private Recorder _recorder;
 
     private bool _isRecording;
@@ -134,7 +135,7 @@ public class Recordable : MonoBehaviour
             {
                 _currentFrameNr.ToString(),
                 _recorder.fps.ToString(),
-                gameObject.name,
+                prefabName,
                 _numTrackingPoints.ToString()
             },
             dataLabels = _dataLabels,

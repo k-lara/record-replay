@@ -48,6 +48,7 @@ public class Recorder : MonoBehaviour
             onRecordingSaved.Invoke(new List<Recordable.RecordableData>(_recordableDataList));
             _recordableDataList.Clear();
         }
+        Debug.Log("Added recordable data  from:" + recordableData.metaData[2]);
         
     }
     
@@ -56,20 +57,18 @@ public class Recorder : MonoBehaviour
     {
         _recordables.Add(recordable);
     }
-
-    // public void RemoveRecordable(Recordable recordable)
-    // {
-    //     
-    // }
+    
         
     public void StartRecording()
     {
+        Debug.Log("Start recording!");
         _isRecording = true;
         onRecordingStart.Invoke();
     }
 
     public void StopRecording()
     {
+        Debug.Log("Stop recording!");
         _isRecording = false;
         // open a file and save the data
         // get current date time string
