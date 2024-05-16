@@ -15,50 +15,27 @@ public class Recorder : MonoBehaviour
     private bool _isRecording;
 
     private string _pathLastRecording;
+    
+    private Replayer _replayer;
 
     public int fps = 10; // fps for recording
     public UnityEvent onRecordingStart;
-    public UnityEvent onRecordingStop;
-    
-    [System.Serializable]
-    public class RecordingSavedEvent : UnityEvent<List<Recordable.RecordableData>> {}
-    public RecordingSavedEvent onRecordingSaved;
-    
-    private StreamWriter _streamWriter;
-    private List<Recordable> _recordables = new List<Recordable>();
-    private List<Recordable.RecordableData> _recordableDataList = new List<Recordable.RecordableData>();
-    private int _numSavedData = 0;
-    
-    private string _savePath = Application.dataPath + "/Recordings/";
-    
-    // each recordable calls this method to add its data to the file
-    public IEnumerator AddRecordableData(Recordable.RecordableData recordableData)
+    public UnityEvent<string> onRecordingStop;
+    public UnityEvent<GameObject> onRemoveReplayedObject;
+
+    private string _savePath;
+
+    void Start()
     {
-        // write the data to a file line by line
-        _recordableDataList.Add(recordableData);
-        var task = _streamWriter.WriteLineAsync(JsonUtility.ToJson(recordableData));
-        yield return new WaitUntil(() => task.IsCompleted);
-        // we check how many recordables have saved their data
-        _numSavedData++;
-        // if all recordables have saved their data, we close the file
-        if (_numSavedData == _recordables.Count)
-        {
-            _streamWriter?.Dispose();
-            _numSavedData = 0;
-            onRecordingSaved.Invoke(new List<Recordable.RecordableData>(_recordableDataList));
-            _recordableDataList.Clear();
-        }
-        Debug.Log("Added recordable data  from:" + recordableData.metaData[2]);
-        
+        _replayer = GetComponent<Replayer>();
+        _savePath = Application.persistentDataPath;
+    }
+
+    public void RemoveReplayedObject(GameObject go)
+    {
+        onRemoveReplayedObject.Invoke(go);
     }
     
-    // each recordable adds itself to the list of recordables
-    public void AddRecordable(Recordable recordable)
-    {
-        _recordables.Add(recordable);
-    }
-    
-        
     public void StartRecording()
     {
         Debug.Log("Start recording!");
@@ -73,35 +50,11 @@ public class Recorder : MonoBehaviour
         // open a file and save the data
         // get current date time string
         string dateTimeString = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        _pathLastRecording = Path.Join(_savePath, "rec" + dateTimeString + ".txt");
-        _streamWriter = new StreamWriter(Path.Join(_savePath, "rec" + dateTimeString + ".txt"));
-        onRecordingStop.Invoke();
-    }
-    
-    public string GetPathLastRecording()
-    {
-        return _pathLastRecording;
-    }
-
-    public string GetSavePath()
-    {
-        return _savePath;
-    }
-    
-    // Start is called before the first frame update
-    void Start()
-    {
+        // create folder for new recording
+        Directory.CreateDirectory(Path.Join(_savePath, dateTimeString));
         
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-    }
-    
-    private void OnDestroy()
-    {
-        _streamWriter?.Dispose();
+        _pathLastRecording = Path.Join(_savePath,dateTimeString); // path to folder of last recording
+        onRecordingStop.Invoke(_pathLastRecording);
     }
 }
 

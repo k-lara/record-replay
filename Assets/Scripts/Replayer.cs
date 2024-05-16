@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -11,9 +12,8 @@ using UnityEngine.Events;
 public class Replayer : MonoBehaviour
 {
     private Recorder _recorder;
-    private string _filePath; // file path to the saved data of the last recording
     private List<Recordable.RecordableData> _recordableDataList;
-    private string _savePath; // get it from recorder
+    private string _recordingFolder; // path to the folder of a specific recording (folder has all the motion files, etc.)
     private bool _isLoaded;
     private bool _isPlaying;
     
@@ -30,9 +30,9 @@ public class Replayer : MonoBehaviour
     void Start()
     {
         _recorder = GetComponent<Recorder>();
+        _recorder.onRecordingStart.AddListener(StartReplay);
         _recorder.onRecordingStop.AddListener(OnRecordingStop);
-        _recorder.onRecordingSaved.AddListener(OnRecordingSaved);
-        _savePath = _recorder.GetSavePath();
+        _recorder.onRemoveReplayedObject.AddListener(RemoveReplayedRecordedObject);
         
         _spawnManager = NetworkSpawnManager.Find(this);
         _prefabCatalogue = new Dictionary<string, GameObject>();
@@ -40,10 +40,33 @@ public class Replayer : MonoBehaviour
         {
             _prefabCatalogue.Add(prefab.name, prefab);
         }
-            
+        
+        _recordableDataList = new List<Recordable.RecordableData>();
+        
+        LoadMostRecentReplayOnStartup();
     }
     
+    // this gets called by the recorder when the recording is done and the object's recording is saved
+    // once the recording is saved we can safely delete the object if it was a replayed object
+    // this is always called when an object is done saving the recording
+    private void RemoveReplayedRecordedObject(GameObject go)
+    {
+        if (_spawnedObjects.Contains(go))
+        {
+            _spawnManager.Despawn(go);
+            _spawnedObjects.Remove(go);
+        }
+        Debug.Log("Spawned objects left: " + _spawnedObjects.Count);
+        
+        // if no more spawned objects are left we can load the recording we just did
+        if (_spawnedObjects.Count == 0)
+        {
+            LoadReplay(_recordingFolder);
+        }
+    }
+
     // a replay has to be loaded for this to work
+    // if we start a recording and a replay is loaded, we record over the loaded replay
     public void StartReplay()
     {
         if (!_isLoaded) return;
@@ -61,7 +84,7 @@ public class Replayer : MonoBehaviour
         onReplayStop.Invoke();
     }
     
-    // a replay has to be loaded, can be playing or paused
+    // a replay has to be loaded (it can be playing or paused)
     public void DeleteReplay()
     {
         StopReplay();
@@ -80,39 +103,26 @@ public class Replayer : MonoBehaviour
         _spawnedObjects.Clear();
     }
     
-    public void LoadReplay(string filePath = null)
+    public void LoadReplay(string folder = null)
     {   
-        Debug.Log( filePath == null ? "Load last recording!" : "Load recording from" + filePath);
+        Debug.Log( folder == null ? "Load last recording!" : "Load recording from" + folder);
         // if no file path is given we do not load a recording from file but use the data from the last recording
-        if (filePath == null)
+        if (folder == null)
         {
            CreateReplay();
         }
         else
         {
-            StartCoroutine(LoadRecordedDataFromFile(filePath));
+            StartCoroutine(LoadRecordedDataFromFolder(folder));
         }
         onReplayCreated.Invoke();
         _isLoaded = true;
     }
-    
-    // when we are recording a previous replay and the recording stops we automatically delete the current replay
-    // this gets called right after a save file is created but before the newly recorded data is written to the file
-    // once the data is written to file, the new recording is loaded as the new replay
-    // this should be fine as we have already deleted the old replay
-    private void OnRecordingStop()
+    private void OnRecordingStop(string folder)
     {
-        _filePath = _recorder.GetPathLastRecording();
-        if (_isPlaying)
-        {
-            DeleteReplay();
-        }
-    }
-    
-    private void OnRecordingSaved(List<Recordable.RecordableData> recordableDataList)
-    {
-        _recordableDataList = recordableDataList;
-        LoadReplay();
+        _recordingFolder = folder;
+        // we also stop the replay when the recording is stopped
+        StopReplay();
     }
 
     public void CreateReplay()
@@ -132,21 +142,48 @@ public class Replayer : MonoBehaviour
         Debug.Log("Replay created!");
     }
 
-    private IEnumerator LoadRecordedDataFromFile(string filePath)
+    private IEnumerator LoadRecordedDataFromFolder(string folder)
     {
-        Debug.Log("Load replay from file!");
-        using StreamReader sr = new StreamReader(Path.Join(_savePath, filePath));
+        Debug.Log("Load replay from folder!");
         
-        string recordableDataJson;
-        _recordableDataList.Clear(); // clear the list before loading new data
-        while((recordableDataJson = sr.ReadLine()) != null)
+        // get all motion files
+        var files = Directory.GetFiles(folder, "m*.txt");
+        
+        _recordableDataList.Clear();
+        foreach (var file in files)
         {
-            Recordable.RecordableData recordableData = JsonUtility.FromJson<Recordable.RecordableData>(recordableDataJson);
-            _recordableDataList.Add(recordableData);
+            using (StreamReader sr = new StreamReader(file))
+            {
+                var recordableDataJson = sr.ReadToEnd();
+                
+                Recordable.RecordableData recordableData = JsonUtility.FromJson<Recordable.RecordableData>(recordableDataJson);
+                _recordableDataList.Add(recordableData);
+            }
         }
         CreateReplay();
         yield return null;
     }
+    
+    // on startup automatically load the most recent replay!
+    private void LoadMostRecentReplayOnStartup()
+    {
+        var directories = Directory.GetDirectories(Application.persistentDataPath);
+        DateTime lastWriteTime = DateTime.MinValue;
+        for (var i = 0; i < directories.Length; i++)
+        {
+            var recName = new DirectoryInfo(directories[i]).Name;
+            Debug.Log(recName);
+            var dateTime = DateTime.ParseExact(recName, "yyyy-MM-dd_HH-mm-ss", null);
+
+            if (dateTime > lastWriteTime)
+                lastWriteTime = dateTime;
+        }
+        // once we've found the last recording, we can load it
+        var lastRecording = lastWriteTime.ToString("yyyy-MM-dd_HH-mm-ss");
+        
+        LoadReplay(Path.Join(Application.persistentDataPath, lastRecording));
+    }
+    
 }
 [CustomEditor(typeof(Replayer))]
 public class ReplayerEditor : UnityEditor.Editor

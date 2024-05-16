@@ -1,16 +1,20 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Ubiq.Avatars;
 using Ubiq.Geometry;
+using Ubiq.Messaging;
 using UnityEngine;
+using UnityEngine.Events;
+using Avatar = Ubiq.Avatars.Avatar;
 
 // attach this at the top of the hierarchy of an avatar prefab
 public class Recordable : MonoBehaviour
 {
     [System.Serializable]
-    public struct RecordableData
+    public class RecordableData
     {
         public List<string> metaDataLabels;
         public List<string> metaData; // frames, fps, avatar representation, texture information
@@ -27,7 +31,7 @@ public class Recordable : MonoBehaviour
     }
     
     [System.Serializable]
-    public struct RecordableDataFrame
+    public class RecordableDataFrame
     {
         // frame number
         public int frameNr;
@@ -37,15 +41,18 @@ public class Recordable : MonoBehaviour
     }
     
     public string prefabName;
+    
     private Recorder _recorder;
 
     private bool _isRecording;
     private int _currentFrameNr;
     
     private ThreePointTrackedAvatar _trackedAvatar;
+    private Avatar _avatar;
 
-    private List<RecordableDataFrame> _dataFrames = new List<RecordableDataFrame>();
+    private List<RecordableDataFrame> _dataFrames = new(); // make sure to clear this before next recording starts!
     private RecordableDataFrame _dataFrame;
+    private bool _dataFrameReady; // make sure to set this to false at the end of the recording (just in case)
     
     private List<string> _dataLabels;
     
@@ -62,12 +69,11 @@ public class Recordable : MonoBehaviour
     private PositionRotation _prevHead;
     private PositionRotation _prevLeftHand;
     private PositionRotation _prevRightHand;
-    private bool _dataFrameReady = false;
     
     // meta data is data that describes what is being recorded and how (e.g. what prefab, frames, fps, etc...)
     private readonly List<string> _metaDataLabels = new List<string>()
     {
-        "frames", "fps", "prefab", "trackingPoints"
+        "id", "frames", "fps", "prefab", "trackingPoints"
     };
     // Start is called before the first frame update
     void Start()
@@ -76,13 +82,12 @@ public class Recordable : MonoBehaviour
         
         _recorder = GameObject.FindWithTag("Recorder").GetComponent<Recorder>();
         
-        // add this recordable to the recorder
-        _recorder.AddRecordable(this);
         _recorder.onRecordingStart.AddListener(OnRecordingStart);
         _recorder.onRecordingStop.AddListener(OnRecordingStop);
         
         _trackedAvatar = GetComponent<ThreePointTrackedAvatar>();
-
+        _avatar = GetComponent<Avatar>();
+        
         _trackedAvatar.OnHeadUpdate.AddListener(TrackedAvatarOnHeadUpdate);
         _trackedAvatar.OnLeftHandUpdate.AddListener(TrackedAvatarOnLeftHandUpdate);
         _trackedAvatar.OnRightHandUpdate.AddListener(TrackedAvatarOnRightHandUpdate);
@@ -103,6 +108,7 @@ public class Recordable : MonoBehaviour
         }
         
         // only record at 10 fps for now and interpolate data when replaying
+        // Could it be that when the framerate is really low, it might make such big jumps that we miss a frame?
         _frameInterval += Time.deltaTime;
         _interpolate = false;
         if (_frameInterval >= 1.0f / _recorder.fps)
@@ -124,8 +130,11 @@ public class Recordable : MonoBehaviour
         _isRecording = true;
         _currentFrameNr = 0;
     }
-
-    private void OnRecordingStop()
+    
+    // when recorder stops recording we assemble our recorded data and meta data
+    // then we start a coroutine to write the data to a file
+    // each object gets a separate file for its recording in a folder named after the recording date and time
+    private void OnRecordingStop(string pathToRecording)
     {
         _isRecording = false;
         RecordableData recordableData = new RecordableData
@@ -133,6 +142,7 @@ public class Recordable : MonoBehaviour
             metaDataLabels = _metaDataLabels,
             metaData = new List<string>()
             {
+                _avatar.NetworkId.ToString(),
                 _currentFrameNr.ToString(),
                 _recorder.fps.ToString(),
                 prefabName,
@@ -141,10 +151,29 @@ public class Recordable : MonoBehaviour
             dataLabels = _dataLabels,
             recordableData = _dataFrames
         };
-        StartCoroutine(_recorder.AddRecordableData(recordableData));
+        StartCoroutine(SaveRecordedData(pathToRecording, recordableData));
     }
-
-
+    
+    // save the recorded data to a file
+    // oce we are done, we tell the recorder and ask it
+    // to forward the object to be removed to the replayer if it was a replayed object
+    private IEnumerator SaveRecordedData(string path, RecordableData recordableData)
+    {
+        using (var streamWriter = new StreamWriter(Path.Join(path, "motion_" + _avatar.NetworkId.ToString() + ".txt")))
+        {
+            var task = streamWriter.WriteLineAsync(JsonUtility.ToJson(recordableData, true));
+            yield return new WaitUntil(() => task.IsCompleted);
+        }
+        
+        Debug.Log("Added recordable data from:" + recordableData.metaData[0]);
+            
+        _dataFrameReady = false;
+        _dataFrames.Clear(); // make sure to clear the list before starting a new recording
+        
+        
+        _recorder.RemoveReplayedObject(this.gameObject);
+    }
+    
     private void TrackedAvatarOnHeadUpdate(Vector3 pos, Quaternion rot)
     {
         if (!_isRecording) return;
@@ -172,6 +201,8 @@ public class Recordable : MonoBehaviour
             position = pos,
             rotation = rotN
         };
+        
+        // Debug.Log(_avatar.NetworkId.ToString() + " " + pos.x);
     }
     
     private void TrackedAvatarOnLeftHandUpdate(Vector3 pos, Quaternion rot)

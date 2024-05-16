@@ -7,6 +7,7 @@ using Ubiq.Geometry;
 using Ubiq.Messaging;
 using Ubiq.Spawning;
 using UnityEngine;
+using Avatar = Ubiq.Avatars.Avatar;
 
 /// <summary>
 /// a game object that has Replayable might have only been created for replaying
@@ -20,6 +21,7 @@ public class Replayable : MonoBehaviour
     private bool _isPlaying; // true if a replay is playing
     
     private ThreePointTrackedAvatar _trackedAvatar;
+    private Avatar _avatar; // remove this only need it for debugging
     private int _trackingPoints;
     private int _fps;
     private int _frames;
@@ -44,7 +46,7 @@ public class Replayable : MonoBehaviour
         _replayer.onReplayStop.AddListener(OnReplayStop);
         
         _trackedAvatar = GetComponent<ThreePointTrackedAvatar>();
-        
+        _avatar = GetComponent<Avatar>();
     }
     
     // in theory, whenever someone presses start again, the replay starts from the beginning
@@ -145,8 +147,11 @@ public class Replayable : MonoBehaviour
 
             if (frameNr < _frames - 1)
             {
+                // Debug.Log(frameNr);
+                // Debug.Log(_replayableData.recordableData.Count);
                 // Interpolate the pose between two frames in the recordable data and send it to the tracked avatar
                 _state = InterpolatePose(_replayableData.recordableData[frameNr], _replayableData.recordableData[frameNr + 1], t);
+                // Debug.Log(_avatar.NetworkId.ToString() + ": " + _state[0].head.position.x);
                 _trackedAvatar.ProcessMessage(CreateRcsgMessage(_state));
             }
             else
