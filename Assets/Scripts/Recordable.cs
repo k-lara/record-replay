@@ -84,6 +84,7 @@ public class Recordable : MonoBehaviour
         
         _recorder.onRecordingStart.AddListener(OnRecordingStart);
         _recorder.onRecordingStop.AddListener(OnRecordingStop);
+        _recorder.onAddThumbnailData.AddListener(AddThumbnailData);
         
         _trackedAvatar = GetComponent<ThreePointTrackedAvatar>();
         _avatar = GetComponent<Avatar>();
@@ -131,6 +132,12 @@ public class Recordable : MonoBehaviour
         _currentFrameNr = 0;
     }
     
+    // this is invoked when the recording is stopped just before the onRecordingStop event
+    private void AddThumbnailData()
+    {
+        _recorder.AddToThumbnail(_avatar.NetworkId, prefabName, _currentFrameNr, _dataFrames[0]);
+    }
+    
     // when recorder stops recording we assemble our recorded data and meta data
     // then we start a coroutine to write the data to a file
     // each object gets a separate file for its recording in a folder named after the recording date and time
@@ -155,8 +162,8 @@ public class Recordable : MonoBehaviour
     }
     
     // save the recorded data to a file
-    // oce we are done, we tell the recorder and ask it
-    // to forward the object to be removed to the replayer if it was a replayed object
+    // once we are done, we tell the recorder and ask it
+    // to forward the object to be removed to the replayer
     private IEnumerator SaveRecordedData(string path, RecordableData recordableData)
     {
         using (var streamWriter = new StreamWriter(Path.Join(path, "motion_" + _avatar.NetworkId.ToString() + ".txt")))
@@ -169,7 +176,6 @@ public class Recordable : MonoBehaviour
             
         _dataFrameReady = false;
         _dataFrames.Clear(); // make sure to clear the list before starting a new recording
-        
         
         _recorder.RemoveReplayedObject(this.gameObject);
     }
