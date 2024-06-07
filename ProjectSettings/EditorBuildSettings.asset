@@ -4,6 +4,18 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Samples/Ubiq/1.0.0-pre.4/Demo (XRI)/Demo.unity
+    guid: 2de505d34345ab340bdde30d419b24eb
+  - enabled: 0
+    path: Assets/ViveSR/Scenes/Eye/EyeSample_v2.unity
+    guid: 95faae79a7fda8248a4f435507170572
+  - enabled: 0
+    path: Assets/Samples/VIVE Wave XR Plugin/6.0.0-r.14/XR/EyeExpression/EyeExp.unity
+    guid: 385fbe8a3f8c312448e75a233e0c0381
   m_configObjects:
+    com.htc.upm.wave.xrsdk.xrsettings: {fileID: 11400000, guid: d2f0b8c6c9cc5e8409145794410cf61f, type: 2}
+    com.unity.input.settings: {fileID: 11400000, guid: cf70a5e3f17835144a8eba439634a108, type: 2}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 1e205b1b4bbc3c2498131d1e4cf9f214, type: 2}
+    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: f6f8352737089a448afe384ebb386482, type: 2}
