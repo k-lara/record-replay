@@ -6,7 +6,9 @@ using UnityEngine.Events;
 
 public class VRButtonTrigger : MonoBehaviour
 {
-    public float deadTime = 3.0f;
+    // let's have the possibility to have a non physics button, just to see if that works better
+    
+    public float deadTime = 0.8f;
 
     private bool _deadTimeActive = false;
 
