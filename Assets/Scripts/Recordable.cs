@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Ubiq.Avatars;
 using Ubiq.Geometry;
 using Ubiq.Messaging;
@@ -82,9 +83,9 @@ public class Recordable : MonoBehaviour
         
         _recorder = GameObject.FindWithTag("Recorder").GetComponent<Recorder>();
         
-        _recorder.onRecordingStart.AddListener(OnRecordingStart);
-        _recorder.onRecordingStop.AddListener(OnRecordingStop);
-        _recorder.onAddThumbnailData.AddListener(AddThumbnailData);
+        _recorder.onRecordingStart += OnRecordingStart;
+        _recorder.onRecordingStop += OnRecordingStop;
+        _recorder.onAddThumbnailData += AddThumbnailData;
         
         _trackedAvatar = GetComponent<ThreePointTrackedAvatar>();
         _avatar = GetComponent<Avatar>();
@@ -95,7 +96,15 @@ public class Recordable : MonoBehaviour
 
         _sizeData = (_numTrackingPoints * 3 + _numTrackingPoints * 4) + _numBlendshapes; 
     }
-    
+
+    private void OnDestroy()
+    {
+        // unsubscribe from events
+        _recorder.onRecordingStart -= OnRecordingStart;
+        _recorder.onRecordingStop -= OnRecordingStop;
+        _recorder.onAddThumbnailData -= AddThumbnailData;
+    }
+
     // Update is called once per frame
     void Update()
     {
@@ -107,8 +116,8 @@ public class Recordable : MonoBehaviour
             _dataFrames.Add(_dataFrame);
             _dataFrameReady = false;
         }
-        
         // only record at 10 fps for now and interpolate data when replaying
+        // frameInterval has to be set to 0 at the start of each recording otherwise there are bad desync problems (forgot to do that earlier :()
         // Could it be that when the framerate is really low, it might make such big jumps that we miss a frame?
         _frameInterval += Time.deltaTime;
         _interpolate = false;
@@ -126,14 +135,15 @@ public class Recordable : MonoBehaviour
         _previousPoseTime = _frameInterval;
     }
 
-    private void OnRecordingStart()
+    private void OnRecordingStart(object o, string pathToRecording)
     {
         _isRecording = true;
         _currentFrameNr = 0;
+        _frameInterval = 0;
     }
     
     // this is invoked when the recording is stopped just before the onRecordingStop event
-    private void AddThumbnailData()
+    private void AddThumbnailData(object o, EventArgs e)
     {
         _recorder.AddToThumbnail(_avatar.NetworkId, prefabName, _currentFrameNr, _dataFrames[0]);
     }
@@ -141,7 +151,7 @@ public class Recordable : MonoBehaviour
     // when recorder stops recording we assemble our recorded data and meta data
     // then we start a coroutine to write the data to a file
     // each object gets a separate file for its recording in a folder named after the recording date and time
-    private void OnRecordingStop(string pathToRecording)
+    private void OnRecordingStop(object o, string pathToRecording)
     {
         _isRecording = false;
         RecordableData recordableData = new RecordableData
@@ -168,16 +178,21 @@ public class Recordable : MonoBehaviour
     {
         using (var streamWriter = new StreamWriter(Path.Join(path, "motion_" + _avatar.NetworkId.ToString() + ".txt")))
         {
-            var task = streamWriter.WriteLineAsync(JsonUtility.ToJson(recordableData, true));
+            Task task = streamWriter.WriteLineAsync(JsonUtility.ToJson(recordableData, true));
             yield return new WaitUntil(() => task.IsCompleted);
+            Debug.Log("Saved recordable data from:" + recordableData.metaData[0]);
         }
-        
-        Debug.Log("Added recordable data from:" + recordableData.metaData[0]);
-            
+
         _dataFrameReady = false;
         _dataFrames.Clear(); // make sure to clear the list before starting a new recording
         
+        // removing the replayed objects also calls the load replay eventually where we need access
+        // to the file stream again, so we need to make sure that it is closed before we do that
+        // this will do nothing for the local or remote players!
+        // we need to make sure that the replay is not loaded as long as the local/remote players are
+        // still saving the data
         _recorder.RemoveReplayedObject(this.gameObject);
+        yield return null;
     }
     
     private void TrackedAvatarOnHeadUpdate(Vector3 pos, Quaternion rot)

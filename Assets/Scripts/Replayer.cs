@@ -2,12 +2,15 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Ubiq.Avatars;
 using Ubiq.Geometry;
 using Ubiq.Messaging;
 using Ubiq.Spawning;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEditor;
 /*
  * The Replayer is responsible for managing the replaying of recorded data.
  * It can load a recording from a folder, start and stop the replay, and delete the replay.
@@ -19,8 +22,10 @@ using UnityEngine.Events;
 public class Replayer : MonoBehaviour
 {
     private Recorder _recorder;
+    private AvatarManager _avatarManager;
     private Dictionary<NetworkId ,Recordable.RecordableData> _recordableDataDict; // string is identifier (mostly this will be the network id)
-    private string _recordingFolder; // path to the folder of a specific recording (folder has all the motion files, etc.)
+    // only serialize it for access in custom inspector
+    [SerializeField] private string _recordingFolder; // path to the folder of a specific recording (folder has all the motion files, etc.)
     private bool _isLoaded;
     private bool _isPlaying;
     private bool _fromThumbnail; // true if we have created a replay from the thumbnail (so we don't need to create it again for replay)
@@ -30,21 +35,28 @@ public class Replayer : MonoBehaviour
     private List<GameObject> _spawnedObjects = new List<GameObject>();
     private int _counter; // for counting the number of spawned objects that have requested deletion
     
-    public UnityEvent onReplayCreated; // replay created
-    public UnityEvent onReplayStart; // start replaying
-    public UnityEvent onReplayStop; // stop replaying
-    public UnityEvent onReplayDeleted; // replay deleted
-    public UnityEvent<Recorder.ThumbnailData> onThumbnailCreated;
+    public event EventHandler<string> onReplayCreated; // replay created
+    public event EventHandler onReplayStart; // start replaying
+    public event EventHandler onReplayStop; // stop replaying
+    public event EventHandler onReplayDeleted; // replay deleted
+    public event EventHandler<Recorder.ThumbnailData> onThumbnailCreated;
     
     private Recorder.ThumbnailData _thumbnailData;
+
+    public List<GameObject> GetSpawnedObjectsList()
+    {
+        return _spawnedObjects;
+    }
     
     // Start is called before the first frame update
     void Start()
     {
         _recorder = GetComponent<Recorder>();
-        _recorder.onRecordingStart.AddListener(StartReplay);
-        _recorder.onRecordingStop.AddListener(OnRecordingStop);
-        _recorder.onRemoveReplayedObject.AddListener(RemoveReplayedRecordedObject);
+        _recorder.onRecordingStart += StartReplay;
+        _recorder.onRecordingStop += OnRecordingStop;
+        _recorder.onRemoveReplayedObject += RemoveReplayedRecordedObject;
+        
+        _avatarManager = AvatarManager.Find(this);
         
         _spawnManager = NetworkSpawnManager.Find(this);
         _prefabCatalogue = new Dictionary<string, GameObject>();
@@ -57,42 +69,47 @@ public class Replayer : MonoBehaviour
         
         LoadMostRecentReplayOnStartup();
     }
-    
+
+    private void OnDestroy()
+    {
+        // remove all listeners
+        _recorder.onRecordingStart -= StartReplay;
+        _recorder.onRecordingStop -= OnRecordingStop;
+        _recorder.onRemoveReplayedObject -= RemoveReplayedRecordedObject;
+    }
+
     // this gets called by the recorder when the recording is done and the object's recording is saved
     // once the recording is saved we can safely delete the object if it was a replayed object
     // this is always called when an object is done saving the recording
-    private void RemoveReplayedRecordedObject(GameObject go)
+    // this gets also called by the peers, who do not need their avatar removed
+    // we still count the peers so we can be sure that everyone is done saving the data before we load the replay
+    private void RemoveReplayedRecordedObject(object o, GameObject go)
     {
-        if (_spawnedObjects.Contains(go))
-        {
-            // instead of despawning the objects, we just decrement the _counter
-            _counter++;
-            // if we don't want to create a thumbnail, we can just uncomment this
-            // _spawnManager.Despawn(go);
-            // _spawnedObjects.Remove(go);
-        }
-        // Debug.Log("Spawned objects left: " + _spawnedObjects.Count);
-        // if no more spawned objects are left we can load the recording we just did
-        // NOTE for thumbnails, we don't want to despawn the objects but reuse them.
-        if (_spawnedObjects.Count == _counter)
+        _counter++;
+        
+        if (_spawnedObjects.Count + _avatarManager.Avatars.Count() == _counter)
         {
             _counter = 0;
-            // we set this to true so we can recycle the existing spawned objects
-            _fromThumbnail = true;
-            // if we don't want to create a thumbnail, we can just comment this out and do LoadReplay(folder) only
-            CreateThumbnail(_recordingFolder); 
-            LoadReplay(_recordingFolder);
+            StartCoroutine(CreateThumbnailAndLoadReplay());
         }
+    }
+
+    public IEnumerator CreateThumbnailAndLoadReplay()
+    {
+        CreateThumbnail(_recordingFolder); 
+        LoadReplay(_recordingFolder);
+        yield return true;
     }
 
     // a replay has to be loaded for this to work
     // if we start a recording and a replay is loaded, we record over the loaded replay
-    public void StartReplay()
+    // folder is not needed here
+    public void StartReplay(object o, string folder)
     {
         if (!_isLoaded) return;
         Debug.Log("Start replay");
         _isPlaying = true;
-        onReplayStart.Invoke();
+        onReplayStart?.Invoke(this, EventArgs.Empty);
     }
     
     // a replay has to be loaded and playing for this to work
@@ -101,14 +118,14 @@ public class Replayer : MonoBehaviour
         if (!_isLoaded || !_isPlaying) return;
         Debug.Log("Stop replay!");
         _isPlaying = false;
-        onReplayStop.Invoke();
+        onReplayStop?.Invoke(this, EventArgs.Empty);
     }
     
     // a replay has to be loaded (it can be playing or paused)
     public void DeleteReplay()
     {
         StopReplay();
-        onReplayDeleted.Invoke();
+        onReplayDeleted?.Invoke(this, EventArgs.Empty);
         CleanupReplay();
         _isLoaded = false;
         _fromThumbnail = false;
@@ -124,36 +141,42 @@ public class Replayer : MonoBehaviour
         _spawnedObjects.Clear();
     }
     
-    public void LoadReplay(string folder = null)
+    public void LoadReplay(string folder)
     {
         if (_isLoaded) return; // don't need to load again when we already have a replay loaded
-      
-        Debug.Log( folder == null ? "Load last recording!" : "Load recording from" + folder);
-        // if no file path is given we do not load a recording from file but use the data from the last recording
-        if (folder == null)
-        {
-           CreateReplay();
-        }
-        else
-        {
-            StartCoroutine(LoadRecordedDataFromFolder(folder));
-        }
-        onReplayCreated.Invoke();
-        _isLoaded = true;
+        
+        Debug.Log("Load replay from folder!");
+        Task task = Task.Run(() => LoadRecordedDataFromFolder(folder));
+        task.Wait();
+        
+        // cannot create game objects asynchronously. we do it in coroutine (which runs on the main thread)
+        // to prevent potential freezing of the game.
+        StartCoroutine(CreateReplay());
+     
     }
-    private void OnRecordingStop(string folder)
+    private void OnRecordingStop(object o, string folder)
     {
         _recordingFolder = folder;
         // we also stop the replay when the recording is stopped
         StopReplay();
         // the next replay gets loaded when all recordables have saved their data and been deleted
     }
-
-    private Replayable SpawnReplayableObject(string prefabName)
+    
+    // providing the option to add the spawned object to the list of spawned objects
+    // when we recycle objects we do not want to add newly spawned directly to the list because
+    // we want to keep track of the objects that are not used anymore and can be deleted
+    private Replayable SpawnReplayableObject(string prefabName, bool addToSpawnedObjects = true)
     {
         var go = _spawnManager.SpawnWithPeerScope(_prefabCatalogue[prefabName]);
-        _spawnedObjects.Add(go);
-                    
+        
+        if (addToSpawnedObjects)
+            _spawnedObjects.Add(go);
+        
+        // normal users don't have the AudioReplayable on their avatar
+        // it is only used for replayed avatars
+        Debug.Log("Add AudioReplayable");
+        go.AddComponent<AudioReplayable>();
+        
         var replayable = go.GetComponent<Replayable>();
         // this helps to distinguish local and remote replayables. someone could replay their own data while
         // at the same time receiving a replay from somebody else.
@@ -170,6 +193,8 @@ public class Replayer : MonoBehaviour
             Debug.Log("Checking for match: " + current.recordablePrefabs[i] + "(Clone)");
             var match = _spawnedObjects.Find(go => go.name == current.recordablePrefabs[i] + "(Clone)");
             Debug.Log(match);
+
+            Replayable rep;
             // if we found a matching game object from the previous thumbnail we reuse it and add it to our list
             // then we remove it from the old list of spawned objects because we only want to keep objects in the list that are unused
             // so we can delete them later
@@ -178,21 +203,20 @@ public class Replayer : MonoBehaviour
                 Debug.Log("Found match for: " + current.recordablePrefabs[i]);
                 newSpawnedObjects.Add(match);
                 _spawnedObjects.Remove(match);
+                rep = match.GetComponent<Replayable>();
             }
             else // if we cannot reuse a previous object we need to spawn a new one.
             {
                 Debug.Log("no match for: " + current.recordablePrefabs[i] + " creating new object!");
-                var go = _spawnManager.SpawnWithPeerScope(_prefabCatalogue[current.recordablePrefabs[i]]);
-                newSpawnedObjects.Add(go);
-                match = go;
+                rep = SpawnReplayableObject(current.recordablePrefabs[i], false);
+                newSpawnedObjects.Add(rep.gameObject);
+                match = rep.gameObject;
             }
-            var replayable = match.GetComponent<Replayable>();
-            replayable.isLocal = true; // helps to distinguish local from remote replayables
             var firstPose = new Recordable.RecordableData
             {
                 recordableData = new List<Recordable.RecordableDataFrame> {current.firstPoses[i]}
             };
-            replayable.SetReplayableData(firstPose, true);
+            rep.SetReplayableData(firstPose, true);
         }
         // when we have either reused or created the new objects, we need to make sure
         // to delete remaining objects from previous thumbnails that we are not using anymore.
@@ -208,6 +232,7 @@ public class Replayer : MonoBehaviour
     public void CreateThumbnail(string folder)
     {
         _isLoaded = false;
+        _recordingFolder = folder;
         // make sure file exists, but it should if the folder exists
         if (File.Exists(Path.Join(folder, "thumbnail.txt")))
         {
@@ -218,33 +243,35 @@ public class Replayer : MonoBehaviour
                 // if we already have a previous thumbnail loaded, let's see if we can reuse the objects
                 var newThumbnailData = JsonUtility.FromJson<Recorder.ThumbnailData>(thumbnailDataJson);
 
-                if (_fromThumbnail)
-                {
-                    // if previous thumbnail is loaded we try to recycle the objects
-                    RecyclePreviousThumbnail(newThumbnailData, _thumbnailData);
-                }
-                else // otherwise, we just create all the new objects again
-                {
-                    Debug.Log("Thumbnail: Create all objects from scratch!");
-                    for (var i = 0; i < newThumbnailData.recordableIds.Count; i++)
-                    {
-                        var prefabName = newThumbnailData.recordablePrefabs[i];
-                        var replayable = SpawnReplayableObject(prefabName);
-                        Debug.Log(_spawnedObjects.Count);
-                        
-                        // instead of setting motion data etc. we only set the first pose from the thumbnail
-                        var firstPose = new Recordable.RecordableData
-                        {
-                            recordableData = new List<Recordable.RecordableDataFrame> {newThumbnailData.firstPoses[i]}
-                        };
-                        replayable.SetReplayableData(firstPose, true);
-                    }
-                }
+                // if previous thumbnail is loaded we try to recycle the objects
+                RecyclePreviousThumbnail(newThumbnailData, _thumbnailData);
+                
+                // if (_fromThumbnail)
+                // {
+                // }
+                // not sure if this is ever called... might remove this
+                // else // otherwise, we just create all the new objects again
+                // {
+                //     Debug.Log("Thumbnail: Create all objects from scratch!");
+                //     for (var i = 0; i < newThumbnailData.recordableIds.Count; i++)
+                //     {
+                //         var prefabName = newThumbnailData.recordablePrefabs[i];
+                //         var replayable = SpawnReplayableObject(prefabName);
+                //         Debug.Log(_spawnedObjects.Count);
+                //         
+                //         // instead of setting motion data etc. we only set the first pose from the thumbnail
+                //         var firstPose = new Recordable.RecordableData
+                //         {
+                //             recordableData = new List<Recordable.RecordableDataFrame> {newThumbnailData.firstPoses[i]}
+                //         };
+                //         replayable.SetReplayableData(firstPose, true);
+                //     }
+                // }
                 _thumbnailData = newThumbnailData;
             }
             _fromThumbnail = true; // we don't need to create the replayable objects again
             Debug.Log("Replayables created from thumbnail!");
-            onThumbnailCreated.Invoke(_thumbnailData);
+            onThumbnailCreated?.Invoke(this, _thumbnailData);
         }
         else
         {
@@ -253,7 +280,7 @@ public class Replayer : MonoBehaviour
     }
     
     // possible to create a replay without the movement data just from the thumbnail
-    public void CreateReplay()
+    private IEnumerator CreateReplay()
     {
         if (!_fromThumbnail)
         {   
@@ -277,13 +304,15 @@ public class Replayer : MonoBehaviour
                 _spawnedObjects[i].GetComponent<Replayable>().SetReplayableData(record);
             }
         }
+        onReplayCreated?.Invoke(this, _recordingFolder);
         Debug.Log("Replay created!");
+        _isLoaded = true;
+        
+        yield return null;
     }
 
-    private IEnumerator LoadRecordedDataFromFolder(string folder)
+    private async Task LoadRecordedDataFromFolder(string folder)
     {
-        Debug.Log("Load replay from folder!");
-        
         // get all motion files
         var files = Directory.GetFiles(folder, "m*.txt");
         
@@ -292,14 +321,12 @@ public class Replayer : MonoBehaviour
         {
             using (StreamReader sr = new StreamReader(file))
             {
-                var recordableDataJson = sr.ReadToEnd();
+                var recordableDataJson = await sr.ReadToEndAsync();
                 
                 Recordable.RecordableData recordableData = JsonUtility.FromJson<Recordable.RecordableData>(recordableDataJson);
                 _recordableDataDict.Add(new NetworkId(recordableData.metaData[0]), recordableData);
             }
         }
-        CreateReplay();
-        yield return null;
     }
     
     // on startup automatically load the most recent replay!
@@ -311,6 +338,7 @@ public class Replayer : MonoBehaviour
         // don't load anything if the directory is empty
         if (directories.Length == 0) return;
         
+        // find the most recent recording
         for (var i = 0; i < directories.Length; i++)
         {
             var recName = new DirectoryInfo(directories[i]).Name;
@@ -323,42 +351,58 @@ public class Replayer : MonoBehaviour
         // once we've found the last recording, we can load it
         var lastRecording = lastWriteTime.ToString("yyyy-MM-dd_HH-mm-ss");
         
-        LoadReplay(Path.Join(Application.persistentDataPath, lastRecording));
+        _recordingFolder = Path.Join(Application.persistentDataPath, lastRecording);
+
+        StartCoroutine(CreateThumbnailAndLoadReplay());
         
+        // LoadReplay(_recordingFolder);
         // load thumbnail data too
-        using (StreamReader sr = new StreamReader(Path.Join(Application.persistentDataPath, lastRecording + "/thumbnail.txt")))
-        {
-            var thumbnailDataJson = sr.ReadToEnd();
-            _thumbnailData = JsonUtility.FromJson<Recorder.ThumbnailData>(thumbnailDataJson);
-            // strictly speaking, we did not load the replay from the thumbnail
-            // but we want to have this thumbnail for potential next thumbnails and for the UI info
-            _fromThumbnail = true;
-            onThumbnailCreated.Invoke(_thumbnailData);
-        }
+        // using (StreamReader sr = new StreamReader(Path.Join(Application.persistentDataPath, lastRecording + "/thumbnail.txt")))
+        // {
+        //     var thumbnailDataJson = sr.ReadToEnd();
+        //     _thumbnailData = JsonUtility.FromJson<Recorder.ThumbnailData>(thumbnailDataJson);
+        //     // strictly speaking, we did not load the replay from the thumbnail
+        //     // but we want to have this thumbnail for potential next thumbnails and for the UI info
+        //     _fromThumbnail = true;
+        //     onThumbnailCreated.Invoke(_thumbnailData);
+        // }
+        Debug.Log("Loaded most recent replay on startup!");
     }
     
 }
-// [CustomEditor(typeof(Replayer))]
-// public class ReplayerEditor : UnityEditor.Editor
-// {
-//     public override void OnInspectorGUI()
-//     {
-//         DrawDefaultInspector();
-//         if (!Application.isPlaying) return;
-//         
-//         Replayer replayer = (Replayer)target;
-//         
-//         if (GUILayout.Button("Start Replay"))
-//         {
-//             replayer.StartReplay();
-//         }
-//         if (GUILayout.Button("Stop Replay"))
-//         {
-//             replayer.StopReplay();
-//         }
-//         if (GUILayout.Button("Delete Replay"))
-//         {
-//             replayer.DeleteReplay();
-//         }
-//     }
-// }
+[CustomEditor(typeof(Replayer))]
+public class ReplayerEditor : Editor
+{
+    private SerializedProperty _recordingFolder;
+    
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+        if (!Application.isPlaying) return;
+        
+        Replayer replayer = (Replayer)target;
+        _recordingFolder = serializedObject.FindProperty("_recordingFolder");
+        
+        
+        if (GUILayout.Button("Start Replay"))
+        {
+            serializedObject.Update();
+            replayer.StartReplay(this, _recordingFolder.stringValue);
+        }
+        if (GUILayout.Button("Stop Replay"))
+        {
+            replayer.StopReplay();
+        }
+        if (GUILayout.Button("Delete Replay"))
+        {
+            replayer.DeleteReplay();
+        }
+        
+        if (GUILayout.Button("Load Replay"))
+        {
+            serializedObject.Update();
+            replayer.CreateThumbnail(_recordingFolder.stringValue);
+            replayer.LoadReplay(_recordingFolder.stringValue);
+        }
+    }
+}

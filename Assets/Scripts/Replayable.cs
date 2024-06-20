@@ -31,6 +31,8 @@ public class Replayable : MonoBehaviour
     private Transform _networkSceneRoot;
     private float _lastTransmitTime;
     
+    private AudioReplayable _audioReplayable;
+    
     private ThreePointTrackedAvatar _trackedAvatar;
     private Avatar _avatar; // remove this only need it for debugging
     private int _trackingPoints;
@@ -53,8 +55,8 @@ public class Replayable : MonoBehaviour
     private void Awake()
     {
         _replayer = GameObject.FindWithTag("Recorder").GetComponent<Replayer>();
-        _replayer.onReplayStart.AddListener(OnReplayStart);
-        _replayer.onReplayStop.AddListener(OnReplayStop);
+        _replayer.onReplayStart += OnReplayStart;
+        _replayer.onReplayStop += OnReplayStop;
         
         _trackedAvatar = GetComponent<ThreePointTrackedAvatar>();
         _avatar = GetComponent<Avatar>();
@@ -69,8 +71,12 @@ public class Replayable : MonoBehaviour
     
     // in theory, whenever someone presses start again, the replay starts from the beginning
     // only when it is on pause and the user presses start again, it should continue from where it was paused
-    private void OnReplayStart()
+    private void OnReplayStart(object o, EventArgs e)
     {
+        if (!_audioReplayable)
+        {
+            _audioReplayable = GetComponent<AudioReplayable>();
+        }
         // if we have stopped a replay pressing start will resume it
         // in case we are already playing pressing start will start the replay from the beginning
         if (_isPlaying)
@@ -80,7 +86,7 @@ public class Replayable : MonoBehaviour
     }
     // stop a replay without deleting the replay
     // this is only invoked from Replayer when the replay is already playing otherwise it is unnecessary
-    private void OnReplayStop()
+    private void OnReplayStop(object o, EventArgs e)
     {
         _isPlaying = false;
     }
@@ -169,7 +175,7 @@ public class Replayable : MonoBehaviour
             var t = _deltaTime * _fps;
             var frameNr = Mathf.FloorToInt(t);
             t -= frameNr;
-
+            // Debug.Log(_avatar.NetworkId + " " + frameNr + " " + t);
             if (frameNr < _frames - 1)
             {
                 // Debug.Log(frameNr);
@@ -183,6 +189,11 @@ public class Replayable : MonoBehaviour
             {
                 // end of replay reached, start again
                 _deltaTime = 0.0f;
+                if (_audioReplayable)
+                {
+                    _audioReplayable.ReplayAudioFromStart();
+                }
+                Debug.Log("Replay again from start!");
             }
         }
         
@@ -224,7 +235,7 @@ public class Replayable : MonoBehaviour
     
     private void OnDestroy()
     {
-        _replayer.onReplayStart.RemoveListener(OnReplayStart);
-        _replayer.onReplayStop.RemoveListener(OnReplayStop);
+        _replayer.onReplayStart -= OnReplayStart;
+        _replayer.onReplayStop -= OnReplayStop; 
     }
 }

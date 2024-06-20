@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -25,6 +26,7 @@ public class Recorder : MonoBehaviour
     {
         public string name; // date and time of the recording
         public float duration; // computed from fps and number of frames
+        public float frames; // number of frames, take the min of all recordables
         public List<string> uniquePrefabs; // a recording can consist of several prefabs or just multiple instances of the same
         public List<int> numInstances; // number of instances of each unique prefab
         public List<string> recordablePrefabs; // prefabs required to spawn for the replay
@@ -44,21 +46,26 @@ public class Recorder : MonoBehaviour
     
     private bool _isRecording;
     private string _pathLastRecording;
+    private string _currentDateTimeString;
     
     // private Replayer _replayer;
 
     public int fps = 10; // fps for recording
-    public UnityEvent onRecordingStart;
-    public UnityEvent<string> onRecordingStop;
-    public UnityEvent<GameObject> onRemoveReplayedObject;
-    public UnityEvent onAddThumbnailData;
+    public event EventHandler<string> onRecordingStart;
+    public event EventHandler<string> onRecordingStop;
+    public event EventHandler<GameObject> onRemoveReplayedObject;
+    public event EventHandler onAddThumbnailData;
     
     private string _savePath;
     private ThumbnailData thumbnailData;
+
+    // private Replayer _replayer;
+    // private bool _replayLoaded;
     
     void Start()
     {
         // _replayer = GetComponent<Replayer>();
+        
         _savePath = Application.persistentDataPath;
     }
 
@@ -88,14 +95,27 @@ public class Recorder : MonoBehaviour
 
     public void RemoveReplayedObject(GameObject go)
     {
-        onRemoveReplayedObject.Invoke(go);
+        onRemoveReplayedObject?.Invoke(this, go);
     }
     
     public void StartRecording()
     {
         Debug.Log("Start recording!");
+        // we create the recording folder already when we start a recording and not when we finish it
+        // this way data that gets written to file during a recording can already access the recording folder
+        // get current date time string
+        _currentDateTimeString = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        // create folder for new recording
+        Directory.CreateDirectory(Path.Join(_savePath, _currentDateTimeString));
+        _pathLastRecording = Path.Join(_savePath,_currentDateTimeString); // path to folder of last recording, but currently also the recording we want to save
+        
+        // TODO we should probably check that if we also record a previous replay that we don't start recording when the replay is not loaded yet
+        // but how? we don't know if a replay should be loaded, or is about to be loaded or not...
+        // we'd have to let the recorder know as soon as a replay is trying to load.
+        // problem is if we don't get the event, this does not necessarily mean that the replay is not loaded
+        // it might as well mean that we do not even have a replay to load
         _isRecording = true;
-        onRecordingStart.Invoke();
+        onRecordingStart?.Invoke(this, _pathLastRecording);
     }
 
     public void StopRecording()
@@ -104,18 +124,18 @@ public class Recorder : MonoBehaviour
         _isRecording = false;
         // open a file and save the data
         // get current date time string
-        string dateTimeString = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        // create folder for new recording
-        Directory.CreateDirectory(Path.Join(_savePath, dateTimeString));
-        _pathLastRecording = Path.Join(_savePath,dateTimeString); // path to folder of last recording, but currently also the recording we want to save
+        // string _currentDateTimeString = System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        // // create folder for new recording
+        // Directory.CreateDirectory(Path.Join(_savePath, _currentDateTimeString));
+        // _pathLastRecording = Path.Join(_savePath,_currentDateTimeString); // path to folder of last recording, but currently also the recording we want to save
 
-        thumbnailData = new ThumbnailData(dateTimeString);
+        thumbnailData = new ThumbnailData(_currentDateTimeString);
         // every recordable should add its thumbnail data to the meta file
-        onAddThumbnailData.Invoke();
+        onAddThumbnailData?.Invoke(this, EventArgs.Empty);
         SaveThumbnail(_pathLastRecording);
         
         // every recordable adds its own data in a file to the recording folder
-        onRecordingStop.Invoke(_pathLastRecording);
+        onRecordingStop?.Invoke(this, _pathLastRecording);
     }
 
     private void SaveThumbnail(string pathToFolder)
@@ -124,30 +144,30 @@ public class Recorder : MonoBehaviour
     }
 }
 
-// [CustomEditor(typeof(Recorder))]
-// public class RecorderEditor : Editor
-// {
-//     string _text = "Start Recording";
-//     public override void OnInspectorGUI()
-//     {
-//         DrawDefaultInspector();
-//         if (!Application.isPlaying) return;
-//         
-//         Recorder recorder = (Recorder) target;
-//
-//         // add a button that changes text depending on whether a recording needs to be started or stopped
-//         if (!GUILayout.Button(_text)) return;
-//         
-//         if (_text == "Start Recording")
-//         {
-//             recorder.StartRecording();
-//             _text = "Stop Recording";
-//         }
-//         else
-//         {
-//             recorder.StopRecording();
-//             _text = "Start Recording";
-//         }
-//
-//     }
-// }
+[CustomEditor(typeof(Recorder))]
+public class RecorderEditor : Editor
+{
+    string _text = "Start Recording";
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+        if (!Application.isPlaying) return;
+        
+        Recorder recorder = (Recorder) target;
+
+        // add a button that changes text depending on whether a recording needs to be started or stopped
+        if (!GUILayout.Button(_text)) return;
+        
+        if (_text == "Start Recording")
+        {
+            recorder.StartRecording();
+            _text = "Stop Recording";
+        }
+        else
+        {
+            recorder.StopRecording();
+            _text = "Start Recording";
+        }
+
+    }
+}
