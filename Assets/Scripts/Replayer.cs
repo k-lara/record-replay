@@ -103,7 +103,6 @@ public class Replayer : MonoBehaviour
 
     // a replay has to be loaded for this to work
     // if we start a recording and a replay is loaded, we record over the loaded replay
-    // folder is not needed here
     public void StartReplay(object o, string folder)
     {
         if (!_isLoaded) return;
@@ -174,8 +173,13 @@ public class Replayer : MonoBehaviour
         
         // normal users don't have the AudioReplayable on their avatar
         // it is only used for replayed avatars
-        Debug.Log("Add AudioReplayable");
-        go.AddComponent<AudioReplayable>();
+        // if we don't have an AudioRecordable on the avatar, we also won't create a Replayable
+        if (go.GetComponent<AudioRecordable>())
+        {
+            Debug.Log("Add AudioReplayable");
+            go.AddComponent<AudioReplayable>();
+        }
+        go.AddComponent<ReplayInfo>();
         
         var replayable = go.GetComponent<Replayable>();
         // this helps to distinguish local and remote replayables. someone could replay their own data while

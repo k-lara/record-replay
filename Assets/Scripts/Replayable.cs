@@ -41,6 +41,8 @@ public class Replayable : MonoBehaviour
     private State[] _state; // current pose of the tracked avatar
     private float _deltaTime; // time that has progressed since the replay started
 
+    public event EventHandler<Recordable.RecordableData> OnReplayableDataLoaded;
+    
     // taken from ThreePointTrackedAvatar to create the same reference counted scene graph message
     [Serializable]
     private struct State
@@ -100,6 +102,7 @@ public class Replayable : MonoBehaviour
         _replayableData = data; 
         if (!fromThumbnail)
         {
+            OnReplayableDataLoaded?.Invoke(this, _replayableData);
             _trackingPoints = int.Parse(_replayableData.metaData[_replayableData.metaDataLabels.IndexOf("trackingPoints")]);
             _fps = int.Parse(_replayableData.metaData[_replayableData.metaDataLabels.IndexOf("fps")]);
             _frames = int.Parse(_replayableData.metaData[_replayableData.metaDataLabels.IndexOf("frames")]);

@@ -23,6 +23,16 @@ public class AudioReplayable : MonoBehaviour
     private VoipAvatar m_VoipAvatar;
     private Avatar m_Avatar;
 
+    public event EventHandler<AudioInfoData> OnAudioReplayLoaded;
+
+    public struct AudioInfoData
+    {
+        public float[] data;
+        public int channels;
+        public int frequency;
+        public Transform transform;
+    }
+    
     private void Awake()
     {
         m_Replayer = GameObject.FindWithTag("Recorder").GetComponent<Replayer>();
@@ -93,6 +103,14 @@ public class AudioReplayable : MonoBehaviour
         Task<float[]> task = Task.Run(() => ReadAudioData(folder));
         var audioData = task.Result;
         AddAudioDataToClip(audioData, m_channels);
+        var audioInfoData = new AudioInfoData()
+        {
+            data = audioData,
+            channels = m_channels,
+            frequency = AudioSettings.outputSampleRate,
+            transform = m_VoipAvatar.audioSourcePosition
+        };
+        OnAudioReplayLoaded?.Invoke(this, audioInfoData);
     }
     
     // we create an audio source where the head of the character is

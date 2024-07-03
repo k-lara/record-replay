@@ -22,11 +22,11 @@ public class AudioRecordable : MonoBehaviour
     private Recorder m_Recorder;
     private StreamWriter m_AudioWriter;
 
-    private bool m_skipSamples;
+    private bool m_SkipSamples;
     private AudioSource m_AudioSource;
     private float m_StartPosition; // where to start recording from in the audio data
     private float m_SkippedSamples;
-    private int m_multiplier = 2; // how many times to skip m_StartPosition samples
+    private int m_Multiplier = 2; // how many times to skip m_StartPosition samples
 
     // Start is called before the first frame update
     void Start()
@@ -51,7 +51,7 @@ public class AudioRecordable : MonoBehaviour
                 m_RecorderAudioFilter = m_LonelyMicrophone.gameObject.GetComponent<RecorderAudioFilter>();
                 m_RecorderAudioFilter.OnAudioData += OnAudioData;
                 m_AudioSource =  m_LonelyMicrophone.gameObject.GetComponent<AudioSource>();
-                m_StartPosition = (m_AudioSource.clip.frequency / 8.0f) * m_multiplier;
+                m_StartPosition = (m_AudioSource.clip.frequency / 8.0f) * m_Multiplier;
             };
 
         }
@@ -83,7 +83,7 @@ public class AudioRecordable : MonoBehaviour
 
     private void OnRecordingStart(object o, string folder)
     {
-        m_skipSamples = true;
+        m_SkipSamples = true;
         m_SkippedSamples = 0;
         m_AudioWriter = new StreamWriter(Path.Combine(folder, "audio_" + m_Avatar.NetworkId + ".txt"));
     }
@@ -99,7 +99,7 @@ public class AudioRecordable : MonoBehaviour
     // this is only called when we are recording
     private void OnAudioData(object sender, RecorderAudioFilter.AudioData e)
     {
-        if (m_skipSamples)
+        if (m_SkipSamples)
         {
             // remove some samples at the beginning to reduce latency
             
@@ -109,7 +109,7 @@ public class AudioRecordable : MonoBehaviour
             // if we have skipped enough samples, we can start recording
             if (m_SkippedSamples >= m_StartPosition)
             {
-                m_skipSamples = false;
+                m_SkipSamples = false;
                 var s = e.data.Length - (m_SkippedSamples - m_StartPosition);
                 Debug.Log(s);
                 Debug.Log(m_StartPosition);
