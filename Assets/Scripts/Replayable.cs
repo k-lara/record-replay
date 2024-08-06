@@ -2,29 +2,31 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Ubiq;
 using Ubiq.Avatars;
 using Ubiq.Geometry;
 using Ubiq.Messaging;
-using Ubiq.Spawning;
 using UnityEngine;
 using Avatar = Ubiq.Avatars.Avatar;
 
-/// <summary>
-/// a game object that has Replayable might have only been created for replaying
-/// we don't need to know when we were created and when we get deleted, because the Replayer will handle this
-/// we only need to know when to start and stop replaying the data we got sent from the Replayer
-///
-/// To avoid modifying ThreePointTrackedAvatar and any class that is responsible for animating the avatar
-/// we network this object and send the replayed data to the remote Replayable instead.
-/// The remote Replayable then sends the data to its corresponding ThreePointTrackedAvatar
-/// This means the Replayable needs to know if it is the local one.
-/// </summary>
-public class Replayable : MonoBehaviour
+public class Replayable : MonoBehaviour, IHeadAndHandsInput
 {
+    public int priority { get; set; }
+    public bool active => isActiveAndEnabled;
+    public InputVar<Pose> head => new(_replayablePose.head);
+    public InputVar<Pose> leftHand => new(_replayablePose.leftHand);
+    public InputVar<Pose> rightHand => new(_replayablePose.rightHand);
+    public InputVar<float> leftGrip => InputVar<float>.invalid;
+    public InputVar<float> rightGrip => InputVar<float>.invalid;
+    
     private Replayer _replayer;
-    private Recordable.RecordableData _replayableData;
-    private bool _isPlaying; // true if a replay is playing
-    public bool isLocal; // true if this is the local replayable, this gets set by the Replayer when the replay is created
+    // this is the id of the avatar that was recorded and links to the data recorded by that avatar
+    // by changing this id, we can change what data is replayed by this replayable
+    // the replayable data is stored for all replayables in the Replayer
+    public Guid replayableId { get; set; }
+    // public bool takenOver { get; set; }
+    public bool isLocal { get; set; }
+    private bool _isPlaying;
     
     // same as in ThreePointTrackedAvatar
     private NetworkContext _context;
@@ -33,46 +35,52 @@ public class Replayable : MonoBehaviour
     
     private AudioReplayable _audioReplayable;
     
-    private ThreePointTrackedAvatar _trackedAvatar;
+    private HeadAndHandsAvatar _trackedAvatar;
     private Avatar _avatar; // remove this only need it for debugging
     private int _trackingPoints;
     private int _fps;
-    private int _frames;
-    private State[] _state; // current pose of the tracked avatar
     private float _deltaTime; // time that has progressed since the replay started
-
-    public event EventHandler<Recordable.RecordableData> OnReplayableDataLoaded;
+    private int _frameNr; // current frame number
+    private float _t; // time between two frames 4.6 means 60% of the way between frame 4 and 5
+    private float _tFrac; // fraction of the way between two frames
     
-    // taken from ThreePointTrackedAvatar to create the same reference counted scene graph message
-    [Serializable]
-    private struct State
+    public ReplayablePose _replayablePose { get; private set; }
+
+    public class ReplayablePose
     {
-        public PositionRotation head;
-        public PositionRotation leftHand;
-        public PositionRotation rightHand;
-        public float leftGrip;
-        public float rightGrip;
+        public Pose head;
+        public Pose leftHand;
+        public Pose rightHand;
     }
 
-    private void Awake()
+    public event EventHandler<ReplayablePose> OnUpdateReplayablePose;
+
+    private AvatarInput _avatarInput;
+
+    void Awake()
     {
         _replayer = GameObject.FindWithTag("Recorder").GetComponent<Replayer>();
         _replayer.onReplayStart += OnReplayStart;
         _replayer.onReplayStop += OnReplayStop;
         
-        _trackedAvatar = GetComponent<ThreePointTrackedAvatar>();
+        _trackedAvatar = GetComponent<HeadAndHandsAvatar>();
         _avatar = GetComponent<Avatar>();
-    }
-
-    private void Start()
-    {
-        _context = NetworkScene.Register(this, NetworkId.Create(_avatar.NetworkId, "Replayable"));
-        _networkSceneRoot = _context.Scene.transform;
-        _lastTransmitTime = Time.time;
+        
     }
     
-    // in theory, whenever someone presses start again, the replay starts from the beginning
-    // only when it is on pause and the user presses start again, it should continue from where it was paused
+    private void Start()
+    {
+        
+        _avatarInput.Add(this);
+        _avatar.SetInput(_avatarInput);
+
+        _replayablePose = new ReplayablePose();
+
+        // _context = NetworkScene.Register(this, NetworkId.Create(_avatar.NetworkId, "Replayable"));
+        // _networkSceneRoot = _context.Scene.transform;
+        // _lastTransmitTime = Time.time;
+    }
+
     private void OnReplayStart(object o, EventArgs e)
     {
         if (!_audioReplayable)
@@ -86,85 +94,33 @@ public class Replayable : MonoBehaviour
         
         _isPlaying = true;
     }
-    // stop a replay without deleting the replay
-    // this is only invoked from Replayer when the replay is already playing otherwise it is unnecessary
+
     private void OnReplayStop(object o, EventArgs e)
     {
         _isPlaying = false;
     }
-    
-    // we can also set replayable data from a thumbnail, namely the first pose only
-    // thumbnail data does not have information about fps and number of frames
-    public void SetReplayableData(Recordable.RecordableData data, bool fromThumbnail = false)
-    {
-        // if fromThumbnail is true, this only contains the first pose and nothing else
-        // this will be overwritten by the full replay when it is loaded 
-        _replayableData = data; 
-        if (!fromThumbnail)
-        {
-            OnReplayableDataLoaded?.Invoke(this, _replayableData);
-            _trackingPoints = int.Parse(_replayableData.metaData[_replayableData.metaDataLabels.IndexOf("trackingPoints")]);
-            _fps = int.Parse(_replayableData.metaData[_replayableData.metaDataLabels.IndexOf("fps")]);
-            _frames = int.Parse(_replayableData.metaData[_replayableData.metaDataLabels.IndexOf("frames")]);
-        }
-        
-        //put prefab in correct first pose for replay
-        SetPoseFrame(0);
-    }
-    
-    // set the pose of the tracked avatar to the pose of the frame
-    // when loading a recording we set the pose of the recorded avatars to the first frame
-    private void SetPoseFrame(int frame)
-    {
-        var firstDataFrame = _replayableData.recordableData[0];
-        
-        var pHead = new Vector3(firstDataFrame.data[0], firstDataFrame.data[1], firstDataFrame.data[2]);
-        var pLeftHand = new Vector3(firstDataFrame.data[3], firstDataFrame.data[4], firstDataFrame.data[5]);
-        var pRightHand = new Vector3(firstDataFrame.data[6], firstDataFrame.data[7], firstDataFrame.data[8]);
-        
-        var rHead = new Quaternion(firstDataFrame.data[9], firstDataFrame.data[10], firstDataFrame.data[11], firstDataFrame.data[12]);
-        var rLeftHand = new Quaternion(firstDataFrame.data[13], firstDataFrame.data[14], firstDataFrame.data[15], firstDataFrame.data[16]);
-        var rRightHand = new Quaternion(firstDataFrame.data[17], firstDataFrame.data[18], firstDataFrame.data[19], firstDataFrame.data[20]);
 
-        _state = GetStateFrom(pHead, pLeftHand, pRightHand, rHead, rLeftHand, rRightHand);
-        // we can't set the pose here because ThreePointTrackedAvatar has not initialised the networkSceneRoot yet
-        // but we set it in update anyway so don't need to do anything here
-        
-    }
-    
-    private State[] GetStateFrom(Vector3 pHead, Vector3 pLeftHand, Vector3 pRightHand, Quaternion rHead, Quaternion rLeftHand, Quaternion rRightHand)
+    private void UpdateReplayablePose()
     {
-        var state = new State[1];
+        var f0 = _replayer.recording.recordableDataDict[replayableId].dataFrames[_frameNr];
+        var f1 = _replayer.recording.recordableDataDict[replayableId].dataFrames[_frameNr + 1];
         
-        state[0].head = new PositionRotation
-        {
-            position = pHead,
-            rotation = rHead
-        };
-        state[0].leftHand = new PositionRotation
-        {
-            position = pLeftHand,
-            rotation = rLeftHand
-        };
-        state[0].rightHand = new PositionRotation
-        {
-            position = pRightHand,
-            rotation = rRightHand
-        };
-        state[0].leftGrip = 0;
-        state[0].rightGrip = 0;
+        var pos = Vector3.Lerp(new Vector3(f0.xPosHead, f0.yPosHead, f0.zPosHead), new Vector3(f1.xPosHead, f1.yPosHead, f1.zPosHead), _tFrac);
+        var rot = Quaternion.Lerp(new Quaternion(f0.xRotHead, f0.yRotHead, f0.zRotHead, f0.wRotHead), new Quaternion(f1.xRotHead, f1.yRotHead, f1.zRotHead, f1.wRotHead), _tFrac);
+        _replayablePose.head = new Pose(pos, rot);
         
-        return state;
+        pos = Vector3.Lerp(new Vector3(f0.xPosLeftHand, f0.yPosLeftHand, f0.zPosLeftHand), new Vector3(f1.xPosLeftHand, f1.yPosLeftHand, f1.zPosLeftHand), _tFrac);
+        rot = Quaternion.Lerp(new Quaternion(f0.xRotLeftHand, f0.yRotLeftHand, f0.zRotLeftHand, f0.wRotLeftHand), new Quaternion(f1.xRotLeftHand, f1.yRotLeftHand, f1.zRotLeftHand, f1.wRotLeftHand), _tFrac);
+        _replayablePose.leftHand = new Pose(pos, rot);
+        
+        pos = Vector3.Lerp(new Vector3(f0.xPosRightHand, f0.yPosRightHand, f0.zPosRightHand), new Vector3(f1.xPosRightHand, f1.yPosRightHand, f1.zPosRightHand), _tFrac);
+        rot = Quaternion.Lerp(new Quaternion(f0.xRotRightHand, f0.yRotRightHand, f0.zRotRightHand, f0.wRotRightHand), new Quaternion(f1.xRotRightHand, f1.yRotRightHand, f1.zRotRightHand, f1.wRotRightHand), _tFrac);
+        _replayablePose.rightHand = new Pose(pos, rot);
+        
+        // AvatarTakeover only subscribes to the one event from the avatar it is taking over
+        OnUpdateReplayablePose?.Invoke(this, _replayablePose);
     }
 
-    private ReferenceCountedSceneGraphMessage CreateRcsgMessage(State[] state)
-    {
-        var transformBytes = MemoryMarshal.AsBytes(new ReadOnlySpan<State>(state));
-        var message = ReferenceCountedSceneGraphMessage.Rent(transformBytes.Length);
-        transformBytes.CopyTo(new Span<byte>(message.bytes, message.start, message.length));
-        return message;
-    }
-    
     // Update is called once per frame
     void Update()
     {
@@ -172,73 +128,21 @@ public class Replayable : MonoBehaviour
         if (_isPlaying)
         {
             _deltaTime += Time.deltaTime;
-            // we have _frames in total which were recorded at _fps
             // during replay we interpolate between the frames to get smooth movements
             // because we know the fps we always know where we are between two consecutive frames and can interpolate accordingly
-            var t = _deltaTime * _fps;
-            var frameNr = Mathf.FloorToInt(t);
-            t -= frameNr;
-            // Debug.Log(_avatar.NetworkId + " " + frameNr + " " + t);
-            if (frameNr < _frames - 1)
+            _t = _deltaTime * _replayer.recording.recordableDataDict[replayableId].fps + _replayer.frameOffset;
+            _frameNr = Mathf.FloorToInt(_t);
+            _tFrac = _t - _frameNr;
+            
+            if (_frameNr < _replayer.recording.recordableDataDict[replayableId].numFrames - 1)
             {
-                // Debug.Log(frameNr);
-                // Debug.Log(_replayableData.recordableData.Count);
-                // Interpolate the pose between two frames in the recordable data and send it to the tracked avatar
-                _state = InterpolatePose(_replayableData.recordableData[frameNr],
-                    _replayableData.recordableData[frameNr + 1], t);
-                // Debug.Log(_avatar.NetworkId.ToString() + ": " + _state[0].head.position.x);
+                // if we change the replayableId, we can make a Replayable replay any data we want (as long as the data structure is the same)
+                UpdateReplayablePose();
             }
-            else
-            {
-                // end of replay reached, start again
-                _deltaTime = 0.0f;
-                if (_audioReplayable)
-                {
-                    _audioReplayable.ReplayAudioFromStart();
-                }
-                Debug.Log("Replay again from start!");
-            }
+            
+            // TODO what to do when we are done?
+            // other replayables might still be going because they have more frames
+            // we can just do nothing and wait on the last frame for other replayables to finish
         }
-        
-        if (_state != null)
-        {
-            // send the last state to the tracked avatar regardless of whether we are playing or not
-            var message = CreateRcsgMessage(_state);
-            _trackedAvatar.ProcessMessage(message);
-
-            if (Time.time - _lastTransmitTime > (1.0f / _avatar.UpdateRate))
-            {
-                _lastTransmitTime = Time.time;
-                _context.Send(message);
-            }
-        }
-    }
-
-    private State[] InterpolatePose(Recordable.RecordableDataFrame f1, Recordable.RecordableDataFrame f2, float t)
-    {
-        var state = new State[1];
-        
-        var pHead = Vector3.Lerp(new Vector3(f1.data[0], f1.data[1], f1.data[2]), new Vector3(f2.data[0], f2.data[1], f2.data[2]), t);
-        var pLeftHand = Vector3.Lerp(new Vector3(f1.data[3], f1.data[4], f1.data[5]), new Vector3(f2.data[3], f2.data[4], f2.data[5]), t);
-        var pRightHand = Vector3.Lerp(new Vector3(f1.data[6], f1.data[7], f1.data[8]), new Vector3(f2.data[6], f2.data[7], f2.data[8]), t);
-       
-        var rHead = Quaternion.Lerp(new Quaternion(f1.data[9], f1.data[10], f1.data[11], f1.data[12]), new Quaternion(f2.data[9], f2.data[10], f2.data[11], f2.data[12]), t);
-        var rLeftHand = Quaternion.Lerp(new Quaternion(f1.data[13], f1.data[14], f1.data[15], f1.data[16]), new Quaternion(f2.data[13], f2.data[14], f2.data[15], f2.data[16]), t);
-        var rRightHand = Quaternion.Lerp(new Quaternion(f1.data[17], f1.data[18], f1.data[19], f1.data[20]), new Quaternion(f2.data[17], f2.data[18], f2.data[19], f2.data[20]), t);
-        
-        return GetStateFrom(pHead, pLeftHand, pRightHand, rHead, rLeftHand, rRightHand);
-    }
-    
-    // a remote replayable will receive the motion data from the Replayable here
-    // and forward it to the tracked avatar
-    public void ProcessMessage(ReferenceCountedSceneGraphMessage message)
-    {
-        _trackedAvatar.ProcessMessage(message);
-    }
-    
-    private void OnDestroy()
-    {
-        _replayer.onReplayStart -= OnReplayStart;
-        _replayer.onReplayStop -= OnReplayStop; 
     }
 }
