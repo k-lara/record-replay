@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Samples/Ubiq/1.0.0-pre.4/Demo (XRI)/Demo.unity
+    path: Assets/Samples/Ubiq/1.0.0-pre.8/Demo (XRI)/Demo.unity
     guid: 2de505d34345ab340bdde30d419b24eb
   - enabled: 0
     path: Assets/ViveSR/Scenes/Eye/EyeSample_v2.unity

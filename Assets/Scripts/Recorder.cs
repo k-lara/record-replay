@@ -2,14 +2,17 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using Ubiq.Avatars;
 using UnityEditor;
 using UnityEngine;
+using Avatar = Ubiq.Avatars.Avatar;
 using Directory = UnityEngine.Windows.Directory;
 
 [RequireComponent(typeof(Replayer))]
 public class Recorder : MonoBehaviour
 {
-    public Recording recording { get; private set; }
+    private RecordingManager _recordingManager;
+    public Recording recording => _recordingManager.Recording;
     
     private bool _isRecording;
     public bool _replayLoaded { get; private set; }
@@ -18,18 +21,27 @@ public class Recorder : MonoBehaviour
     public int fps = 10;
     
     public event EventHandler onRecordingStart;
-    public event EventHandler onRecordingStop; // tell everyone to stop and add the data
+    public event EventHandler<RecordingManager.RecordingFlags> onRecordingStop; // tell everyone to stop and add the data
     
     private Replayer _replayer;
+    
+    private AvatarManager _avatarManager;
     
     // Start is called before the first frame update
     void Start()
     {
+        _recordingManager = GetComponent<RecordingManager>();
+
         _replayer = GetComponent<Replayer>();
         
         _replayer.onReplayCreated += OnReplayLoaded;
         _replayer.onReplayDeleted += OnReplayDeleted;
         _replayer.onReplayStart += OnReplayStart;
+        
+        _avatarManager = AvatarManager.Find(this);
+        var recordable = _avatarManager.LocalAvatar.gameObject.AddComponent<Recordable>();
+        recordable.prefabName = _avatarManager.avatarPrefab.name;
+
     }
 
     public void StartRecording()
@@ -38,8 +50,7 @@ public class Recorder : MonoBehaviour
 
         if (recording == null)
         {
-            recording = new Recording();
-            recording.Init();
+            _recordingManager.InitNewRecording();
         }
         
         if (!_replayLoaded)
@@ -56,7 +67,15 @@ public class Recorder : MonoBehaviour
         
         _isRecording = false;
         // each recordable adds its metadata to the thumbnail in their OnRecordingStop()
-        onRecordingStop?.Invoke(this, EventArgs.Empty);
+        onRecordingStop?.Invoke(this, _recordingManager.recordingFlags);
+
+        StartCoroutine(WaitForSaveReady());
+    }
+    
+    private IEnumerator WaitForSaveReady()
+    {
+        yield return new WaitUntil(() => _recordingManager.recordingFlags.SaveReady == true);
+        _recordingManager.SaveRecording();
     }
     
     private void OnReplayStart(object o, EventArgs e)
@@ -64,7 +83,7 @@ public class Recorder : MonoBehaviour
         _replayPlaying = true;
     }
     
-    private void OnReplayLoaded(object o, EventArgs e)
+    private void OnReplayLoaded(object o, Dictionary<Guid, Replayable> dict)
     {
         _replayLoaded = true;
     }
@@ -79,7 +98,7 @@ public class Recorder : MonoBehaviour
     {
         if (_replayLoaded || _replayPlaying)
         {
-            return _replayer.currentFrame; // includes frameOffset if replay starts not at 0
+            return _replayer.currentFrame;
         }
         return 0;
     }

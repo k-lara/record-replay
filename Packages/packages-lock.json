@@ -16,10 +16,10 @@
       "depth": 0,
       "source": "git",
       "dependencies": {
-        "com.unity.shadergraph": "14.0.9",
+        "com.unity.shadergraph": "12.1.6",
         "com.unity.editorcoroutines": "1.0.0"
       },
-      "hash": "908b4f8ab6b2fbdead83b23d3b96e7db58a203c0"
+      "hash": "bb365af1705f9dac1546468f7618fff5e6dcb505"
     },
     "com.unity.collab-proxy": {
       "version": "2.3.1",

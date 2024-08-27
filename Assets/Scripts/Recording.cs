@@ -5,14 +5,12 @@ using Unity.VisualScripting;
 using UnityEngine;
 
 /* this class comprises a recording that is stored in memory for extending and editing it
-the recordingId is unique to the recording
-the recording consists of 
  */
 public class Recording
 {
     public Guid recordingId { get; private set; } // guid
     // recordingSavePath + recordingId make up the path to the recording folder
-    public string recordingSavePath { get; private set; } // path to the directory that has all the recording folders
+    // public string recordingSavePath { get; private set; } // path to the directory that has all the recording folders
     
     // contains the data of the recording which is the data from all recordables
     public Dictionary<Guid, RecordableData> recordableDataDict { get; private set; }
@@ -75,12 +73,47 @@ public class Recording
         public List<string> prefabNames;
         public List<RecordableDataFrame> firstPoses = new();
     }
+    
+    // gathers data from recording such as id and information from the recordableDataDict and creates a thumbnail
+    public ThumbnailData AssembleThumbnailData()
+    {
+        var thumbnail = new ThumbnailData
+        {
+            recordingId = recordingId.ToString(),
+            recordableIds = new List<string>(),
+            prefabNames = new List<string>(),
+            firstPoses = new List<RecordableDataFrame>()
+        };
 
-    public void Init()
+        foreach (var recordableData in recordableDataDict)
+        {
+            thumbnail.recordableIds.Add(recordableData.Key.ToString());
+            thumbnail.prefabNames.Add(recordableData.Value.prefabName);
+            thumbnail.firstPoses.Add(recordableData.Value.dataFrames[0]);
+        }
+
+        return thumbnail;
+    }
+
+    public Recording() { }
+
+    public Recording(Guid id)
+    {
+        recordingId = id;
+    }
+
+    public void SetRecordableDataDict(Dictionary<Guid, RecordableData> dict)
+    {
+        recordableDataDict = dict;
+    }
+    
+    // creates a new recording with new guid
+    public void InitNew()
     {
         recordingId = Guid.NewGuid();
         recordableDataDict = new Dictionary<Guid, RecordableData>();
-        recordingSavePath = Application.persistentDataPath;
+        // recordingSavePath = Application.persistentDataPath;
+        Debug.Log("Init new recording: " + recordingId);
     }
     
     // when a new recording is happening we need to add the recordable data to the dict
@@ -89,6 +122,7 @@ public class Recording
         var recData = new RecordableData();
         var recId = Guid.NewGuid();
         recordableDataDict.Add(recId, recData);
+        Debug.Log("Create recordable data: " + recId);
         return recId;
     }
 
@@ -114,6 +148,8 @@ public class Recording
     
     public void UpdateMetaData(Guid id, int numFrames, int fps, string prefabName)
     {
+        Debug.Log("Update meta data: " + id + " " + numFrames + " " + fps + " " + prefabName);
+        
         var metaData = recordableDataDict[id];
         metaData.numFrames = numFrames;
         metaData.fps = fps;

@@ -82,6 +82,7 @@ public class Recordable : MonoBehaviour
         
         if (_avatarInput.TryGet(out IHeadAndHandsInput src))
         {
+            // Debug.Log("Recording data!");
             if (_frameInterval >= 1.0f / _recorder.fps)
             {
                 _t = (1.0f/_recorder.fps - _previousPoseTime) / (_frameInterval - _previousPoseTime);
@@ -135,14 +136,33 @@ public class Recordable : MonoBehaviour
     // TODO for taken over avatars we have to start before the end of the data!
     private void OnRecordingStart(object o, EventArgs e)
     {
-        _frameInterval = _recorder.GetCurrentFrameFloat() - Mathf.FloorToInt(_recorder.GetCurrentFrameFloat());
-        _currentFrameNr = Mathf.CeilToInt(_recorder.GetCurrentFrameFloat()); // get the next int frame to write on
+        var currentFloatFrame = _recorder.GetCurrentFrameFloat();
+        
+        _frameInterval = currentFloatFrame - Mathf.FloorToInt(currentFloatFrame);
+        
+        if (currentFloatFrame == 0)
+        {
+            _currentFrameNr = 0;
+        }
+        else
+        {
+            // we want to record the next frame, and not the one we are currently at according to the replayer
+            // but if we are doing a takeover, the current frame is an int so ceil/floor will return that frame and not the next frame
+            if (Mathf.CeilToInt(currentFloatFrame) == (int)currentFloatFrame)
+            {
+                _currentFrameNr = (int)currentFloatFrame + 1;
+            }
+            else
+            {
+                _currentFrameNr = (int)currentFloatFrame;
+            }
+        }
         
         // if this is the player it will only get a guid assigned when it starts a new recording
         // if this is an existing replay who we want to take over then we already have a guid from the replayer
+        Debug.Log("Takeover:" + _isTakingOver);
         if (!_isTakingOver)
         {
-            Debug.Log("Create new recording entry!");
             _guid = _recorder.recording.CreateNewRecordableData();
             // so we already have the prefab name saved, even if frame number is not correct yet
             _recorder.recording.UpdateMetaData(_guid, _currentFrameNr, _recorder.fps, prefabName);
@@ -157,11 +177,21 @@ public class Recordable : MonoBehaviour
         _isRecording = true;
     }
 
-    private void OnRecordingStop(object o, EventArgs e)
+    // when we are taking over, we don't add this metadata because this is not a new entry
+    // the data from the takeover is stored in AvatarTakeover and is not saved directly in the recording
+    // this recordable's _guid is not valid during takeover 
+    // !!! it is possible that this is not even called !!!
+    // because the AvatarTakeover switches the prefab back to the original player prefab
+    private void OnRecordingStop(object o, RecordingManager.RecordingFlags flags)
     {
         _isRecording = false;
 
-        _recorder.recording.UpdateMetaData(_guid, _currentFrameNr, _recorder.fps, prefabName);
+        if (!_isTakingOver)
+        {
+            Debug.Log(_recorder.recording.recordableDataDict[_guid].dataFrames.Count);
+
+            _recorder.recording.UpdateMetaData(_guid, _currentFrameNr, _recorder.fps, prefabName);
+        }
     }
     
     // if this is a taken over avatar, the data we get from the ThreePointTrackedAvatar should already be

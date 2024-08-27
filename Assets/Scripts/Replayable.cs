@@ -25,7 +25,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
     // the replayable data is stored for all replayables in the Replayer
     public Guid replayableId { get; set; }
     // public bool takenOver { get; set; }
-    public bool isLocal { get; set; }
+    public bool isLocal { get; private set; }
     private bool _isPlaying;
     
     // same as in ThreePointTrackedAvatar
@@ -39,10 +39,6 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
     private Avatar _avatar; // remove this only need it for debugging
     private int _trackingPoints;
     private int _fps;
-    private float _deltaTime; // time that has progressed since the replay started
-    private int _frameNr; // current frame number
-    private float _t; // time between two frames 4.6 means 60% of the way between frame 4 and 5
-    private float _tFrac; // fraction of the way between two frames
     
     public ReplayablePose _replayablePose { get; private set; }
 
@@ -55,31 +51,37 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
 
     public event EventHandler<ReplayablePose> OnUpdateReplayablePose;
 
-    private AvatarInput _avatarInput;
+    private AvatarInput _avatarInput = new();
+
+    public void SetIsLocal(bool isLocal)
+    {
+        this.isLocal = isLocal;
+        _avatar.IsLocal = isLocal;
+    }
 
     void Awake()
     {
         _replayer = GameObject.FindWithTag("Recorder").GetComponent<Replayer>();
         _replayer.onReplayStart += OnReplayStart;
         _replayer.onReplayStop += OnReplayStop;
+        _replayer.onFrameUpdate += OnFrameUpdate;
         
         _trackedAvatar = GetComponent<HeadAndHandsAvatar>();
         _avatar = GetComponent<Avatar>();
+
+        _replayablePose = new ReplayablePose();
+        
+        _avatarInput.Add(this as IHeadAndHandsInput);
+        _avatar.SetInput(_avatarInput);
         
     }
     
-    private void Start()
-    {
-        
-        _avatarInput.Add(this);
-        _avatar.SetInput(_avatarInput);
-
-        _replayablePose = new ReplayablePose();
-
-        // _context = NetworkScene.Register(this, NetworkId.Create(_avatar.NetworkId, "Replayable"));
-        // _networkSceneRoot = _context.Scene.transform;
-        // _lastTransmitTime = Time.time;
-    }
+    // private void Start()
+    // {
+    //     // _context = NetworkScene.Register(this, NetworkId.Create(_avatar.NetworkId, "Replayable"));
+    //     // _networkSceneRoot = _context.Scene.transform;
+    //     // _lastTransmitTime = Time.time;
+    // }
 
     private void OnReplayStart(object o, EventArgs e)
     {
@@ -87,10 +89,6 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         {
             _audioReplayable = GetComponent<AudioReplayable>();
         }
-        // if we have stopped a replay pressing start will resume it
-        // in case we are already playing pressing start will start the replay from the beginning
-        if (_isPlaying)
-            _deltaTime = 0.0f;
         
         _isPlaying = true;
     }
@@ -102,47 +100,75 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
 
     private void UpdateReplayablePose()
     {
-        var f0 = _replayer.recording.recordableDataDict[replayableId].dataFrames[_frameNr];
-        var f1 = _replayer.recording.recordableDataDict[replayableId].dataFrames[_frameNr + 1];
+        // no need to update if frame is too large, we just stay on the previous frame
+        if (_replayer.currentFrame >= _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1) return;
         
-        var pos = Vector3.Lerp(new Vector3(f0.xPosHead, f0.yPosHead, f0.zPosHead), new Vector3(f1.xPosHead, f1.yPosHead, f1.zPosHead), _tFrac);
-        var rot = Quaternion.Lerp(new Quaternion(f0.xRotHead, f0.yRotHead, f0.zRotHead, f0.wRotHead), new Quaternion(f1.xRotHead, f1.yRotHead, f1.zRotHead, f1.wRotHead), _tFrac);
+        var f0 = _replayer.recording.recordableDataDict[replayableId].dataFrames[(int)_replayer.currentFrame];
+        var f1 = _replayer.recording.recordableDataDict[replayableId].dataFrames[(int)_replayer.currentFrame + 1];
+        
+        
+        
+        var t = _replayer.currentFrame - (int)_replayer.currentFrame;
+        // Debug.Log(_replayer.currentFrame + " t: " + t);
+        
+        var pos = Vector3.Lerp(new Vector3(f0.xPosHead, f0.yPosHead, f0.zPosHead), new Vector3(f1.xPosHead, f1.yPosHead, f1.zPosHead), t);
+        var rot = Quaternion.Lerp(new Quaternion(f0.xRotHead, f0.yRotHead, f0.zRotHead, f0.wRotHead), new Quaternion(f1.xRotHead, f1.yRotHead, f1.zRotHead, f1.wRotHead), t);
         _replayablePose.head = new Pose(pos, rot);
         
-        pos = Vector3.Lerp(new Vector3(f0.xPosLeftHand, f0.yPosLeftHand, f0.zPosLeftHand), new Vector3(f1.xPosLeftHand, f1.yPosLeftHand, f1.zPosLeftHand), _tFrac);
-        rot = Quaternion.Lerp(new Quaternion(f0.xRotLeftHand, f0.yRotLeftHand, f0.zRotLeftHand, f0.wRotLeftHand), new Quaternion(f1.xRotLeftHand, f1.yRotLeftHand, f1.zRotLeftHand, f1.wRotLeftHand), _tFrac);
+        pos = Vector3.Lerp(new Vector3(f0.xPosLeftHand, f0.yPosLeftHand, f0.zPosLeftHand), new Vector3(f1.xPosLeftHand, f1.yPosLeftHand, f1.zPosLeftHand), t);
+        rot = Quaternion.Lerp(new Quaternion(f0.xRotLeftHand, f0.yRotLeftHand, f0.zRotLeftHand, f0.wRotLeftHand), new Quaternion(f1.xRotLeftHand, f1.yRotLeftHand, f1.zRotLeftHand, f1.wRotLeftHand), t);
         _replayablePose.leftHand = new Pose(pos, rot);
         
-        pos = Vector3.Lerp(new Vector3(f0.xPosRightHand, f0.yPosRightHand, f0.zPosRightHand), new Vector3(f1.xPosRightHand, f1.yPosRightHand, f1.zPosRightHand), _tFrac);
-        rot = Quaternion.Lerp(new Quaternion(f0.xRotRightHand, f0.yRotRightHand, f0.zRotRightHand, f0.wRotRightHand), new Quaternion(f1.xRotRightHand, f1.yRotRightHand, f1.zRotRightHand, f1.wRotRightHand), _tFrac);
+        pos = Vector3.Lerp(new Vector3(f0.xPosRightHand, f0.yPosRightHand, f0.zPosRightHand), new Vector3(f1.xPosRightHand, f1.yPosRightHand, f1.zPosRightHand), t);
+        rot = Quaternion.Lerp(new Quaternion(f0.xRotRightHand, f0.yRotRightHand, f0.zRotRightHand, f0.wRotRightHand), new Quaternion(f1.xRotRightHand, f1.yRotRightHand, f1.zRotRightHand, f1.wRotRightHand), t);
         _replayablePose.rightHand = new Pose(pos, rot);
         
         // AvatarTakeover only subscribes to the one event from the avatar it is taking over
         OnUpdateReplayablePose?.Invoke(this, _replayablePose);
     }
 
+    public void SetReplayablePose(int frame)
+    {
+        // this could have been set manually, so we want to show the closest frame possible
+        if (frame > _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1)
+        {
+            frame = _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1;
+        }
+        if (frame < 0)
+        {
+            frame = 0;
+        }
+        
+        var f = _replayer.recording.recordableDataDict[replayableId].dataFrames[frame];
+        _replayablePose.head = new Pose(new Vector3(f.xPosHead, f.yPosHead, f.zPosHead), new Quaternion(f.xRotHead, f.yRotHead, f.zRotHead, f.wRotHead));
+        _replayablePose.leftHand = new Pose(new Vector3(f.xPosLeftHand, f.yPosLeftHand, f.zPosLeftHand), new Quaternion(f.xRotLeftHand, f.yRotLeftHand, f.zRotLeftHand, f.wRotLeftHand));
+        _replayablePose.rightHand = new Pose(new Vector3(f.xPosRightHand, f.yPosRightHand, f.zPosRightHand), new Quaternion(f.xRotRightHand, f.yRotRightHand, f.zRotRightHand, f.wRotRightHand));
+    }
+    
+    public void SetReplayablePose(ReplayablePose pose)
+    {
+        _replayablePose = pose;
+    }
+
+    private void OnFrameUpdate(object o, bool interpolate)
+    {
+        if (!isLocal) return;
+
+        if (interpolate)
+        {
+            // if we change the replayableId, we can make a Replayable replay any data we want (as long as the data structure is the same)
+            UpdateReplayablePose();
+        }
+        else
+        {
+            SetReplayablePose((int)_replayer.currentFrame);
+        }
+
+    }
+
     // Update is called once per frame
     void Update()
     {
-        if (!isLocal) return;
-        if (_isPlaying)
-        {
-            _deltaTime += Time.deltaTime;
-            // during replay we interpolate between the frames to get smooth movements
-            // because we know the fps we always know where we are between two consecutive frames and can interpolate accordingly
-            _t = _deltaTime * _replayer.recording.recordableDataDict[replayableId].fps + _replayer.frameOffset;
-            _frameNr = Mathf.FloorToInt(_t);
-            _tFrac = _t - _frameNr;
-            
-            if (_frameNr < _replayer.recording.recordableDataDict[replayableId].numFrames - 1)
-            {
-                // if we change the replayableId, we can make a Replayable replay any data we want (as long as the data structure is the same)
-                UpdateReplayablePose();
-            }
-            
-            // TODO what to do when we are done?
-            // other replayables might still be going because they have more frames
-            // we can just do nothing and wait on the last frame for other replayables to finish
-        }
+        
     }
 }
