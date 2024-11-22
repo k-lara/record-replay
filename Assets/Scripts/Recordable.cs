@@ -87,11 +87,6 @@ public class Recordable : MonoBehaviour
             {
                 _t = (1.0f/_recorder.fps - _previousPoseTime) / (_frameInterval - _previousPoseTime);
                 
-                // adding a data frame that we will fill with the interpolated data
-                // if we take over an avatar there is already data in the recording
-                // we might need to overwrite some of that data instead of adding the frame
-                _recorder.recording.TryAddEmptyDataFrame(_guid, _currentFrameNr);
-
                 var headRotN = src.head.value.rotation.normalized;
                 _recordablePose.head.position = Vector3.Lerp(_prevHead.position, src.head.value.position, _t);
                 _recordablePose.head.rotation = Quaternion.Lerp(_prevHead.rotation, headRotN, _t);
@@ -111,22 +106,17 @@ public class Recordable : MonoBehaviour
                 }
                 else
                 {
-                    _recorder.recording.AddHeadTransform(_guid, _currentFrameNr, _recordablePose.head.position, _recordablePose.head.rotation);
-                    _recorder.recording.AddLeftHandTransform(_guid, _currentFrameNr, _recordablePose.leftHand.position, _recordablePose.leftHand.rotation);
-                    _recorder.recording.AddRightHandTransform(_guid, _currentFrameNr, _recordablePose.rightHand.position, _recordablePose.rightHand.rotation);
+                    _recorder.recording.AddDataFrame(_guid, _currentFrameNr, _recordablePose);
                 }
-                
                 _currentFrameNr++;
                 _frameInterval = _previousPoseTime - 1.0f / _recorder.fps;
             }
-            
             _prevHead.position = src.head.value.position;
             _prevHead.rotation = src.head.value.rotation.normalized;
             _prevLeftHand.position = src.leftHand.value.position;
             _prevLeftHand.rotation = src.leftHand.value.rotation.normalized;
             _prevRightHand.position = src.rightHand.value.position;
             _prevRightHand.rotation = src.rightHand.value.rotation.normalized;
-            
         }
         _previousPoseTime = _frameInterval;
     }
@@ -136,12 +126,14 @@ public class Recordable : MonoBehaviour
     // TODO for taken over avatars we have to start before the end of the data!
     private void OnRecordingStart(object o, EventArgs e)
     {
+        if (_isRecording) return;
         var currentFloatFrame = _recorder.GetCurrentFrameFloat();
         
         _frameInterval = currentFloatFrame - Mathf.FloorToInt(currentFloatFrame);
         
         if (currentFloatFrame == 0)
         {
+            Debug.Log("Start recording from frame 0");
             _currentFrameNr = 0;
         }
         else
@@ -156,6 +148,7 @@ public class Recordable : MonoBehaviour
             {
                 _currentFrameNr = (int)currentFloatFrame;
             }
+            Debug.Log("Start recording from frame " + _currentFrameNr);
         }
         
         // if this is the player it will only get a guid assigned when it starts a new recording
@@ -163,7 +156,10 @@ public class Recordable : MonoBehaviour
         Debug.Log("Takeover:" + _isTakingOver);
         if (!_isTakingOver)
         {
-            _guid = _recorder.recording.CreateNewRecordableData();
+            _guid = _recorder.recording.CreateNewRecordableData(Guid.Empty);
+            // initialize the undo stack with a base state (if already initialized this does nothing)
+            _recorder.InitUndoStack(UndoManager.UndoType.New, _guid, null);
+            
             // so we already have the prefab name saved, even if frame number is not correct yet
             _recorder.recording.UpdateMetaData(_guid, _currentFrameNr, _recorder.fps, prefabName);
 
@@ -171,7 +167,7 @@ public class Recordable : MonoBehaviour
             if (_currentFrameNr > 0)
             {
                 // we fill up the RecordableData up to the currentFrame - 1
-                _recorder.recording.TryAddEmptyDataFrame(_guid, _currentFrameNr-1);
+                _recorder.recording.TryAddEmptyDataFrames(_guid, _currentFrameNr-1);
             }
         }
         _isRecording = true;
@@ -182,8 +178,9 @@ public class Recordable : MonoBehaviour
     // this recordable's _guid is not valid during takeover 
     // !!! it is possible that this is not even called !!!
     // because the AvatarTakeover switches the prefab back to the original player prefab
-    private void OnRecordingStop(object o, RecordingManager.RecordingFlags flags)
+    private void OnRecordingStop(object o, Recording.Flags flags)
     {
+        if (!_isRecording) return;
         _isRecording = false;
 
         if (!_isTakingOver)
@@ -191,71 +188,10 @@ public class Recordable : MonoBehaviour
             Debug.Log(_recorder.recording.recordableDataDict[_guid].dataFrames.Count);
 
             _recorder.recording.UpdateMetaData(_guid, _currentFrameNr, _recorder.fps, prefabName);
+            
+            _recorder.AddUndoState(UndoManager.UndoType.New, _guid, _recorder.recording.recordableDataDict[_guid]);
         }
     }
-    
-    // if this is a taken over avatar, the data we get from the ThreePointTrackedAvatar should already be
-    // correctly interpolated between the avatar's movements and the user's movements
-    private void OnHeadUpdate(InputVar<Pose> pose)
-    {
-        if (!_isRecording) return;
-
-        var rotN = pose.value.rotation.normalized;
-        if (_interpolate)
-        {
-            var interpPos = Vector3.Lerp(_prevHead.position, pose.value.position, _t);
-            var interpRot = Quaternion.Lerp(_prevHead.rotation, rotN, _t);
-            
-            _recorder.recording.AddHeadTransform(_guid, _currentFrameNr, interpPos, interpRot);
-            
-            // _dataFrameReady = true;
-        }
-        
-        _prevHead = new Pose
-        {
-            position = pose.value.position,
-            rotation = rotN
-        };
-    }
-    private void OnLeftHandUpdate(InputVar<Pose> pose)
-    {
-        if (!_isRecording) return;
-        
-        var rotN = pose.value.rotation.normalized;
-        if (_interpolate)
-        {
-            var interpPos = Vector3.Lerp(_prevLeftHand.position, pose.value.position, _t);
-            var interpRot = Quaternion.Lerp(_prevLeftHand.rotation, rotN, _t);
-            
-            _recorder.recording.AddLeftHandTransform(_guid, _currentFrameNr, interpPos, interpRot);
-        }
-        
-        _prevLeftHand = new Pose
-        {
-            position = pose.value.position,
-            rotation = rotN
-        };
-    }
-    private void OnRightHandUpdate(InputVar<Pose> pose)
-    {
-        if (!_isRecording) return;
-        
-        var rotN = pose.value.rotation.normalized;
-        if (_interpolate)
-        {
-            var interpPos = Vector3.Lerp(_prevRightHand.position, pose.value.position, _t);
-            var interpRot = Quaternion.Lerp(_prevRightHand.rotation, rotN, _t);
-            
-            _recorder.recording.AddRightHandTransform(_guid, _currentFrameNr, interpPos, interpRot);
-        }
-        
-        _prevRightHand = new Pose
-        {
-            position = pose.value.position,
-            rotation = rotN
-        };
-    }
-
     private void OnDestroy()
     {
         _recorder.onRecordingStart -= OnRecordingStart;

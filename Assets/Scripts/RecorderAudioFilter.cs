@@ -47,7 +47,7 @@ public class RecorderAudioFilter : MonoBehaviour
     {
         _recorder = GameObject.FindWithTag("Recorder").GetComponent<Recorder>();
         _recorder.onRecordingStart += OnRecordingStart;
-        _recorder.onRecordingStop += OnRecordingStop;
+        // _recorder.onRecordingStop += OnRecordingStop;
         
         // fill queue with float arrays of size 512
         for (var i = 0; i < m_queueSize; i++)
@@ -63,12 +63,12 @@ public class RecorderAudioFilter : MonoBehaviour
         _recorder.onRecordingStart -= OnRecordingStart;
     }
 
-    private void OnRecordingStart(object o, string folder)
+    private void OnRecordingStart(object o, EventArgs e)
     {
         _isRecording = true;
     }
 
-    private void OnRecordingStop(object o, string folder)
+    private void OnRecordingStop(object o, EventArgs e)
     {
         _isRecording = false;
     }

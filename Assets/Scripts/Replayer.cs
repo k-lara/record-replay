@@ -26,7 +26,7 @@ public class Replayer : MonoBehaviour
     // replayables ordered based on their network id
     private Dictionary<Guid, Replayable> _replayablesDict;
     
-    private bool _isCreated;
+    private bool _isLoaded;
     private bool _isPlaying;
     public float currentFrame { get; set; } // could be between two frames
     public int frameOffset { get; set; }
@@ -37,9 +37,8 @@ public class Replayer : MonoBehaviour
     
     public event EventHandler onReplayStart; // start replaying
     public event EventHandler onReplayStop; // stop replaying
-    public event EventHandler<Dictionary<Guid, Replayable>> onReplayCreated; // replay loaded
-    public event EventHandler onReplayDeleted; // replay deleted
-
+    public event EventHandler<Dictionary<Guid, Replayable>> onReplaySpawned; // replays spawned, data is not necessarily loaded
+    public event EventHandler onReplayUnspawned; // replayables have been unspawned
     public event EventHandler<bool> onFrameUpdate; // true if we need interpolated pose, false if not
     
     
@@ -52,6 +51,12 @@ public class Replayer : MonoBehaviour
         
         _recordingManager = GetComponent<RecordingManager>();
         _recordingManager.onThumbnailSpawned += OnThumbnailSpawned;
+        _recordingManager.onReplayablesSpawnedAndLoaded += OnReplayablesSpawned;
+        _recordingManager.onRecordingLoaded += OnRecordingLoaded;
+        _recordingManager.onRecordingUnloaded += OnRecordingUnloaded;
+        _recordingManager.onUnspawned += OnReplayUnspawned;
+        _recordingManager.onRecordingUndo += OnRecordingUndo;
+        _recordingManager.onRecordingRedo += OnRecordingRedo;
         
         _spawnManager = NetworkSpawnManager.Find(this);
 
@@ -61,12 +66,13 @@ public class Replayer : MonoBehaviour
     
     void Update()
     {
-        if (!_isCreated) return;
+        if (!_isLoaded) return;
         if (_isPlaying)
         {
             _deltaTime += Time.deltaTime;
             // current frame is a float, so we know between which two frames we are
             currentFrame = _deltaTime * _recorder.fps + frameOffset;
+            Debug.Log("Replayer Update(): current: " + currentFrame + " max frames:" + _frameNr);
             onFrameUpdate?.Invoke(this, true);
 
             if (currentFrame >= _frameNr - 1)
@@ -77,7 +83,8 @@ public class Replayer : MonoBehaviour
             }
         }
     }
-
+    
+    // only for takeover!
     public void SetCurrentFrame(int frame)
     {
         if (frame > _frameNr)
@@ -102,7 +109,7 @@ public class Replayer : MonoBehaviour
 
     public void StartReplay()
     {
-        if (!_isCreated) return; // can't start if we don't have the spawned avatars
+        if (!_isLoaded) return; // can't start if we don't have the spawned avatars
         if (_isPlaying) return; // we are already playing
         
         Debug.Log("Start replay!");
@@ -124,14 +131,14 @@ public class Replayer : MonoBehaviour
 
     private void OnRecordingStart(object o, EventArgs e)
     {
-        if (!_isCreated) return;
+        if (!_isLoaded) return;
         if (_isPlaying) return;
         
         // if we have stopped a replay pressing start will resume it
         StartReplay();
     }
     
-    private void OnRecordingStop(object o, RecordingManager.RecordingFlags flags)
+    private void OnRecordingStop(object o, Recording.Flags flags)
     {
         // when we stop recording, do we want to take off a few frames before we stopped
         // OR do we want to start from the beginning???
@@ -139,43 +146,32 @@ public class Replayer : MonoBehaviour
         // in that case we start from beginning per default
         StopReplay();
         _deltaTime = 0.0f;
-        StartCoroutine(SpawnReplayableObjects());
+        _recordingManager.SpawnReplayables(_replayablesDict);
     }
     
-
-    private IEnumerator SpawnReplayableObjects()
+    /*
+     * This is called when replayables have been spawned after a new recording or after loading recording data from a thumbnail.
+     * This means we already have data from this recording and _isLoaded should already be true!
+     * 
+     */
+    private void OnReplayablesSpawned(object o, EventArgs e)
     {
-        Debug.Log("Spawn new replayable objects if any!");
+        // get the max number of frames
         foreach (var entry in recording.recordableDataDict)
         {
-            Debug.Log(entry.Key + " spawned: " + _replayablesDict.ContainsKey(entry.Key));
-            if (_replayablesDict.ContainsKey(entry.Key)) continue;
-            
-            var frames = entry.Value.dataFrames.Count;
-            if (frames > _frameNr)
+            if (_frameNr < entry.Value.dataFrames.Count)
             {
-                _frameNr = frames;
+                _frameNr = entry.Value.dataFrames.Count;
             }
-            Debug.Log(entry.Value.prefabName);
-            var go = _spawnManager.SpawnWithPeerScope(_recordingManager.prefabCatalogue[entry.Value.prefabName]);
-            
-            var replayable = go.AddComponent<Replayable>(); // player doesn't need this, so add it here
-            replayable.replayableId = entry.Key;
-            // set to last pose
-            replayable.SetReplayablePose(frames-1);
-            
-            replayable.SetIsLocal(true);
-            _replayablesDict.Add(entry.Key, replayable);
-            Debug.Log("Spawned new replayable (id: " + entry.Key + ")");
         }
-
-        _isCreated = true;
-        onReplayCreated?.Invoke(this, _replayablesDict);
-        
-        yield return null;
-        
+        // _isLoaded = true;
+        Debug.Log("Replayer: OnReplayablesSpawned(): max frames: " + _frameNr);
+        onReplaySpawned?.Invoke(this, _replayablesDict);
     }
     
+    // Here we do not have data loaded.
+    // This is called when we have spawned replayables from a thumbnail.
+    // We can add them to our list of replayables. This list has nothing to do with the data of a recording.
     private void OnThumbnailSpawned(object o, List<GameObject> thumbnailObjects)
     {
         _replayablesDict.Clear();
@@ -184,25 +180,53 @@ public class Replayer : MonoBehaviour
             var replayable = go.GetComponent<Replayable>();
             _replayablesDict.Add(replayable.replayableId, replayable);
         }
+        Debug.Log("Replayer: OnThumbnailSpawned(): # Replayables: " + _replayablesDict.Count);
+        onReplaySpawned?.Invoke(this, _replayablesDict);
     }
 
-    private void DeleteReplay()
+    private void OnRecordingLoaded(object o, EventArgs e)
+    {
+        _isLoaded = true;
+    }
+    
+    private void OnRecordingUnloaded(object o, EventArgs e)
     {
         _frameNr = 0;
         _deltaTime = 0.0f;
-        StartCoroutine(DespawnReplayableObjects());
+        _isLoaded = false;
+    }
+    
+    private void OnReplayUnspawned(object o, EventArgs e)
+    {
+        _replayablesDict.Clear();
+        onReplayUnspawned?.Invoke(this, EventArgs.Empty);
     }
 
-    private IEnumerator DespawnReplayableObjects()
+    /*
+     * When we undo a recording step and remove a replayable
+     * then we need to update the replayablesDict and remove the replayable
+     * (which should be null by then)
+     */
+    private void OnRecordingUndo(object o, List<Guid> undoIds)
     {
-        foreach(var replayable in _replayablesDict.Values)
+        foreach (var id in undoIds)
         {
-            _spawnManager.Despawn(replayable.gameObject);
+            _replayablesDict.Remove(id);
         }
-        _replayablesDict.Clear();
-        _isCreated = false;
-        onReplayDeleted?.Invoke(this, EventArgs.Empty);
-        yield return null;
+    }
+
+    private void OnRecordingRedo(object o, List<Replayable> redoReplayables)
+    {
+        foreach (var r in redoReplayables)
+        {
+            _replayablesDict.Add(r.replayableId, r);
+        }
+    }
+    
+    private void OnDestroy()
+    {
+        _recorder.onRecordingStart -= OnRecordingStart;
+        _recorder.onRecordingStop -= OnRecordingStop;
     }
     
     // private Replayable SpawnReplayableObject(string prefabName)
@@ -255,45 +279,4 @@ public class Replayer : MonoBehaviour
     //         }
     //     }
     // }
-
-    private void OnDestroy()
-    {
-        _recorder.onRecordingStart -= OnRecordingStart;
-        _recorder.onRecordingStop -= OnRecordingStop;
-    }
-}
-
-[CustomEditor(typeof(Replayer))]
-public class ReplayerEditor : Editor
-{
-    private SerializedProperty _recordingFolder;
-    
-    public override void OnInspectorGUI()
-    {
-        DrawDefaultInspector();
-        if (!Application.isPlaying) return;
-        
-        Replayer replayer = (Replayer)target;
-        _recordingFolder = serializedObject.FindProperty("_recordingFolder");
-        
-        
-        if (GUILayout.Button("Start Replay"))
-        {
-            serializedObject.Update();
-            replayer.StartReplay();
-        }
-        if (GUILayout.Button("Stop Replay"))
-        {
-            replayer.StopReplay();
-        }
-        // if (GUILayout.Button("Delete Replay"))
-        // {
-        //     replayer.DeleteReplay();
-        // }
-        
-        // if (GUILayout.Button("Load Replay"))
-        // {
-        //     serializedObject.Update();
-        // }
-    }
 }

@@ -75,6 +75,13 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         _avatar.SetInput(_avatarInput);
         
     }
+
+    private void OnDestroy()
+    {
+        _replayer.onReplayStart -= OnReplayStart;
+        _replayer.onReplayStop -= OnReplayStop;
+        _replayer.onFrameUpdate -= OnFrameUpdate;
+    }
     
     // private void Start()
     // {
@@ -85,10 +92,11 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
 
     private void OnReplayStart(object o, EventArgs e)
     {
-        if (!_audioReplayable)
-        {
-            _audioReplayable = GetComponent<AudioReplayable>();
-        }
+        Debug.Log("Replayable OnReplayStart(): id: " + replayableId);
+        // if (!_audioReplayable)
+        // {
+        //     _audioReplayable = GetComponent<AudioReplayable>();
+        // }
         
         _isPlaying = true;
     }
@@ -100,13 +108,15 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
 
     private void UpdateReplayablePose()
     {
+        Debug.Log("Update replayable pose: current frame: " + _replayer.currentFrame + " replayable id: " + replayableId);
         // no need to update if frame is too large, we just stay on the previous frame
         if (_replayer.currentFrame >= _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1) return;
         
         var f0 = _replayer.recording.recordableDataDict[replayableId].dataFrames[(int)_replayer.currentFrame];
+        // when we start a recording in the middle of a replay, we add empty data frames until the current frame
+        // these frames don't hold valid data, we can therefore not update the replayable pose!
+        if (!f0.valid) return; 
         var f1 = _replayer.recording.recordableDataDict[replayableId].dataFrames[(int)_replayer.currentFrame + 1];
-        
-        
         
         var t = _replayer.currentFrame - (int)_replayer.currentFrame;
         // Debug.Log(_replayer.currentFrame + " t: " + t);
@@ -164,11 +174,5 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
             SetReplayablePose((int)_replayer.currentFrame);
         }
 
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

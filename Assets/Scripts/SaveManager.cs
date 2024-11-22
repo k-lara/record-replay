@@ -13,9 +13,30 @@ public class SaveManager
         this.pathToRecordings = pathToRecordings;
         this.numBackupSaves = numBackupSaves;
     }
-    
+
     private string pathToRecordings;
     private int numBackupSaves;
+
+    public float saveInterval = 300; // in seconds (5 minutes)
+    private float timeSinceLastSave;
+
+    private Task<Recording.ThumbnailData> t;
+
+    public void Dispose()
+    {
+        if (t != null)
+        {
+            Debug.Log("Dispose save task");
+            t.Dispose();
+        }
+    }
+
+    public bool ReadyToSave()
+    {
+        timeSinceLastSave += Time.deltaTime;
+        return timeSinceLastSave >= saveInterval;
+    }
+    
     /**
      * Save the current recording to a file.
      * We keep 2 backup files in addition to the current recording.
@@ -44,7 +65,7 @@ public class SaveManager
             
         }
         // add new save
-        var t = Task.Run(() => AddNewRecordingSave(recording, recordingPath));
+        t = Task.Run(() => AddNewRecordingSave(recording, recordingPath));
         t.Wait();
         var thumbnailData = t.Result;
         
@@ -55,6 +76,7 @@ public class SaveManager
         }
         
         Debug.Log("New recording saved!");
+        timeSinceLastSave = 0;
         return thumbnailData;
     }
 
@@ -66,7 +88,7 @@ public class SaveManager
 
         // save thumbnail data
         var thumbnail = recording.AssembleThumbnailData();
-        var jsonThumbnail = JsonUtility.ToJson(thumbnail);
+        var jsonThumbnail = JsonUtility.ToJson(thumbnail, true);
         await File.WriteAllTextAsync(Path.Combine(newSave.FullName, "thumbnail.txt"), jsonThumbnail);
 
         // save motion per recordable

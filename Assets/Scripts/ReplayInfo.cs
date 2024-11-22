@@ -16,14 +16,14 @@ public class ReplayInfo : MonoBehaviour
 {
     public GameObject replayInfoGameObject;
     
-    private Replayable m_Replayable;
+    private Replayable _mReplayable;
     private AudioReplayable m_AudioReplayable;
-    private Replayer m_Replayer;
+    private Replayer _mReplayer;
 
-    private Recordable.RecordableData m_replayableData;
+    // private Recordable.RecordableData m_replayableData;
     private AudioReplayable.AudioInfoData m_audioReplay;
     
-    public event EventHandler<Recordable.RecordableData> OnReplayInfoDataLoaded;
+    // public event EventHandler<RecordableOld.RecordableData> OnReplayInfoDataLoaded;
     public event EventHandler<AudioReplayable.AudioInfoData> OnReplayInfoAudioDataLoaded;
     public event EventHandler OnReplayInfoReplayStart;
     public event EventHandler OnReplayInfoReplayStop;
@@ -45,17 +45,17 @@ public class ReplayInfo : MonoBehaviour
         cursorLocation = GetComponent<VoipAvatar>().audioSourcePosition;
         avatar = GetComponent<Avatar>();
         
-        m_Replayer = GameObject.FindWithTag("Recorder").GetComponent<Replayer>();
-        m_Replayer.onReplayStart += OnReplayStart;
-        m_Replayer.onReplayStop += OnReplayStop;
+        _mReplayer = GameObject.FindWithTag("Recorder").GetComponent<Replayer>();
+        _mReplayer.onReplayStart += OnReplayStart;
+        _mReplayer.onReplayStop += OnReplayStop;
 
         replayInfoGameObject = new GameObject("ReplayInfo-" + avatar.NetworkId);
         replayInfoGameObject.transform.position = cursorLocation.position;
         // draw the cursor with the lineRenderer
         DrawCursor();
         
-        m_Replayable = GetComponent<Replayable>();
-        m_Replayable.OnReplayableDataLoaded += OnReplayableDataLoaded;
+        // _mReplayableOld = GetComponent<Replayable>();
+        // _mReplayableOld.OnReplayableDataLoaded += OnReplayableOldDataLoaded;
         gameObject.AddComponent<GazeInfoPainter>();
         
         // audio recordings might not always be available or needed
@@ -99,12 +99,12 @@ public class ReplayInfo : MonoBehaviour
         OnReplayInfoReplayStop?.Invoke(this, EventArgs.Empty);
     }
     
-    private void OnReplayableDataLoaded(object sender, Recordable.RecordableData data)
-    {
-        m_replayableData = data;
-        OnReplayInfoDataLoaded?.Invoke(this, m_replayableData);
-        
-    }
+    // private void OnReplayableOldDataLoaded(object sender, RecordableOld.RecordableData data)
+    // {
+    //     m_replayableData = data;
+    //     OnReplayInfoDataLoaded?.Invoke(this, m_replayableData);
+    //     
+    // }
     
     private void OnAudioReplayLoaded(object sender, AudioReplayable.AudioInfoData audioInfoData)
     {
@@ -128,8 +128,8 @@ public class ReplayInfo : MonoBehaviour
             m_AudioReplayable.OnAudioReplayLoaded -= OnAudioReplayLoaded;
         }
 
-        m_Replayable.OnReplayableDataLoaded -= OnReplayableDataLoaded;
-        m_Replayer.onReplayStart -= OnReplayStart;
-        m_Replayer.onReplayStop -= OnReplayStop;
+        // _mReplayableOld.OnReplayableDataLoaded -= OnReplayableOldDataLoaded;
+        _mReplayer.onReplayStart -= OnReplayStart;
+        _mReplayer.onReplayStop -= OnReplayStop;
     }
 }

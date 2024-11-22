@@ -12,7 +12,7 @@ using Avatar = Ubiq.Avatars.Avatar;
 // the local player avatar never has this component because it doesn't need it.
 public class AudioReplayable : MonoBehaviour
 {
-    private Replayer m_Replayer;
+    private Replayer _mReplayer;
     private string m_Folder;
     private string m_AudioFile;
     private bool m_IsLoaded;
@@ -35,11 +35,11 @@ public class AudioReplayable : MonoBehaviour
     
     private void Awake()
     {
-        m_Replayer = GameObject.FindWithTag("Recorder").GetComponent<Replayer>();
-        m_Replayer.onThumbnailCreated += OnThumbnailCreated;
-        m_Replayer.onReplayCreated += OnReplayCreated;
-        m_Replayer.onReplayStart += OnReplayStart;
-        m_Replayer.onReplayStop += OnReplayStop;
+        // _mReplayer = GameObject.FindWithTag("Recorder").GetComponent<ReplayerOld>();
+        // _mReplayer.onThumbnailCreated += OnThumbnailCreated;
+        // _mReplayer.onReplayCreated += OnReplayCreated;
+        _mReplayer.onReplayStart += OnReplayStart;
+        _mReplayer.onReplayStop += OnReplayStop;
         
         m_VoipAvatar = GetComponent<VoipAvatar>();
         m_Avatar = GetComponent<Avatar>();
@@ -81,10 +81,10 @@ public class AudioReplayable : MonoBehaviour
 
     private void OnDestroy()
     {
-        m_Replayer.onReplayStart -= OnReplayStart;
-        m_Replayer.onReplayStop -= OnReplayStop;
-        m_Replayer.onThumbnailCreated -= OnThumbnailCreated;
-        m_Replayer.onReplayCreated -= OnReplayCreated;
+        _mReplayer.onReplayStart -= OnReplayStart;
+        _mReplayer.onReplayStop -= OnReplayStop;
+        // _mReplayer.onThumbnailCreated -= OnThumbnailCreated;
+        // _mReplayer.onReplayCreated -= OnReplayCreated;
         
     }
 
@@ -150,17 +150,17 @@ public class AudioReplayable : MonoBehaviour
     // we do not load the audio here, we just get the path to the file
     // because we do not want to load the audio until we actually load the full replay
     // and this is at that point just a thumbnail (preview)
-    private void OnThumbnailCreated(object o, Recorder.ThumbnailData data)
-    {
-        var spawnedObjects = m_Replayer.GetSpawnedObjectsList();
-        for (int i = 0; i < spawnedObjects.Count; i++)
-        {
-            if (spawnedObjects[i] == gameObject)
-            {
-                var id = data.recordableIds[i];
-                m_AudioFile = "audio_" + id + ".txt";
-                Debug.Log("Found gameobject for audio data: " + id);
-            }
-        }
-    }
+    // private void OnThumbnailCreated(object o, RecorderOld.ThumbnailData data)
+    // {
+    //     var spawnedObjects = _mReplayer.GetSpawnedObjectsList();
+    //     for (int i = 0; i < spawnedObjects.Count; i++)
+    //     {
+    //         if (spawnedObjects[i] == gameObject)
+    //         {
+    //             var id = data.recordableIds[i];
+    //             m_AudioFile = "audio_" + id + ".txt";
+    //             Debug.Log("Found gameobject for audio data: " + id);
+    //         }
+    //     }
+    // }
 }

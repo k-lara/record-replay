@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
+using System.Linq;
+using Org.BouncyCastle.Crypto.Tls;
 using UnityEngine;
 
 /* this class comprises a recording that is stored in memory for extending and editing it
@@ -14,9 +14,55 @@ public class Recording
     
     // contains the data of the recording which is the data from all recordables
     public Dictionary<Guid, RecordableData> recordableDataDict { get; private set; }
+
+    public Flags flags { get; set; } = new();
+
+    private RecordableListPool listPool;
     
-    // public List<RecordableDataFrame> currentTakoverOverwrite = new();
-    // public Guid currentTakeoverId;
+    public Recording(RecordableListPool listPool)
+    {
+        this.listPool = listPool;
+    }
+    
+    public class Flags
+    {
+        public bool SaveReady; // is true when recording is finished and ready to be saved
+        public bool DataLoaded; // is true when motion(etc..) data of recording is loaded
+        public bool NewDataAvailable; // is true when new data is added to the recording
+        public bool IsRecording; // is true when recording is happening
+
+        public void Clear()
+        {
+            SaveReady = DataLoaded  = NewDataAvailable = false;
+        }
+        
+    }
+
+    public string RecordingFlagsToString()
+    {
+        return "Flags: \n"
+               + "SaveReady: " + flags.SaveReady + "\n"
+               + "DataLoaded: " + flags.DataLoaded + "\n"
+               + "NewDataAvailable: " + flags.NewDataAvailable + "\n"
+               + "IsRecording: " + flags.IsRecording + "\n";
+    }
+
+    public override string ToString()
+    {
+        string s = "";
+
+        s += "Recording: " + recordingId + "\n"
+             + "dict size: " + recordableDataDict.Count + "\n";
+        foreach (var recordableData in recordableDataDict)
+        {
+            s += "--------------" + "\n";
+            s += "Recordable: " + recordableData.Key + "\n"
+                 + "prefabName: " + recordableData.Value.prefabName + "\n"
+                 + "numFrames == dataFrames size?: " + recordableData.Value.numFrames + " == " +  recordableData.Value.dataFrames.Count + "\n";
+        }
+        
+        return s;
+    }
     
     [System.Serializable]    
     public class RecordableData
@@ -24,10 +70,7 @@ public class Recording
         public int numFrames;
         public int fps;
         public string prefabName;
-        
-        // don't really need dataLabels because the RecordableDataFrame has the variables
-        
-        public List<RecordableDataFrame> dataFrames = new();
+        public List<RecordableDataFrame> dataFrames;
     }
     
     
@@ -35,10 +78,11 @@ public class Recording
     // this can be positional data, quaternions, or single float values
     // the order in which the data is saved in the array is important
     [System.Serializable]
-    public class RecordableDataFrame
+    public struct RecordableDataFrame
     {
         public int frameNr;
-
+        public bool valid; // when adding empty data frames we shouldn't use the data in there bc it is not valid
+        
         public float xPosHead;
         public float yPosHead;
         public float zPosHead;
@@ -95,9 +139,7 @@ public class Recording
         return thumbnail;
     }
 
-    public Recording() { }
-
-    public Recording(Guid id)
+    public void SetRecordingId(Guid id)
     {
         recordingId = id;
     }
@@ -107,7 +149,7 @@ public class Recording
         recordableDataDict = dict;
     }
     
-    // creates a new recording with new guid
+    // creates a new recording with new guid and empty recordableDataDict
     public void InitNew()
     {
         recordingId = Guid.NewGuid();
@@ -117,33 +159,22 @@ public class Recording
     }
     
     // when a new recording is happening we need to add the recordable data to the dict
-    public Guid CreateNewRecordableData()
+    public Guid CreateNewRecordableData(Guid guid)
     {
         var recData = new RecordableData();
-        var recId = Guid.NewGuid();
+        recData.dataFrames = listPool.GetList();
+        Guid recId;
+        if (guid == Guid.Empty)
+        {
+            recId = Guid.NewGuid();
+        }
+        else
+        {
+            recId = guid;
+        }
         recordableDataDict.Add(recId, recData);
         Debug.Log("Create recordable data: " + recId);
         return recId;
-    }
-
-    public void TryAddEmptyDataFrame(Guid id, int frame)
-    {
-        var dataFrames = recordableDataDict[id].dataFrames;
-        if (frame < dataFrames.Count)
-        {
-            return;
-        }
-        
-        var dummyFrame = 0;
-        while (dataFrames.Count < frame)
-        {
-            dataFrames.Add(new RecordableDataFrame());
-            dataFrames[^1].frameNr = dummyFrame;
-            dummyFrame++;
-        }
-
-        dataFrames.Add(new RecordableDataFrame());
-        dataFrames[^1].frameNr = frame;
     }
     
     public void UpdateMetaData(Guid id, int numFrames, int fps, string prefabName)
@@ -156,118 +187,73 @@ public class Recording
         metaData.prefabName = prefabName;
     }
     
-    public void ClearRecording()
+    public void Clear()
     {
+        listPool.Clear();
         recordingId = Guid.Empty;
         recordableDataDict.Clear();
+        flags.Clear();
     }
     
-    public void AddHeadTransform(Guid id, int frame, Vector3 pos, Quaternion rot)
+    /*
+     * Adds empty data frames until frame (excluded) is reached
+     */
+    public void TryAddEmptyDataFrames(Guid id, int frame)
     {
-        recordableDataDict[id].dataFrames[frame].xPosHead = pos.x;
-        recordableDataDict[id].dataFrames[frame].yPosHead = pos.y;
-        recordableDataDict[id].dataFrames[frame].zPosHead = pos.z;
-        
-        recordableDataDict[id].dataFrames[frame].xRotHead = rot.x;
-        recordableDataDict[id].dataFrames[frame].yRotHead = rot.y;
-        recordableDataDict[id].dataFrames[frame].zRotHead = rot.z;
-        recordableDataDict[id].dataFrames[frame].wRotHead = rot.w;
-    }
-
-    public void AddLeftHandTransform(Guid id, int frame, Vector3 pos, Quaternion rot)
-    {
-        recordableDataDict[id].dataFrames[frame].xPosLeftHand = pos.x;
-        recordableDataDict[id].dataFrames[frame].yPosLeftHand = pos.y;
-        recordableDataDict[id].dataFrames[frame].zPosLeftHand = pos.z;
-        
-        recordableDataDict[id].dataFrames[frame].xRotLeftHand = rot.x;
-        recordableDataDict[id].dataFrames[frame].yRotLeftHand = rot.y;
-        recordableDataDict[id].dataFrames[frame].zRotLeftHand = rot.z;
-        recordableDataDict[id].dataFrames[frame].wRotLeftHand = rot.w;
-    }
-    
-    public void AddRightHandTransform(Guid id, int frame, Vector3 pos, Quaternion rot)
-    {
-        recordableDataDict[id].dataFrames[frame].xPosRightHand = pos.x;
-        recordableDataDict[id].dataFrames[frame].yPosRightHand = pos.y;
-        recordableDataDict[id].dataFrames[frame].zPosRightHand = pos.z;
-        
-        recordableDataDict[id].dataFrames[frame].xRotRightHand = rot.x;
-        recordableDataDict[id].dataFrames[frame].yRotRightHand = rot.y;
-        recordableDataDict[id].dataFrames[frame].zRotRightHand = rot.z;
-        recordableDataDict[id].dataFrames[frame].wRotRightHand = rot.w;
-    }
-    
-    public void AddFloatValue(Guid id, int frame, DataLabel label, float value)
-    {
-        switch (label)
+        var dataFrames = recordableDataDict[id].dataFrames;
+        if (frame < dataFrames.Count)
         {
-            case DataLabel.xPosHead:
-                recordableDataDict[id].dataFrames[^1].xPosHead = value;
-                break;
-            case DataLabel.yPosHead:
-                recordableDataDict[id].dataFrames[^1].yPosHead = value;
-                break;
-            case DataLabel.zPosHead:
-                recordableDataDict[id].dataFrames[^1].zPosHead = value;
-                break;
-            case DataLabel.xPosLeftHand:
-                recordableDataDict[id].dataFrames[^1].xPosLeftHand = value;
-                break;
-            case DataLabel.yPosLeftHand:
-                recordableDataDict[id].dataFrames[^1].yPosLeftHand = value;
-                break;
-            case DataLabel.zPosLeftHand:
-                recordableDataDict[id].dataFrames[^1].zPosLeftHand = value;
-                break;
-            case DataLabel.xPosRightHand:
-                recordableDataDict[id].dataFrames[^1].xPosRightHand = value;
-                break;
-            case DataLabel.yPosRightHand:
-                recordableDataDict[id].dataFrames[^1].yPosRightHand = value;
-                break;
-            case DataLabel.zPosRightHand:
-                recordableDataDict[id].dataFrames[^1].zPosRightHand = value;
-                break;
-            case DataLabel.xRotHead:
-                recordableDataDict[id].dataFrames[^1].xRotHead = value;
-                break;
-            case DataLabel.yRotHead:
-                recordableDataDict[id].dataFrames[^1].yRotHead = value;
-                break;
-            case DataLabel.zRotHead:
-                recordableDataDict[id].dataFrames[^1].zRotHead = value;
-                break;
-            case DataLabel.wRotHead:
-                recordableDataDict[id].dataFrames[^1].wRotHead = value;
-                break;
-            case DataLabel.xRotLeftHand:
-                recordableDataDict[id].dataFrames[^1].xRotLeftHand = value;
-                break;
-            case DataLabel.yRotLeftHand:
-                recordableDataDict[id].dataFrames[^1].yRotLeftHand = value;
-                break;
-            case DataLabel.zRotLeftHand:
-                recordableDataDict[id].dataFrames[^1].zRotLeftHand = value;
-                break;
-            case DataLabel.wRotLeftHand:
-                recordableDataDict[id].dataFrames[^1].wRotLeftHand = value;
-                break;
-            case DataLabel.xRotRightHand:
-                recordableDataDict[id].dataFrames[^1].xRotRightHand = value;
-                break;
-            case DataLabel.yRotRightHand:
-                recordableDataDict[id].dataFrames[^1].yRotRightHand = value;
-                break;
-            case DataLabel.zRotRightHand:
-                recordableDataDict[id].dataFrames[^1].zRotRightHand = value;
-                break;
-            case DataLabel.wRotRightHand:
-                recordableDataDict[id].dataFrames[^1].wRotRightHand = value;
-                break;
+            return;
+        }
+        var dummyFrame = 0;
+        while (dataFrames.Count < frame)
+        {
+            dataFrames.Add(new RecordableDataFrame(){frameNr = dummyFrame});
+            dummyFrame++;
+        }
+        Debug.Log("Recording: TryAddEmptyDataFrames(): " + recordableDataDict[id].dataFrames.Count);
+    }
+    
+    public void AddDataFrame(Guid id, int frame, Recordable.RecordablePose pose)
+    {
+        flags.NewDataAvailable = true;
+        var df = new RecordableDataFrame()
+        {
+            frameNr = frame,
+            valid = true,
+            xPosHead = pose.head.position.x,
+            yPosHead = pose.head.position.y,
+            zPosHead = pose.head.position.z,
+            xRotHead = pose.head.rotation.x,
+            yRotHead = pose.head.rotation.y,
+            zRotHead = pose.head.rotation.z,
+            wRotHead = pose.head.rotation.w,
+            xPosLeftHand = pose.leftHand.position.x,
+            yPosLeftHand = pose.leftHand.position.y,
+            zPosLeftHand = pose.leftHand.position.z,
+            xRotLeftHand = pose.leftHand.rotation.x,
+            yRotLeftHand = pose.leftHand.rotation.y,
+            zRotLeftHand = pose.leftHand.rotation.z,
+            wRotLeftHand = pose.leftHand.rotation.w,
+            xPosRightHand = pose.rightHand.position.x,
+            yPosRightHand = pose.rightHand.position.y,
+            zPosRightHand = pose.rightHand.position.z,
+            xRotRightHand = pose.rightHand.rotation.x,
+            yRotRightHand = pose.rightHand.rotation.y,
+            zRotRightHand = pose.rightHand.rotation.z,
+            wRotRightHand = pose.rightHand.rotation.w
+        };
+
+        if (recordableDataDict[id].dataFrames.Count <= frame)
+        {
+            recordableDataDict[id].dataFrames.Add(df);
+        }
+        else
+        {
+            recordableDataDict[id].dataFrames[frame] = df;
         }
     }
-    
+
     public enum DataLabel
     {
         // position

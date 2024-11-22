@@ -19,7 +19,7 @@ public class AudioRecordable : MonoBehaviour
     private LonelyMicrophone m_LonelyMicrophone; // mic we use for single-user recordings
     private RecorderAudioFilter m_RecorderAudioFilter;
     
-    private Recorder m_Recorder;
+    private Recorder _mRecorder;
     private StreamWriter m_AudioWriter;
 
     private bool m_SkipSamples;
@@ -31,9 +31,9 @@ public class AudioRecordable : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        m_Recorder = GameObject.FindWithTag("Recorder").GetComponent<Recorder>();
-        m_Recorder.onRecordingStart += OnRecordingStart;
-        m_Recorder.onRecordingStop += OnRecordingStop;
+        _mRecorder = GameObject.FindWithTag("Recorder").GetComponent<Recorder>();
+        _mRecorder.onRecordingStart += OnRecordingStart;
+        // _mRecorder.onRecordingStop += OnRecordingStop;
         
         m_Avatar = GetComponent<Avatar>();
         m_VoipAvatar = GetComponent<VoipAvatar>();
@@ -77,18 +77,18 @@ public class AudioRecordable : MonoBehaviour
             m_AudioWriter.Dispose();
         }
         
-        m_Recorder.onRecordingStart -= OnRecordingStart;
-        m_Recorder.onRecordingStop -= OnRecordingStop;
+        _mRecorder.onRecordingStart -= OnRecordingStart;
+        // _mRecorder.onRecordingStop -= OnRecordingStop;
     }
 
-    private void OnRecordingStart(object o, string folder)
+    private void OnRecordingStart(object o, EventArgs e)
     {
         m_SkipSamples = true;
         m_SkippedSamples = 0;
-        m_AudioWriter = new StreamWriter(Path.Combine(folder, "audio_" + m_Avatar.NetworkId + ".txt"));
+        // m_AudioWriter = new StreamWriter(Path.Combine(folder, "audio_" + m_Avatar.NetworkId + ".txt"));
     }
 
-    private void OnRecordingStop(object o, string folder)
+    private void OnRecordingStop(object o, EventArgs e)
     {
         if (m_AudioWriter != null)
         {

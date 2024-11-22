@@ -7,7 +7,7 @@ using UnityEngine;
 public class GazeInfoPainter : MonoBehaviour
 {
     private ReplayInfo replayInfo;
-    private Recordable.RecordableData replayableData;
+    // private RecordableOld.RecordableData replayableData;
     
     private Gradient gradient = new Gradient();
     
@@ -16,7 +16,7 @@ public class GazeInfoPainter : MonoBehaviour
     {
         
         replayInfo = GetComponent<ReplayInfo>();
-        replayInfo.OnReplayInfoDataLoaded += OnReplayInfoDataLoaded;
+        // replayInfo.OnReplayInfoDataLoaded += OnReplayInfoDataLoaded;
         replayInfo.OnReplayInfoReplayStart += OnReplayInfoReplayStart;
         replayInfo.OnReplayInfoReplayStop += OnReplayInfoReplayStop;
         
@@ -42,14 +42,14 @@ public class GazeInfoPainter : MonoBehaviour
     }
 
     // maps the gradient colors to the orientation of the head movements
-    private void OnReplayInfoDataLoaded(object sender, Recordable.RecordableData data)
-    {
-        replayableData = data;
-        
-        // draw the cursor with the lineRenderer
-        
-        
-    }
+    // private void OnReplayInfoDataLoaded(object sender, RecordableOld.RecordableData data)
+    // {
+    //     replayableData = data;
+    //     
+    //     // draw the cursor with the lineRenderer
+    //     
+    //     
+    // }
 
     // Start is called before the first frame update
     void Start()

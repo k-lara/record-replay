@@ -6,19 +6,23 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using Ubiq.Spawning;
+using UnityEngine.Pool;
 
 public class LoadManager
 {
-    public LoadManager(NetworkSpawnManager spawnManager, string pathToRecordings)
+    public LoadManager(NetworkSpawnManager spawnManager, Dictionary<string, GameObject> prefabCatalogue, string pathToRecordings)
     {
         this.spawnManager = spawnManager;
+        this.prefabCatalogue = prefabCatalogue;
         this.pathToRecordings = pathToRecordings;
     }
     
     private NetworkSpawnManager spawnManager;
+    private Dictionary<string, GameObject> prefabCatalogue;
     
     private string pathToRecordings;
     
+    // on startup all existing thumbnails are loaded so that the user can choose which recording to load
     public async Task<List<Recording.ThumbnailData>> LoadThumbnailData()
     {
         var recordingThumbnails = new List<Recording.ThumbnailData>();
@@ -27,7 +31,6 @@ public class LoadManager
 
         foreach (var info in dirInfos)
         {
-            
             // get most recent folder
             info.Refresh();
             var saves = info.EnumerateDirectories().OrderBy(d => d.CreationTime).ToList();
@@ -40,7 +43,7 @@ public class LoadManager
             {
                 var fromFile = await File.ReadAllTextAsync(thumbnailPath);
                 var thumbnailData = JsonUtility.FromJson<Recording.ThumbnailData>(fromFile);
-                var guid = new Guid(lastSave.Name);
+                Debug.Log("Thumbnail data last save: " + lastSave.Name);
                 recordingThumbnails.Add(thumbnailData); // most recent thumbnail !!!
                 
             }
@@ -50,8 +53,9 @@ public class LoadManager
     
     // we load the corresponding recording data of the thumbnail
     // all thumbnail objects should have already been created
-    public async Task LoadRecordingData(Recording recording, Recording.ThumbnailData thumbnail)
+    public async Task LoadRecordingData(RecordableListPool pool, Recording recording, Recording.ThumbnailData thumbnail)
     {
+        recording.SetRecordingId(new Guid(thumbnail.recordingId)) ;
         var dirInfo = new DirectoryInfo(Path.Combine(pathToRecordings, recording.recordingId.ToString()));
         var saves = dirInfo.EnumerateDirectories().OrderBy(d => d.CreationTime).ToList();
         DirectoryInfo lastSave = saves[^1];
@@ -59,16 +63,20 @@ public class LoadManager
         var recordableDataDict = new Dictionary<Guid, Recording.RecordableData>();
         
         // load the recording data
-        // var motionFiles = lastSave.EnumerateFiles().Where(f => f.Name.Contains("_motion.txt")).ToList();
         foreach (var recordableId in thumbnail.recordableIds)
         {
             // try to load the motion file of the current recordableId
             var filePath = Path.Combine(lastSave.FullName, recordableId + "_motion.txt");
             if (File.Exists(filePath))
             {
+                // TODO not sure if this works! 
+                // we want to save the data frames into the lists from the list pool
+                // but I am not sure if it just saves it in there or creates a new one...???
                 var recordableDataJson = await File.ReadAllTextAsync(filePath);
-                var recordableData = JsonUtility.FromJson<Recording.RecordableData>(recordableDataJson);
-                // 
+                var recordableData = new Recording.RecordableData();
+                recordableData.dataFrames = pool.GetList();
+                JsonUtility.FromJsonOverwrite(recordableDataJson, recordableData);
+                
                 recordableDataDict.Add(new Guid(recordableId), recordableData);
             }
         }
@@ -77,25 +85,30 @@ public class LoadManager
         // TODO audio files
         // var audioFiles = lastSave.EnumerateFiles().Where(f => f.Name.Contains("_audio.txt")).ToList();
     }
-    
-    // the recording should have been initialised already!
-    public IEnumerator CreateThumbnail(Recording.ThumbnailData thumbnail, List<GameObject> currentSpawned)
+    /*
+     * Spawns prefabs as given by the currently loaded thumbnail.
+     * If we start a new recording and haven't saved it yet, there is no thumbnail to load from.
+     * In this case we need to spawn prefabs from the recording data (see CreateFromRecording).
+     */
+    public void CreateFromThumbnail(Recording.ThumbnailData thumbnail, ref List<GameObject> currentSpawned)
     {
+        Debug.Log("Create from thumbnail");
         List<GameObject> prefabs = new();
         for (var i = 0; i < thumbnail.prefabNames.Count; i++)
         {
             var name = thumbnail.prefabNames[i];
             var prefab = currentSpawned.Find(obj => obj.name == name + "(Clone)");
-            Debug.Log("Found prefab? : " + prefab);
             Replayable replayable;
             if (prefab == null)
             {
-                var go = spawnManager.SpawnWithPeerScope(prefab);
+                Debug.Log("Create fresh prefab: " + name);
+                var go = spawnManager.SpawnWithPeerScope(prefabCatalogue[name]);;
                 replayable = go.AddComponent<Replayable>();
                 prefabs.Add(go);
             }
             else
             {
+                Debug.Log("Reuse old prefab: " + name);
                 replayable = prefab.GetComponent<Replayable>();
                 prefabs.Add(prefab);
                 currentSpawned.Remove(prefab);
@@ -105,8 +118,33 @@ public class LoadManager
             replayable.SetIsLocal(true);
         }
         currentSpawned = prefabs;
+        Debug.Log("spawnedObjects currentSpawned: " + currentSpawned.Count + "");
+    }
+    
+    public List<GameObject> CreateFromRecording(Recording recording, Dictionary<Guid, Replayable> replayablesDict)
+    {
+        var newSpawned = new List<GameObject>();
         
-        yield return null;
+        Debug.Log("Spawn new replayable objects if any!");
+        foreach (var entry in recording.recordableDataDict)
+        {
+            Debug.Log(entry.Key + " is spawned: " + replayablesDict.ContainsKey(entry.Key));
+            if (replayablesDict.ContainsKey(entry.Key)) continue;
+            
+            Debug.Log(entry.Value.prefabName);
+            var go = spawnManager.SpawnWithPeerScope(prefabCatalogue[entry.Value.prefabName]);
+            newSpawned.Add(go);
+            
+            var replayable = go.AddComponent<Replayable>(); // player doesn't need this, so add it here
+            replayable.replayableId = entry.Key;
+            // set to last pose
+            replayable.SetReplayablePose(entry.Value.dataFrames.Count - 1);
+            
+            replayable.SetIsLocal(true);
+            replayablesDict.Add(entry.Key, replayable);
+            Debug.Log("Spawned new replayable (id: " + entry.Key + ")");
+        }
+        return newSpawned;
     }
     
     private Replayable.ReplayablePose ToPose(Recording.RecordableDataFrame dataFrame)

@@ -40,11 +40,11 @@ public class TakeoverSelector : MonoBehaviour
     public void Start()
     {
         playerCamera = Camera.main;
-        vignetteController = playerCamera.GetComponent<TunnelingVignetteController>();
+        vignetteController = playerCamera?.GetComponent<TunnelingVignetteController>();
 
         replayer = GetComponent<Replayer>();
-        replayer.onReplayCreated += OnReplayCreated;
-        replayer.onReplayDeleted += OnReplayDeleted;
+        replayer.onReplaySpawned += OnReplayCreated;
+        replayer.onReplayUnspawned += OnReplayUnspawned;
         
         spawnManager = NetworkSpawnManager.Find(this);
     }
@@ -89,22 +89,24 @@ public class TakeoverSelector : MonoBehaviour
     // Update the takeover colliders when a new replayable is created
     private void OnReplayCreated(object o, Dictionary<Guid, Replayable> replayables)
     {
+        // remove the old colliders
+        takeoverColliders.Clear();
         foreach (var replayable in replayables)
         {
-            if (!takeoverColliders.ContainsKey(replayable.Key))
+            Debug.Log("TakeoverSelector: Get Colliders/ Add Interactables to replayable: " + replayable.Key);
+            if (replayable.Value.gameObject.TryGetComponent(out Collider coll))
             {
-                if (replayable.Value.gameObject.TryGetComponent(out Collider coll))
+                takeoverColliders.Add(replayable.Key, coll);
+                // check if it has the component already since this could be a reused object from a previous thumbnail
+                if (!replayable.Value.gameObject.TryGetComponent(out XRSimpleInteractable interactable))
                 {
-                    takeoverColliders.Add(replayable.Key, coll);
-                    var interactable = replayable.Value.gameObject.AddComponent<XRSimpleInteractable>();
-                    interactable.selectEntered.AddListener(SpawnTakeoverObject);
-                    
+                    interactable = replayable.Value.gameObject.AddComponent<XRSimpleInteractable>();
                 }
+                interactable.selectEntered.AddListener(SpawnTakeoverObject);
             }
         }
     }
-    
-    private void OnReplayDeleted(object o, EventArgs e)
+    private void OnReplayUnspawned(object o, EventArgs e)
     {
         takeoverColliders.Clear();
     }

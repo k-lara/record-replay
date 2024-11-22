@@ -124,7 +124,8 @@ public class AvatarTakeover : MonoBehaviour
         else
         {
             // add recordable to our initial avatar prefab from before (materials are opaque by default)
-            avatarManager.LocalAvatar.gameObject.AddComponent<Recordable>();
+            var recordable = avatarManager.LocalAvatar.gameObject.AddComponent<Recordable>();
+            recordable.prefabName = avatarManager.avatarPrefab.name;
         }
     }
 
@@ -132,8 +133,7 @@ public class AvatarTakeover : MonoBehaviour
     {
         recordable = null;
     }
-
-
+    
     private void SetTakeoverStart()
     {
         // get last frame of this replayable's replay
@@ -154,7 +154,7 @@ public class AvatarTakeover : MonoBehaviour
     // the player avatar takes the appearance of the replayable avatar
     // per default the takeover start is a few seconds from the end of the selected replayable's data
     // TODO if the user has set their own range, the takeover start is set to a few seconds before that range
-    public void SelectTakeoverReplayable(object o, GameObject go)
+    private void SelectTakeoverReplayable(object o, GameObject go)
     {
         isTakingOver = true;
         replayable = go.GetComponent<Replayable>();
@@ -180,6 +180,9 @@ public class AvatarTakeover : MonoBehaviour
                 //replayer.prefabCatalogue[replayer.recording.recordableDataDict[replayable.replayableId].prefabName];
         }
         
+        // init undo stack
+        recorder.InitUndoStack(UndoManager.UndoType.Edit, replayable.replayableId, replayer.recording.recordableDataDict[replayable.replayableId]);
+        
         SetTakeoverStart(); // replayable needs to be set before this
         if (PlayerPosToReplayablePos(replayable))
         {
@@ -204,7 +207,7 @@ public class AvatarTakeover : MonoBehaviour
         return false;
     }
     
-    private void OnRecordingStop(object o, RecordingManager.RecordingFlags flags)
+    private void OnRecordingStop(object o, Recording.Flags flags)
     {
         if (isTakingOver)
         {
@@ -259,7 +262,7 @@ public class AvatarTakeover : MonoBehaviour
         }
     }
 
-    private IEnumerator OverwriteData(RecordingManager.RecordingFlags flags)
+    private IEnumerator OverwriteData(Recording.Flags flags)
     {
         var numFrames = replayer.recording.recordableDataDict[replayable.replayableId].numFrames;
         // don't need to interpolate first frame because it would be 100% replayable anyway
@@ -283,22 +286,21 @@ public class AvatarTakeover : MonoBehaviour
             var rightHandRot = Quaternion.Lerp(new Quaternion(dataFrame.xRotRightHand, dataFrame.yRotRightHand, dataFrame.zRotRightHand, dataFrame.wRotRightHand), currentTakeoverOverwrite[i - (takeoverStart + 1)].rightHand.rotation, t);
             
             // update data
-            replayer.recording.AddHeadTransform(replayable.replayableId, i, headPos, headRot);
-            replayer.recording.AddLeftHandTransform(replayable.replayableId, i, leftHandPos, leftHandRot);
-            replayer.recording.AddRightHandTransform(replayable.replayableId, i, rightHandPos, rightHandRot);
+            var newPose = new Recordable.RecordablePose(){head = new Pose(headPos, headRot), leftHand = new Pose(leftHandPos, leftHandRot), rightHand = new Pose(rightHandPos, rightHandRot)};
+            replayer.recording.AddDataFrame(replayable.replayableId, i, newPose);
         }
         // add new recorded data to the replayable
         for (var i = (int)(recorder.fps * takeoverDuration); i < currentTakeoverOverwrite.Count; i++)
         {
-            replayer.recording.TryAddEmptyDataFrame(replayable.replayableId, numFrames);
-            replayer.recording.AddHeadTransform(replayable.replayableId, numFrames, currentTakeoverOverwrite[i].head.position, currentTakeoverOverwrite[i].head.rotation);
-            replayer.recording.AddLeftHandTransform(replayable.replayableId, numFrames, currentTakeoverOverwrite[i].leftHand.position, currentTakeoverOverwrite[i].leftHand.rotation);
-            replayer.recording.AddRightHandTransform(replayable.replayableId, numFrames, currentTakeoverOverwrite[i].rightHand.position, currentTakeoverOverwrite[i].rightHand.rotation);
+            replayer.recording.AddDataFrame(replayable.replayableId, numFrames, currentTakeoverOverwrite[i]);
             numFrames++;
         }
         
         // update meta data
         replayer.recording.UpdateMetaData(replayable.replayableId, numFrames, replayer.recording.recordableDataDict[replayable.replayableId].fps, replayer.recording.recordableDataDict[replayable.replayableId].prefabName);
+        
+        // add undo state to UndoManager
+        recorder.AddUndoState(UndoManager.UndoType.Edit, replayable.replayableId, replayer.recording.recordableDataDict[replayable.replayableId]);
         
         // clear the takeover data
         currentTakeoverOverwrite.Clear();

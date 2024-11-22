@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Ubiq;
 using Ubiq.Avatars;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -14,11 +15,11 @@ public class RpmAvatar : MonoBehaviour
     public Transform rightHandTarget;
     public float yHeadOffset;
     
-    private ThreePointTrackedAvatar _trackedAvatar;
+    private HeadAndHandsAvatar _trackedAvatar;
     
     private void OnEnable()
     {
-        _trackedAvatar = GetComponentInParent<ThreePointTrackedAvatar>();
+        _trackedAvatar = GetComponentInParent<HeadAndHandsAvatar>();
 
         if (_trackedAvatar)
         {
@@ -38,28 +39,27 @@ public class RpmAvatar : MonoBehaviour
         }
     }
     
-    private void TrackedAvatarOnHeadUpdate(Vector3 position, Quaternion rotation)
+    private void TrackedAvatarOnHeadUpdate(InputVar<Pose> p)
     {
-        headTarget.position = position;
-        headTarget.rotation = rotation;
+        headTarget.position = p.value.position;
+        headTarget.rotation = p.value.rotation;
         
     }
     
     // hand rotation is wrong for VRIK when coming correctly from the tracker
-    private void TrackedAvatarOnLeftHandUpdate(Vector3 position, Quaternion rotation)
+    private void TrackedAvatarOnLeftHandUpdate(InputVar<Pose> p)
     {
-        leftHandTarget.position = position;
-        leftHandTarget.rotation = rotation;
+        leftHandTarget.position = p.value.position;
+        leftHandTarget.rotation = p.value.rotation;
     }
     
     // hand rotation is wrong for VRIK
-    private void TrackedAvatarOnRightHandUpdate(Vector3 position, Quaternion rotation)
+    private void TrackedAvatarOnRightHandUpdate(InputVar<Pose> p)
     {
-        rightHandTarget.position = position;
-        rightHandTarget.rotation = rotation;
+        rightHandTarget.position = p.value.position;
+        rightHandTarget.rotation = p.value.rotation;
 
     }
-    
 
     // Start is called before the first frame update
     void Start()

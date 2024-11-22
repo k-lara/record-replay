@@ -1,12 +1,7 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.IO;
 using Ubiq.Avatars;
-using UnityEditor;
 using UnityEngine;
-using Avatar = Ubiq.Avatars.Avatar;
-using Directory = UnityEngine.Windows.Directory;
 
 [RequireComponent(typeof(Replayer))]
 public class Recorder : MonoBehaviour
@@ -21,34 +16,33 @@ public class Recorder : MonoBehaviour
     public int fps = 10;
     
     public event EventHandler onRecordingStart;
-    public event EventHandler<RecordingManager.RecordingFlags> onRecordingStop; // tell everyone to stop and add the data
+    public event EventHandler<Recording.Flags> onRecordingStop; // tell everyone to stop and add the data
     
     private Replayer _replayer;
     
-    private AvatarManager _avatarManager;
+    // private AvatarManager _avatarManager;
     
     // Start is called before the first frame update
     void Start()
     {
         _recordingManager = GetComponent<RecordingManager>();
-
-        _replayer = GetComponent<Replayer>();
+        _recordingManager.onRecordingLoaded += OnReplayLoaded;
+        _recordingManager.onRecordingUnloaded += OnReplayUnloaded;
         
-        _replayer.onReplayCreated += OnReplayLoaded;
-        _replayer.onReplayDeleted += OnReplayDeleted;
+        _replayer = GetComponent<Replayer>();
         _replayer.onReplayStart += OnReplayStart;
         
-        _avatarManager = AvatarManager.Find(this);
-        var recordable = _avatarManager.LocalAvatar.gameObject.AddComponent<Recordable>();
-        recordable.prefabName = _avatarManager.avatarPrefab.name;
-
+        // _avatarManager = AvatarManager.Find(this);
+        // var recordable = _avatarManager.LocalAvatar.gameObject.AddComponent<Recordable>();
+        // recordable.prefabName = _avatarManager.avatarPrefab.name;
     }
 
     public void StartRecording()
     {
+        if (_isRecording) return;
         Debug.Log("Start recording!");
 
-        if (recording == null)
+        if (!recording.flags.DataLoaded)
         {
             _recordingManager.InitNewRecording();
         }
@@ -57,25 +51,46 @@ public class Recorder : MonoBehaviour
         {
         }
         
-        _isRecording = true;
+        recording.flags.SaveReady = false;
+        recording.flags.NewDataAvailable = true; // so recording manager knows data is available to save next time
+        recording.flags.IsRecording = _isRecording = true;
         onRecordingStart?.Invoke(this, EventArgs.Empty);
     }
 
     public void StopRecording()
     {
+        if (!_isRecording) return;
         Debug.Log("Stop recording!");
         
-        _isRecording = false;
+        recording.flags.IsRecording = _isRecording = false;
         // each recordable adds its metadata to the thumbnail in their OnRecordingStop()
-        onRecordingStop?.Invoke(this, _recordingManager.recordingFlags);
+        onRecordingStop?.Invoke(this, recording.flags);
+        Debug.Log(recording.ToString());
 
         StartCoroutine(WaitForSaveReady());
     }
     
+    /*
+     * Initializes the undoStack with a base state in case we need to get back to an initial state.
+     * If it is already initialized this function does nothing.
+     * @param data: can be null if we add a new recordable, !null when we edit an existing recordable
+     */
+    public void InitUndoStack(UndoManager.UndoType type, Guid id, Recording.RecordableData data)
+    {
+        Debug.Log("Init undo stack");
+        _recordingManager.InitUndoStack(type, id, data);
+    }
+
+    public void AddUndoState(UndoManager.UndoType type, Guid id, Recording.RecordableData data)
+    {
+        Debug.Log("Add undo stack");
+        _recordingManager.AddUndoState(type, id, data);
+    }
+    
     private IEnumerator WaitForSaveReady()
     {
-        yield return new WaitUntil(() => _recordingManager.recordingFlags.SaveReady == true);
-        _recordingManager.SaveRecording();
+        yield return new WaitUntil(() => recording.flags.SaveReady);
+        Debug.Log("Recorder: Save ready!");
     }
     
     private void OnReplayStart(object o, EventArgs e)
@@ -83,12 +98,12 @@ public class Recorder : MonoBehaviour
         _replayPlaying = true;
     }
     
-    private void OnReplayLoaded(object o, Dictionary<Guid, Replayable> dict)
+    private void OnReplayLoaded(object o, EventArgs e)
     {
         _replayLoaded = true;
     }
 
-    private void OnReplayDeleted(object o, EventArgs e)
+    private void OnReplayUnloaded(object o, EventArgs e)
     {
         _replayLoaded = false;
     }
@@ -101,40 +116,5 @@ public class Recorder : MonoBehaviour
             return _replayer.currentFrame;
         }
         return 0;
-    }
-    
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-}
-
-[CustomEditor(typeof(Recorder))]
-public class RecorderEditor : Editor
-{
-    string _text = "Start Recording";
-
-    public override void OnInspectorGUI()
-    {
-        DrawDefaultInspector();
-        if (!Application.isPlaying) return;
-
-        Recorder recorder = (Recorder)target;
-
-        // add a button that changes text depending on whether a recording needs to be started or stopped
-        if (!GUILayout.Button(_text)) return;
-
-        if (_text == "Start Recording")
-        {
-            recorder.StartRecording();
-            _text = "Stop Recording";
-        }
-        else
-        {
-            recorder.StopRecording();
-            _text = "Start Recording";
-        }
-
     }
 }
