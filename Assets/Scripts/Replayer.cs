@@ -72,7 +72,7 @@ public class Replayer : MonoBehaviour
             _deltaTime += Time.deltaTime;
             // current frame is a float, so we know between which two frames we are
             currentFrame = _deltaTime * _recorder.fps + frameOffset;
-            Debug.Log("Replayer Update(): current: " + currentFrame + " max frames:" + _frameNr);
+            // Debug.Log("Replayer Update(): current: " + currentFrame + " max frames:" + _frameNr);
             onFrameUpdate?.Invoke(this, true);
 
             if (currentFrame >= _frameNr - 1)
@@ -84,8 +84,22 @@ public class Replayer : MonoBehaviour
         }
     }
     
+    // this comes from a slider, so the normalized frame is between 0 and 1
+    // and will be mapped to the number of frames in the recording
+    // this way the slider doesn't need to know how many frames there are
+    public void SetCurrentFrameManually(float normalizedFrame)
+    {
+        if (!_isLoaded) return; // can't set a frame if we don't have data loaded
+        if (_isPlaying) return; // probably better not to jump between frames while playing
+        
+        frameOffset = Mathf.FloorToInt(normalizedFrame * _frameNr);
+        currentFrame = frameOffset;
+        
+        onFrameUpdate?.Invoke(this, false);
+    }
+    
     // only for takeover!
-    public void SetCurrentFrame(int frame)
+    public void SetCurrentFrameForTakeover(int frame)
     {
         if (frame > _frameNr)
         {
@@ -181,7 +195,7 @@ public class Replayer : MonoBehaviour
             _replayablesDict.Add(replayable.replayableId, replayable);
         }
         Debug.Log("Replayer: OnThumbnailSpawned(): # Replayables: " + _replayablesDict.Count);
-        onReplaySpawned?.Invoke(this, _replayablesDict);
+        // onReplaySpawned?.Invoke(this, _replayablesDict);
     }
 
     private void OnRecordingLoaded(object o, EventArgs e)

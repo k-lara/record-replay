@@ -21,7 +21,9 @@ using UnityEngine.XR.Interaction.Toolkit;
 public class RecorderUI : MonoBehaviour
 {
     public float recordingCountdown = 5.0f; // countdown before recording starts
-
+    public float currentFrameNormalized;
+    private float _previousFrameNormalized;
+    
     public InteractableSphere recordSphere;
     private Material _recordSphereMaterial;
     
@@ -54,6 +56,7 @@ public class RecorderUI : MonoBehaviour
     
     private Recorder _recorder;
     private Replayer _replayer;
+    private TakeoverSelector _takeoverSelector;
     private RecordingManager _recordingManager;
     private bool _isRecording;
     
@@ -74,10 +77,12 @@ public class RecorderUI : MonoBehaviour
         // _audioSourceHighBeep = audioSources[1];
         // _audioSourceButtonPress = audioSources[2];
         
-        _recorder = GameObject.FindWithTag("Recorder").GetComponent<Recorder>();
-        _replayer = GameObject.FindWithTag("Recorder").GetComponent<Replayer>();
+        var recorderGameObject = GameObject.FindWithTag("Recorder");
+        _recorder = recorderGameObject.GetComponent<Recorder>();
+        _replayer = recorderGameObject.GetComponent<Replayer>();
+        _takeoverSelector = recorderGameObject.GetComponent<TakeoverSelector>();
         
-        _recordingManager = GameObject.FindWithTag("Recorder").GetComponent<RecordingManager>();
+        _recordingManager = recorderGameObject.GetComponent<RecordingManager>();
         
         recordSphere.onSphereSelected += RecordButtonPressed;
         loadSphere.onSphereSelected += LoadButtonPressed;
@@ -129,10 +134,10 @@ public class RecorderUI : MonoBehaviour
 
     public void ClearButtonPressed(object o, EventArgs e)
     {
-        _recordingManager.UnloadRecording();
+        _recordingManager.UnloadRecording(); // just clears recording data not the objects
         _loadSphereMaterial.color = transparentWhite;
         _loadSphereCollider.isTrigger = false;
-        _recordingManager.ClearThumbnail();
+        _recordingManager.ClearThumbnail(); // clears objects from the thumbnail
         // remove the thumbnail info too
         SetRecordingInfoText();
         SetRecordingNumberText();
@@ -183,7 +188,20 @@ public class RecorderUI : MonoBehaviour
         _recordingManager.Redo();
     }
     
+    public void SelectTakeoverInEditor()
+    {
+        _takeoverSelector.TakeoverTestEditor();
+    }
+    
     // TODO slider for frames or something like that!
+    public void SetFrameManually()
+    {
+        if (Mathf.Abs(currentFrameNormalized - _previousFrameNormalized) > 0.01f)
+        {
+            _replayer.SetCurrentFrameManually(currentFrameNormalized);
+        }
+        currentFrameNormalized = _previousFrameNormalized;
+    }
     
     private void RecordingWithoutCountdown()
     {
@@ -219,12 +237,27 @@ public class RecorderUI : MonoBehaviour
 [CustomEditor(typeof(RecorderUI))]
 public class RecorderUIEditor : Editor
 {
+    SerializedProperty _normalizedFrame;
+    private float norm = 0.0f;
+    private void OnEnable()
+    {
+        _normalizedFrame = serializedObject.FindProperty("currentFrameNormalized");
+    }
+    
     public override void OnInspectorGUI()
     {
-        DrawDefaultInspector();
+        // DrawDefaultInspector();
         if (!Application.isPlaying) return;
         
         RecorderUI recorderUI = (RecorderUI) target;
+        
+        if (GUILayout.Button("TakeoverAvatar"))
+        {
+            recorderUI.SelectTakeoverInEditor();
+        }
+        
+        // dashed line to separate the buttons
+        GUILayout.Box("-----", GUILayout.ExpandWidth(true), GUILayout.Height(1));
         
         if (GUILayout.Button("Start/Stop Recording"))
         {
@@ -234,6 +267,12 @@ public class RecorderUIEditor : Editor
         
         // dashed line to separate the buttons
         GUILayout.Box("-----", GUILayout.ExpandWidth(true), GUILayout.Height(1));
+        
+        serializedObject.Update();
+        norm = EditorGUILayout.Slider("Replay Frame (normalized):", norm, 0, 1);
+        _normalizedFrame.floatValue = norm;
+        serializedObject.ApplyModifiedProperties();
+        recorderUI.SetFrameManually();
         
         if (GUILayout.Button("Start Replay"))
         {

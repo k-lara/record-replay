@@ -108,7 +108,6 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
 
     private void UpdateReplayablePose()
     {
-        Debug.Log("Update replayable pose: current frame: " + _replayer.currentFrame + " replayable id: " + replayableId);
         // no need to update if frame is too large, we just stay on the previous frame
         if (_replayer.currentFrame >= _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1) return;
         
@@ -116,6 +115,9 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         // when we start a recording in the middle of a replay, we add empty data frames until the current frame
         // these frames don't hold valid data, we can therefore not update the replayable pose!
         if (!f0.valid) return; 
+        
+        // Debug.Log("Update replayable pose: current frame: " + _replayer.currentFrame + " replayable id: " + replayableId);
+        
         var f1 = _replayer.recording.recordableDataDict[replayableId].dataFrames[(int)_replayer.currentFrame + 1];
         
         var t = _replayer.currentFrame - (int)_replayer.currentFrame;
@@ -139,6 +141,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
 
     public void SetReplayablePose(int frame)
     {
+        Debug.Log("SetReplayablePose from frame: " + frame);
         // this could have been set manually, so we want to show the closest frame possible
         if (frame > _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1)
         {
@@ -155,8 +158,10 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         _replayablePose.rightHand = new Pose(new Vector3(f.xPosRightHand, f.yPosRightHand, f.zPosRightHand), new Quaternion(f.xRotRightHand, f.yRotRightHand, f.zRotRightHand, f.wRotRightHand));
     }
     
+    // here we don't have a recording with data loaded, so we have to set the pose from the frame we have in the thumbnail
     public void SetReplayablePose(ReplayablePose pose)
     {
+        Debug.Log("SetReplayablePose from ReplayablePose: head pos x" + pose.head.position.x);
         _replayablePose = pose;
     }
 

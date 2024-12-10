@@ -5,6 +5,7 @@ using Ubiq;
 using Ubiq.Avatars;
 using Ubiq.Messaging;
 using Ubiq.Spawning;
+using Unity.XR.CoreUtils;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
@@ -49,6 +50,19 @@ public class TakeoverSelector : MonoBehaviour
         spawnManager = NetworkSpawnManager.Find(this);
     }
     
+    // for testing in the editor, we don't have a takeoverObject, but we simple take over the first replayable avatar from the collider list
+    public void TakeoverTestEditor()
+    {
+        Debug.Log("TakeoverTesteEditor: ");
+        
+        if (takeoverColliders.Count > 0)
+        {
+            selectedReplayableObject = takeoverColliders.First().Value.gameObject;
+            onTakeoverSelected?.Invoke(this, selectedReplayableObject);
+            selectedReplayableObject = null;
+        }
+    }
+    
     
     // called when selectEntered on replayable avatar
     // we do this to make the takeover look cooler by spawning an object the player has to interact with
@@ -87,6 +101,8 @@ public class TakeoverSelector : MonoBehaviour
     }
     
     // Update the takeover colliders when a new replayable is created
+    // this is currently only called when recording data is loaded 
+    // and not when only a thumbnail is loaded as I cannot see why it would be necessary already
     private void OnReplayCreated(object o, Dictionary<Guid, Replayable> replayables)
     {
         // remove the old colliders

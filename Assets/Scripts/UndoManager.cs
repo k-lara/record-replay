@@ -35,6 +35,14 @@ public class UndoManager
       public string prefabName;
       public List<Recording.RecordableDataFrame> dataFrames;
 
+      public override string ToString()
+      {
+         return "RecordableState: \n" +
+                "type: " + type + "\n" +
+                "id: " + id + "\n" +
+                "numFrames: " + numFrames + "\n" +
+                "prefabName: " + prefabName + "\n";
+      }
    }
    
    public UndoManager(NetworkSpawnManager spawnManager, Dictionary<string, GameObject> prefabCatalogue, RecordableListPool pool, int maxUndos)
@@ -49,7 +57,7 @@ public class UndoManager
    public List<Guid> Undo(Recording recording, List<GameObject> spawnedObjects)
    {
       List<Guid> undoIds = null;
-      if (undoIndex > 0)
+      if (undoIndex >= 0)
       {
          // check what undo type we need to perform
          switch (undoStack[undoIndex].type)
@@ -77,6 +85,7 @@ public class UndoManager
       List<Guid> removedIds = new List<Guid>(3); // maybe in the future we might undo more than one...
       // the last spawned object should be the one we need to unspawn
       var state = undoStack[undoIndex];
+      Debug.Log("UndoNew: undoIndex: " + undoIndex + " state: " + state);
       removedIds.Add(state.id);
       // as we undo the recorded avatar we return list from recording to the pool
       pool.ReturnList(recording.recordableDataDict[state.id].dataFrames);
@@ -91,6 +100,7 @@ public class UndoManager
    {
       List<Replayable> newReplayables = new List<Replayable>(3);
       var state = undoStack[undoIndex + 1];
+      Debug.Log("RedoNew: undoIndex: " + (undoIndex + 1) + " state: " + state);
       
       // add new recordable data to recording
       recording.CreateNewRecordableData(state.id);
@@ -188,6 +198,7 @@ public class UndoManager
             state.dataFrames = pool.GetList();
             state.dataFrames.AddRange(data.dataFrames);
          }
+         Debug.Log("InitUndoStack: undoIndex: " + undoIndex + " " + state);
       }
    }
 
@@ -210,24 +221,29 @@ public class UndoManager
          dataFrames = pool.GetList() // get list from pool
       };
       state.dataFrames.AddRange(data.dataFrames); // copy data over
-      
       // here we need to check what our current undo index is
       // it is possible we create a new undo state from an older state.
       // so we need to get rid of all newer states and make this one the most recent one.
-      UpdateStateStack(state);
+      UpdateStateStack();
+      
+      undoStack.Add(state);
+      undoIndex = undoStack.Count - 1;
+      Debug.Log("AddUndoState: undoIndex: " + undoIndex + " " + state);
    }
    
    /*
     * Updates the state stack when a new recording is done.
     * Makes sure that the last recording is the most recent on the state stack (being on the last index).
     */
-   private void UpdateStateStack(RecordableState state)
+   private void UpdateStateStack()
    {
       // make sure the current state is the newest and remove older states that have a higher index
       if (undoIndex < undoStack.Count - 1)
       {
-         for (int i = undoIndex + 1; i < undoStack.Count; i++ )
+         var end = undoStack.Count - 1;
+         for (int i = end; i > undoIndex; i--)
          {
+            // Debug.Log("UpdateStateStack: i: " + i + "undoIndex: " + undoIndex + " " + undoStack[i].id);
             pool.ReturnList(undoStack[i].dataFrames);
             undoStack.RemoveAt(i);
          }
@@ -237,7 +253,5 @@ public class UndoManager
          pool.ReturnList(undoStack[0].dataFrames);
          undoStack.RemoveAt(0);
       }
-      undoStack.Add(state);
-      undoIndex = undoStack.Count - 1;
    }
 }
