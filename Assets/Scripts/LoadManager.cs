@@ -90,10 +90,10 @@ public class LoadManager
      * If we start a new recording and haven't saved it yet, there is no thumbnail to load from.
      * In this case we need to spawn prefabs from the recording data (see CreateFromRecording).
      */
-    public void CreateFromThumbnail(Recording.ThumbnailData thumbnail, ref List<GameObject> currentSpawned)
+    public List<GameObject> CreateFromThumbnail(Recording.ThumbnailData thumbnail, ref List<GameObject> currentSpawned)
     {
         Debug.Log("Create from thumbnail");
-        List<GameObject> prefabs = new();
+        List<GameObject> newlySpawned = new();
         for (var i = 0; i < thumbnail.prefabNames.Count; i++)
         {
             var name = thumbnail.prefabNames[i];
@@ -102,23 +102,25 @@ public class LoadManager
             if (prefab == null)
             {
                 Debug.Log("Create fresh prefab: " + name);
-                var go = spawnManager.SpawnWithPeerScope(prefabCatalogue[name]);;
+                var go = spawnManager.SpawnWithPeerScope(prefabCatalogue[name]);
                 replayable = go.AddComponent<Replayable>();
-                prefabs.Add(go);
+                newlySpawned.Add(go);
             }
             else
             {
                 Debug.Log("Reuse old prefab: " + name);
                 replayable = prefab.GetComponent<Replayable>();
-                prefabs.Add(prefab);
+                newlySpawned.Add(prefab);
                 currentSpawned.Remove(prefab);
             }
             replayable.replayableId = new Guid(thumbnail.recordableIds[i]);
             replayable.SetReplayablePose(ToPose(thumbnail.firstPoses[i]));
             replayable.SetIsLocal(true);
         }
-        currentSpawned = prefabs;
+        
+        // currentSpawned = newPrefabs;
         Debug.Log("spawnedObjects currentSpawned: " + currentSpawned.Count + "");
+        return newlySpawned;
     }
     
     public List<GameObject> CreateFromRecording(Recording recording, Dictionary<Guid, Replayable> replayablesDict)
