@@ -133,7 +133,17 @@ public class Recording
         {
             thumbnail.recordableIds.Add(recordableData.Key.ToString());
             thumbnail.prefabNames.Add(recordableData.Value.prefabName);
-            thumbnail.firstPoses.Add(recordableData.Value.dataFrames[0]);
+            // thumbnail.firstPoses.Add(recordableData.Value.dataFrames[0]);
+            
+            // add first valid pose of each recordable
+            for (var i = 0; i < recordableData.Value.dataFrames.Count; i++)
+            {
+                if (recordableData.Value.dataFrames[i].valid)
+                {
+                    thumbnail.firstPoses.Add(recordableData.Value.dataFrames[i]);
+                    break;
+                }
+            }
         }
 
         return thumbnail;
