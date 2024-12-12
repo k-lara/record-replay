@@ -269,10 +269,16 @@ public class RecorderUIEditor : Editor
         GUILayout.Box("-----", GUILayout.ExpandWidth(true), GUILayout.Height(1));
         
         serializedObject.Update();
+        var prevNorm = norm;
         norm = EditorGUILayout.Slider("Replay Frame (normalized):", norm, 0, 1);
-        _normalizedFrame.floatValue = norm;
-        serializedObject.ApplyModifiedProperties();
-        recorderUI.SetFrameManually();
+        
+        if (!Mathf.Approximately(prevNorm, norm))
+        {
+            Debug.Log(prevNorm + " " + norm);
+            _normalizedFrame.floatValue = norm;
+            serializedObject.ApplyModifiedProperties();
+            recorderUI.SetFrameManually();
+        }
         
         if (GUILayout.Button("Start Replay"))
         {
