@@ -141,7 +141,6 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
 
     public void SetReplayablePose(int frame)
     {
-        Debug.Log("SetReplayablePose from frame: " + frame);
         // this could have been set manually, so we want to show the closest frame possible
         if (frame > _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1)
         {
@@ -152,6 +151,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
             frame = 0;
         }
         
+        Debug.Log("SetReplayablePose from frame: " + frame + "of " + _replayer.recording.recordableDataDict[replayableId].numFrames);
         var f = _replayer.recording.recordableDataDict[replayableId].dataFrames[frame];
         _replayablePose.head = new Pose(new Vector3(f.xPosHead, f.yPosHead, f.zPosHead), new Quaternion(f.xRotHead, f.yRotHead, f.zRotHead, f.wRotHead));
         _replayablePose.leftHand = new Pose(new Vector3(f.xPosLeftHand, f.yPosLeftHand, f.zPosLeftHand), new Quaternion(f.xRotLeftHand, f.yRotLeftHand, f.zRotLeftHand, f.wRotLeftHand));
@@ -178,6 +178,5 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         {
             SetReplayablePose((int)_replayer.currentFrame);
         }
-
     }
 }
