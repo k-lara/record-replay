@@ -37,7 +37,29 @@ public class Recordable : MonoBehaviour
     private float _t; // interpolation factor
     private bool _interpolate;
     
-    public event EventHandler<RecordablePose> OnUpdateRecordablePose;
+    // make an eventhandler that has RecordablePose and the current frame number
+    
+    public event EventHandler<RecordablePoseArgs> OnUpdateRecordablePose;
+    
+    public class RecordablePoseArgs : EventArgs
+    {
+        public RecordablePose recordablePose;
+        public int frameNr;
+        
+        // when doing recordablePose = pose, it is just a reference and won't work
+        public RecordablePoseArgs(RecordablePose pose, int frame)
+        {
+            frameNr = frame;
+            recordablePose = new RecordablePose();
+            recordablePose.head.position = pose.head.position;
+            recordablePose.head.rotation = pose.head.rotation;
+            recordablePose.leftHand.position = pose.leftHand.position;
+            recordablePose.leftHand.rotation = pose.leftHand.rotation;
+            recordablePose.rightHand.position = pose.rightHand.position;
+            recordablePose.rightHand.rotation = pose.rightHand.rotation;
+        }
+    }
+    
     public class RecordablePose
     {
         public Pose head;
@@ -102,7 +124,8 @@ public class Recordable : MonoBehaviour
                 if (_isTakingOver)
                 {
                     // the takeover gathers the data and merges it with the original replay data after recording is done
-                    OnUpdateRecordablePose?.Invoke(this, _recordablePose);
+                    // NOTE: in the constructor of RecordablePoseArgs we create a new RecordablePose and copy the data, otherwise it's just a reference
+                    OnUpdateRecordablePose?.Invoke(this, new RecordablePoseArgs(_recordablePose, _currentFrameNr));
                 }
                 else
                 {
@@ -127,35 +150,33 @@ public class Recordable : MonoBehaviour
     private void OnRecordingStart(object o, EventArgs e)
     {
         if (_isRecording) return;
-        var currentFloatFrame = _recorder.GetCurrentFrameFloat();
-        
-        _frameInterval = currentFloatFrame - Mathf.FloorToInt(currentFloatFrame);
-        
-        if (currentFloatFrame == 0)
+
+        if (!_isTakingOver)
         {
-            Debug.Log("Start recording from frame 0");
-            _currentFrameNr = 0;
-        }
-        else
-        {
-            // we want to record the next frame, and not the one we are currently at according to the replayer
-            // but if we are doing a takeover, the current frame is an int so ceil/floor will return that frame and not the next frame
-            if (Mathf.CeilToInt(currentFloatFrame) == (int)currentFloatFrame)
+            var currentFloatFrame = _recorder.GetCurrentFrameFloat();
+            
+            _frameInterval = currentFloatFrame - Mathf.FloorToInt(currentFloatFrame);
+            
+            if (currentFloatFrame == 0)
             {
-                _currentFrameNr = (int)currentFloatFrame + 1;
+                Debug.Log("Start recording from frame 0");
+                _currentFrameNr = 0;
             }
             else
             {
-                _currentFrameNr = (int)currentFloatFrame;
+                // we want to record the next frame, and not the one we are currently at according to the replayer
+                if (Mathf.CeilToInt(currentFloatFrame) == (int)currentFloatFrame)
+                {
+                    _currentFrameNr = (int)currentFloatFrame + 1;
+                }
+                else
+                {
+                    _currentFrameNr = (int)currentFloatFrame;
+                }
+                Debug.Log("Start recording from frame " + _currentFrameNr);
             }
-            Debug.Log("Start recording from frame " + _currentFrameNr);
-        }
         
-        // if this is the player it will only get a guid assigned when it starts a new recording
-        // if this is an existing replay who we want to take over then we already have a guid from the replayer
-        Debug.Log("Takeover:" + _isTakingOver);
-        if (!_isTakingOver)
-        {
+            // if this is the player it will only get a guid assigned when it starts a new recording
             _guid = _recorder.recording.CreateNewRecordableData(Guid.Empty);
             // initialize the undo stack with a base state (if already initialized this does nothing)
             _recorder.InitUndoStack(UndoManager.UndoType.New, _guid, null);
@@ -169,6 +190,16 @@ public class Recordable : MonoBehaviour
                 // we fill up the RecordableData up to the currentFrame - 1
                 _recorder.recording.TryAddEmptyDataFrames(_guid, _currentFrameNr-1);
             }
+        }
+        else
+        {
+            // if this is an existing replay who we want to take over then we already have a guid from the replayer
+            // so we don't need a new one (unlike above)
+            Debug.Log("Takeover!");
+            
+            // if we are doing a takeover, we start from frame 0. we know where to insert this data later so frame number is not important
+            // TODO: I hope this makes sense because I didn't have it like that before
+            _currentFrameNr = 0;
         }
         _isRecording = true;
     }
@@ -190,6 +221,11 @@ public class Recordable : MonoBehaviour
             _recorder.recording.UpdateMetaData(_guid, _currentFrameNr, _recorder.fps, prefabName);
             
             _recorder.AddUndoState(UndoManager.UndoType.New, _guid, _recorder.recording.recordableDataDict[_guid]);
+        }
+        else
+        {
+            // set this back here instead of in AvatarTakeover otherwise it might be set too soon and the above code gets executed
+            _isTakingOver = false;
         }
     }
     private void OnDestroy()

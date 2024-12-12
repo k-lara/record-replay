@@ -50,11 +50,12 @@ public class TakeoverSelector : MonoBehaviour
         spawnManager = NetworkSpawnManager.Find(this);
     }
     
-    // for testing in the editor, we don't have a takeoverObject, but we simple take over the first replayable avatar from the collider list
+    // for testing in the editor, we don't have a takeoverObject, but we simply take over the first replayable avatar from the collider list
     public void TakeoverTestEditor()
     {
-        Debug.Log("TakeoverTesteEditor: ");
+        Debug.Log("TakeoverTesteEditor: colliders count:" + takeoverColliders.Count);
         
+        // count is 0 when no replay is loaded. colliders only get added when replay data is loaded but are not automatically on a thumbnail replayable
         if (takeoverColliders.Count > 0)
         {
             selectedReplayableObject = takeoverColliders.First().Value.gameObject;

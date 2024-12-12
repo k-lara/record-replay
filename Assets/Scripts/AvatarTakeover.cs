@@ -22,7 +22,7 @@ public class AvatarTakeover : MonoBehaviour
 {
     public float takeoverDuration = 2.0f; // duration of the takeover in seconds
     
-    private bool isTakingOver = false;
+    public bool isTakingOver { get; private set; }
     
     private Recorder recorder;
     private Replayer replayer;
@@ -78,44 +78,76 @@ public class AvatarTakeover : MonoBehaviour
         go.GetComponentsInChildren(meshRenderers);
     }
 
+    // TODO: when accessing .material a new instance is created and I might need to destroy it manually myself when I am done with it
     private void SetMaterialsToFade()
     {
         // make our avatar already semi transparent so we know visually that we are taking over
         GetMeshRenderers(recordable.gameObject, ref playerMeshRenderers);
+        GetMeshRenderers(replayable.gameObject, ref replayableMeshRenderers);
         playerMaterials = recordable.GetComponent<AvatarMaterials>();
+        replayableMaterials = replayable.GetComponent<AvatarMaterials>();
+        
+        if (!playerMaterials || !replayableMaterials)
+        {
+            Debug.Log("AvatarMaterials component not found!");
+            return;
+        }
+        
+        // Debug.Log("Player mesh renderers count: " + playerMeshRenderers.Count + 
+        //           "available materials (opaque/fade) " + playerMaterials.materialsOpaque.Count + " " + playerMaterials.materialsFade.Count);
         foreach (var mr in playerMeshRenderers)
         {
             // replace opaque with fade material
-            var idx = playerMaterials.materialsOpaque.IndexOf(mr.material);
-            if (idx != -1 && idx < playerMaterials.materialsFade.Count)
+            var matFade = playerMaterials.GetMaterialFade(mr.material.name.Split(" ")[0] + "_Fade");
+            if (matFade)
             {
-                mr.material = playerMaterials.materialsFade[idx]; // opaque and fade materials should be in the same order
+                mr.material = matFade;
                 // set transparency
                 var color = mr.material.color;
                 color.a = 0.5f;
                 mr.material.color = color;
             }
+            // var idx = playerMaterials.materialsOpaque.IndexOf(mr.material); // material has (Instance) appended to it so we can't find it this way
+            // if (idx != -1 && idx < playerMaterials.materialsFade.Count)
+            // {
+            //     mr.material = playerMaterials.materialsFade[idx]; // opaque and fade materials should be in the same order
+            //     // set transparency
+            //     var color = mr.material.color;
+            //     color.a = 0.5f;
+            //     mr.material.color = color;
+            // }
         }
-
-        GetMeshRenderers(replayable.gameObject, ref replayableMeshRenderers);
-        replayableMaterials = replayable.GetComponent<AvatarMaterials>();
+        
+        // Debug.Log("Replayable mesh renderers count: " + replayableMeshRenderers.Count + 
+        //           "available materials (opaque/fade) " + replayableMaterials.materialsOpaque.Count + " " + replayableMaterials.materialsFade.Count);
         foreach (var mr in replayableMeshRenderers)
         {
-            var idx = replayableMaterials.materialsOpaque.IndexOf(mr.material);
-            if (idx != -1 && idx < replayableMaterials.materialsFade.Count)
+            var matFade = replayableMaterials.GetMaterialFade(mr.material.name.Split(" ")[0] + "_Fade");
+            if (matFade)
             {
-                mr.material = replayableMaterials.materialsFade[idx];
+                mr.material = matFade;
+                // set transparency
                 var color = mr.material.color;
                 color.a = 0.5f;
                 mr.material.color = color;
             }
+            // var idx = replayableMaterials.materialsOpaque.IndexOf(mr.material);
+            // if (idx != -1 && idx < replayableMaterials.materialsFade.Count)
+            // {
+            //     mr.material = replayableMaterials.materialsFade[idx];
+            //     var color = mr.material.color;
+            //     color.a = 0.5f;
+            //     mr.material.color = color;
+            // }
         }
     }
-
+    
+    // the recordable is
     private void OnAvatarCreated(Avatar avatar)
     {
         if (isTakingOver)
         {
+            // we add a recordable to the new player avatar which we might have changed for takeover
             recordable = avatarManager.LocalAvatar.gameObject.AddComponent<Recordable>();
             recordable.OnUpdateRecordablePose += OnUpdateRecordablePose;
             recordable.IsTakingOver = isTakingOver;
@@ -147,7 +179,8 @@ public class AvatarTakeover : MonoBehaviour
         }
         replayer.frameOffset = takeoverStart; // this is for the internal replayer Update() so the deltaTime is correct and takes the right frame
         replayer.currentFrame = takeoverStart;
-        replayer.SetCurrentFrame(takeoverStart);
+        replayer.SetCurrentFrameForTakeover(takeoverStart);
+        Debug.Log("Set takeover start to frame: " + takeoverStart);
     }
     
     // select a replayable in the scene for takeover
@@ -156,6 +189,7 @@ public class AvatarTakeover : MonoBehaviour
     // TODO if the user has set their own range, the takeover start is set to a few seconds before that range
     private void SelectTakeoverReplayable(object o, GameObject go)
     {
+        Debug.Log("Takeover selected: " + go.name);
         isTakingOver = true;
         replayable = go.GetComponent<Replayable>();
         // this has to be called once we know which replayable to take over
@@ -165,15 +199,18 @@ public class AvatarTakeover : MonoBehaviour
         if (avatarManager.avatarPrefab.name ==
             replayer.recording.recordableDataDict[replayable.replayableId].prefabName)
         {
+            Debug.Log("Avatar prefab is already the same as the replayable prefab!");
             recordable = avatarManager.LocalAvatar.gameObject.GetComponent<Recordable>();
             recordable.OnUpdateRecordablePose += OnUpdateRecordablePose;
             recordable.IsTakingOver = isTakingOver;
+            replayer.SetIsTakingOver(isTakingOver);
             SetMaterialsToFade();
         }
         else
         {
-            // once the new prefab has been spawned OnAvatarCreated will be called and we can add the recordable and modify the materials
-            
+            // once the new prefab has been spawned OnAvatarCreated will be called where we add the recordable
+            // after that we can modify the materials
+            Debug.Log("Avatar prefab is different from the replayable prefab!");   
             //save original prefab for later
             playerPrefab = avatarManager.avatarPrefab;
             avatarManager.avatarPrefab = replayable.gameObject;
@@ -198,8 +235,8 @@ public class AvatarTakeover : MonoBehaviour
             // find forward vector of replayable (use head rotation without pitch and roll)
             var yRot = replayable._replayablePose.head.rotation.eulerAngles.y;
             var forward = Quaternion.Euler(0, yRot, 0) * Vector3.forward;
-            
-            var success = xrOrigin.MoveCameraToWorldLocation(recordable.transform.position);
+            //
+            var success = xrOrigin.MoveCameraToWorldLocation(replayable._replayablePose.head.position);
             success = success && xrOrigin.MatchOriginUpCameraForward(xrOrigin.transform.up, forward);
             return success;
         }
@@ -212,15 +249,24 @@ public class AvatarTakeover : MonoBehaviour
         if (isTakingOver)
         {
             isTakingOver = false;
+            replayable.OnUpdateReplayablePose -= OnUpdateReplayablePose;
             
             // set replayable materials back to opaque
             foreach (var mr in replayableMeshRenderers)
             {
-                var idx = replayableMaterials.materialsFade.IndexOf(mr.material);
-                if (idx != -1 && idx < replayableMaterials.materialsOpaque.Count)
+                // material has "_Fade (Instance)" appended to it need to remove that first
+                var matName = mr.material.name.Remove(mr.material.name.Length - 16);
+                Debug.Log(matName);
+                var matOpaque = replayableMaterials.GetMaterialOpaque(matName);
+                if (matOpaque)
                 {
-                    mr.material = replayableMaterials.materialsOpaque[idx];
+                    mr.material = matOpaque;
                 }
+                // var idx = replayableMaterials.materialsFade.IndexOf(mr.material);
+                // if (idx != -1 && idx < replayableMaterials.materialsOpaque.Count)
+                // {
+                //     mr.material = replayableMaterials.materialsOpaque[idx];
+                // }
             }
             
             // interpolate between the original replay and the currentTakeoverOverwrite
@@ -241,25 +287,41 @@ public class AvatarTakeover : MonoBehaviour
     {
         if (playerPrefab != null)
         {
+            Debug.Log("Change back player prefab to: " + playerPrefab.name);
             // change player prefab back to previous prefab
             avatarManager.avatarPrefab = playerPrefab;
             playerPrefab = null; // reset
         }
         else
         {
-            // set materials back to opaque for player avatar since we are not replacing the prefab
-            foreach (var mr in playerMeshRenderers)
+            if (playerMaterials)
             {
-                var idx = playerMaterials.materialsFade.IndexOf(mr.material);
-                if (idx != -1 && idx < playerMaterials.materialsOpaque.Count)
+                Debug.Log("Change materials back to opaque, do not change player prefab!");
+                // set materials back to opaque for player avatar since we are not replacing the prefab
+                foreach (var mr in playerMeshRenderers)
                 {
-                    mr.material = playerMaterials.materialsOpaque[idx];
+                    // material has "_Fade (Instance)" appended to it need to remove that first
+                    var matName = mr.material.name.Remove(mr.material.name.Length - 16);
+                    Debug.Log(matName);
+                    var matOpaque = playerMaterials.GetMaterialOpaque(matName);
+                    if (matOpaque)
+                    {
+                        mr.material = matOpaque;
+                    }
+                    // var idx = playerMaterials.materialsFade.IndexOf(mr.material);
+                    // if (idx != -1 && idx < playerMaterials.materialsOpaque.Count)
+                    // {
+                    //     mr.material = playerMaterials.materialsOpaque[idx];
+                    // }
                 }
-                    
-                recordable.OnUpdateRecordablePose -= OnUpdateRecordablePose;
-                recordable.IsTakingOver = isTakingOver;
             }
         }
+        recordable.OnUpdateRecordablePose -= OnUpdateRecordablePose;
+        
+        // we don't set isTakingOver to false for the Replayer as it can do it itself and might need to do it after this method has been called
+        // we also don't set it back for the recordable, because OnRecording stop is called after this
+        // and we need to now OnRecordingStop that this was a takeover, so the recordable is setting it to false itself
+        // recordable.IsTakingOver = isTakingOver;
     }
 
     private IEnumerator OverwriteData(Recording.Flags flags)
@@ -267,37 +329,52 @@ public class AvatarTakeover : MonoBehaviour
         var numFrames = replayer.recording.recordableDataDict[replayable.replayableId].numFrames;
         // don't need to interpolate first frame because it would be 100% replayable anyway
         // currentTakeoverOverwrite indexing starts at 0! and corresponds to takeoverStart + 1 in the replayable data
-        Debug.Log("Overwrite data => Takeover start: " + takeoverStart);
+        // Debug.Log("Overwrite data => Takeover start: " + takeoverStart + " old numFrames: " + numFrames);
+
+        int j = 0; 
         for (int i = takeoverStart + 1; i < numFrames; i++)
         {
             // compute t
             t = (float)(i - takeoverStart) / (int)(recorder.fps * takeoverDuration);
+            j = i - (takeoverStart + 1);
+            Debug.Log(i + " " + j + " t: " + t);
             
             // interpolate
             var dataFrame = replayer.recording.recordableDataDict[replayable.replayableId].dataFrames[i];
             
-            var headPos = Vector3.Lerp(new Vector3(dataFrame.xPosHead, dataFrame.yPosHead, dataFrame.zPosHead), currentTakeoverOverwrite[i - (takeoverStart + 1)].head.position, t);
-            var headRot = Quaternion.Lerp(new Quaternion(dataFrame.xRotHead, dataFrame.yRotHead, dataFrame.zRotHead, dataFrame.wRotHead), currentTakeoverOverwrite[i - (takeoverStart + 1)].head.rotation, t);
+            var headPos = Vector3.Lerp(new Vector3(dataFrame.xPosHead, dataFrame.yPosHead, dataFrame.zPosHead), currentTakeoverOverwrite[j].head.position, t);
+            var headRot = Quaternion.Lerp(new Quaternion(dataFrame.xRotHead, dataFrame.yRotHead, dataFrame.zRotHead, dataFrame.wRotHead), currentTakeoverOverwrite[j].head.rotation, t);
             
-            var leftHandPos = Vector3.Lerp(new Vector3(dataFrame.xPosLeftHand, dataFrame.yPosLeftHand, dataFrame.zPosLeftHand), currentTakeoverOverwrite[i - (takeoverStart + 1)].leftHand.position, t);
-            var leftHandRot = Quaternion.Lerp(new Quaternion(dataFrame.xRotLeftHand, dataFrame.yRotLeftHand, dataFrame.zRotLeftHand, dataFrame.wRotLeftHand), currentTakeoverOverwrite[i - (takeoverStart + 1)].leftHand.rotation, t);
+            var leftHandPos = Vector3.Lerp(new Vector3(dataFrame.xPosLeftHand, dataFrame.yPosLeftHand, dataFrame.zPosLeftHand), currentTakeoverOverwrite[j].leftHand.position, t);
+            var leftHandRot = Quaternion.Lerp(new Quaternion(dataFrame.xRotLeftHand, dataFrame.yRotLeftHand, dataFrame.zRotLeftHand, dataFrame.wRotLeftHand), currentTakeoverOverwrite[j].leftHand.rotation, t);
             
-            var rightHandPos = Vector3.Lerp(new Vector3(dataFrame.xPosRightHand, dataFrame.yPosRightHand, dataFrame.zPosRightHand), currentTakeoverOverwrite[i - (takeoverStart + 1)].rightHand.position, t);
-            var rightHandRot = Quaternion.Lerp(new Quaternion(dataFrame.xRotRightHand, dataFrame.yRotRightHand, dataFrame.zRotRightHand, dataFrame.wRotRightHand), currentTakeoverOverwrite[i - (takeoverStart + 1)].rightHand.rotation, t);
+            var rightHandPos = Vector3.Lerp(new Vector3(dataFrame.xPosRightHand, dataFrame.yPosRightHand, dataFrame.zPosRightHand), currentTakeoverOverwrite[j].rightHand.position, t);
+            var rightHandRot = Quaternion.Lerp(new Quaternion(dataFrame.xRotRightHand, dataFrame.yRotRightHand, dataFrame.zRotRightHand, dataFrame.wRotRightHand), currentTakeoverOverwrite[j].rightHand.rotation, t);
+            
+            // don't interpolate
+            // var headPos = currentTakeoverOverwrite[j].head.position;
+            // var headRot = currentTakeoverOverwrite[j].head.rotation;
+            // var leftHandPos = currentTakeoverOverwrite[j].leftHand.position;
+            // var leftHandRot = currentTakeoverOverwrite[j].leftHand.rotation;
+            // var rightHandPos = currentTakeoverOverwrite[j].rightHand.position;
+            // var rightHandRot = currentTakeoverOverwrite[j].rightHand.rotation;
             
             // update data
             var newPose = new Recordable.RecordablePose(){head = new Pose(headPos, headRot), leftHand = new Pose(leftHandPos, leftHandRot), rightHand = new Pose(rightHandPos, rightHandRot)};
             replayer.recording.AddDataFrame(replayable.replayableId, i, newPose);
         }
         // add new recorded data to the replayable
-        for (var i = (int)(recorder.fps * takeoverDuration); i < currentTakeoverOverwrite.Count; i++)
+        // Debug.Log("add new data to replayable from: " + (j + 1) + " to " + currentTakeoverOverwrite.Count);
+        for (var i = j + 1; i < currentTakeoverOverwrite.Count; i++)
         {
+            Debug.Log(numFrames + " i " + i);
             replayer.recording.AddDataFrame(replayable.replayableId, numFrames, currentTakeoverOverwrite[i]);
             numFrames++;
         }
         
         // update meta data
         replayer.recording.UpdateMetaData(replayable.replayableId, numFrames, replayer.recording.recordableDataDict[replayable.replayableId].fps, replayer.recording.recordableDataDict[replayable.replayableId].prefabName);
+        replayer.UpdateMaxFrameNumber();
         
         // add undo state to UndoManager
         recorder.AddUndoState(UndoManager.UndoType.Edit, replayable.replayableId, replayer.recording.recordableDataDict[replayable.replayableId]);
@@ -314,9 +391,11 @@ public class AvatarTakeover : MonoBehaviour
         yield return null;
     }
     
-    private void OnUpdateRecordablePose(object o, Recordable.RecordablePose rp)
+    private void OnUpdateRecordablePose(object o, Recordable.RecordablePoseArgs args)
     {
-        currentTakeoverOverwrite.Add(Mathf.FloorToInt(replayer.currentFrame), rp);
+        // Debug.Log("add takeover overwrite data: " + args.frameNr + " " + args.recordablePose.head.position);
+        currentTakeoverOverwrite.Add(args.frameNr, args.recordablePose);
+        // Debug.Log(currentTakeoverOverwrite[0].head.position);
     }
     
     // interpolate between the replayable and the player pose to create a smooth takeover
@@ -337,14 +416,6 @@ public class AvatarTakeover : MonoBehaviour
         }
         
         UpdateTakeoverVisibility();
-        
-        // previousPose.head.position = rp.head.position;
-        // previousPose.head.rotation = rp.head.rotation;
-        // previousPose.leftHand.position = rp.leftHand.position;
-        // previousPose.leftHand.rotation = rp.leftHand.rotation;
-        // previousPose.rightHand.position = rp.rightHand.position;
-        // previousPose.rightHand.rotation = rp.rightHand.rotation;
-        // previousFrameFloat = replayer.currentFrame;
     }
 
     private void UpdateTakeoverVisibility()
