@@ -37,6 +37,11 @@ public class SaveManager
         return timeSinceLastSave >= saveInterval;
     }
     
+    public void ResetSaveTimer()
+    {
+        timeSinceLastSave = 0;
+    }
+    
     /**
      * Save the current recording to a file.
      * We keep 2 backup files in addition to the current recording.
