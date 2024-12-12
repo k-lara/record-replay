@@ -9,6 +9,7 @@ using Ubiq.Messaging;
 using Ubiq.Spawning;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering.UI;
 
 public class Replayer : MonoBehaviour
 {
@@ -28,6 +29,7 @@ public class Replayer : MonoBehaviour
     
     private bool _isLoaded;
     private bool _isPlaying;
+    private bool _isTakingOver;
     public float currentFrame { get; set; } // could be between two frames
     public int frameOffset { get; set; }
 
@@ -72,7 +74,10 @@ public class Replayer : MonoBehaviour
             _deltaTime += Time.deltaTime;
             // current frame is a float, so we know between which two frames we are
             currentFrame = _deltaTime * _recorder.fps + frameOffset;
-            // Debug.Log("Replayer Update(): current: " + currentFrame + " max frames:" + _frameNr);
+            // if (currentFrame >= 57)
+            // {
+            //     Debug.Log("Replayer Update(): current: " + currentFrame + " max frames:" + _frameNr);
+            // }
             onFrameUpdate?.Invoke(this, true);
 
             if (currentFrame >= _frameNr - 1)
@@ -148,6 +153,11 @@ public class Replayer : MonoBehaviour
         if (!_isLoaded) return;
         if (_isPlaying) return;
         
+        // check if a takeover is happening
+        // if so, when recording stops, we don't want to spawn a new replayable
+        // we check for isTakingOver here because OnRecordingStop might be called in the AvatarTakeover first
+        // and then isTakingOver might already be false
+        
         // if we have stopped a replay pressing start will resume it
         StartReplay();
     }
@@ -160,7 +170,22 @@ public class Replayer : MonoBehaviour
         // in that case we start from beginning per default
         StopReplay();
         _deltaTime = 0.0f;
-        _recordingManager.SpawnReplayables(_replayablesDict);
+        
+        // if takeover: we don't want to spawn new replayables because we already have them
+        if (!_isTakingOver)
+        {
+            _recordingManager.SpawnReplayables(_replayablesDict);
+        }
+        else
+        {
+            // takeover is done, set it back to false
+            _isTakingOver = false;
+        }
+    }
+    
+    public void SetIsTakingOver(bool isTakingOver)
+    {
+        _isTakingOver = isTakingOver;
     }
     
     /*
@@ -170,7 +195,16 @@ public class Replayer : MonoBehaviour
      */
     private void OnReplayablesSpawned(object o, EventArgs e)
     {
+        UpdateMaxFrameNumber();
+        // _isLoaded = true;
+        Debug.Log("Replayer: OnReplayablesSpawned(): max frames: " + _frameNr);
+        onReplaySpawned?.Invoke(this, _replayablesDict);
+    }
+
+    public void UpdateMaxFrameNumber()
+    {
         // get the max number of frames
+        _frameNr = 0;
         foreach (var entry in recording.recordableDataDict)
         {
             if (_frameNr < entry.Value.dataFrames.Count)
@@ -178,9 +212,7 @@ public class Replayer : MonoBehaviour
                 _frameNr = entry.Value.dataFrames.Count;
             }
         }
-        // _isLoaded = true;
-        Debug.Log("Replayer: OnReplayablesSpawned(): max frames: " + _frameNr);
-        onReplaySpawned?.Invoke(this, _replayablesDict);
+        Debug.Log("Max frame number: " + _frameNr);
     }
     
     // Here we do not have data loaded.
@@ -221,19 +253,45 @@ public class Replayer : MonoBehaviour
      * then we need to update the replayablesDict and remove the replayable
      * (which should be null by then)
      */
-    private void OnRecordingUndo(object o, List<Guid> undoIds)
+    private void OnRecordingUndo(object o, (UndoManager.UndoType, List<Guid>) undoInfo)
     {
-        foreach (var id in undoIds)
+        
+        // only when we undo a new recording we need to remove the replayable
+        if (undoInfo.Item1 == UndoManager.UndoType.New)
         {
-            _replayablesDict.Remove(id);
+            foreach (var id in undoInfo.Item2)
+            {
+                _replayablesDict.Remove(id);
+            }
+        }
+
+        // if we want to undo an edit we don't remove the replayable
+        // but we need to update some data!
+        if (undoInfo.Item1 == UndoManager.UndoType.Edit)
+        {
+            // so far this is only 1 replayable anyway!
+            foreach (var id in undoInfo.Item2)
+            {
+                _replayablesDict[id].SetReplayablePose(recording.recordableDataDict[id].dataFrames.Count - 1);
+                UpdateMaxFrameNumber(); // max frame number could be different now so we check again!
+                Debug.Log(recording.ToString());
+            }
         }
     }
 
-    private void OnRecordingRedo(object o, List<Replayable> redoReplayables)
+    private void OnRecordingRedo(object o, (UndoManager.UndoType, List<Replayable>) redoInfo)
     {
-        foreach (var r in redoReplayables)
+        if (redoInfo.Item1 == UndoManager.UndoType.New)
         {
-            _replayablesDict.Add(r.replayableId, r);
+            foreach (var r in redoInfo.Item2)
+            {
+                _replayablesDict.Add(r.replayableId, r);
+            }
+        }
+
+        if (redoInfo.Item1 == UndoManager.UndoType.Edit)
+        {
+            UpdateMaxFrameNumber();
         }
     }
     
@@ -241,6 +299,13 @@ public class Replayer : MonoBehaviour
     {
         _recorder.onRecordingStart -= OnRecordingStart;
         _recorder.onRecordingStop -= OnRecordingStop;
+        _recordingManager.onThumbnailSpawned -= OnThumbnailSpawned;
+        _recordingManager.onReplayablesSpawnedAndLoaded -= OnReplayablesSpawned;
+        _recordingManager.onRecordingLoaded -= OnRecordingLoaded;
+        _recordingManager.onRecordingUnloaded -= OnRecordingUnloaded;
+        _recordingManager.onUnspawned -= OnReplayUnspawned;
+        _recordingManager.onRecordingUndo -= OnRecordingUndo;
+        _recordingManager.onRecordingRedo -= OnRecordingRedo;
     }
     
     // private Replayable SpawnReplayableObject(string prefabName)
