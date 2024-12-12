@@ -52,8 +52,8 @@ public class RecordingManager : MonoBehaviour
     // this is also called after having loaded a recording when replayables have already been spawned...
     public event EventHandler onReplayablesSpawnedAndLoaded;
     public event EventHandler onUnspawned;
-    public event EventHandler<List<Guid>> onRecordingUndo;
-    public event EventHandler<List<Replayable>> onRecordingRedo;
+    public event EventHandler<(UndoManager.UndoType, List<Guid>)> onRecordingUndo;
+    public event EventHandler<(UndoManager.UndoType, List<Replayable>)> onRecordingRedo;
     public event EventHandler onRecordingSaved; // TODO WHEN TO DO THAT IN CODE? AFTER RECORDING STOPS? BUT NOT ALWAYS!
     public event EventHandler onRecordingLoaded;
     public event EventHandler onRecordingUnloaded;
@@ -191,26 +191,27 @@ public class RecordingManager : MonoBehaviour
         else
         {
             Debug.Log("No new data to save!");
+            saveManager.ResetSaveTimer(); // not sure if we should do this here as it means we have to wait for another interval to save again
         }
     }
 
     public void Undo()
     {
         // undoIds can be null if only edits and no respawning objects
-        List<Guid> undoIds = undoManager.Undo(Recording, spawnedObjects);
-        if (undoIds != null)
+        (UndoManager.UndoType, List<Guid>) undoInfo = undoManager.Undo(Recording, spawnedObjects);
+        if (undoInfo.Item1 != UndoManager.UndoType.None)
         {
-            onRecordingUndo?.Invoke(this, undoIds);
+            onRecordingUndo?.Invoke(this, undoInfo);
         }
     }
 
     public void Redo()
     {
         // can be null if only edits and no respawning objects
-        List<Replayable> replayables = undoManager.Redo(Recording, spawnedObjects);
-        if (replayables != null)
+        (UndoManager.UndoType, List<Replayable>) redoInfo = undoManager.Redo(Recording, spawnedObjects);
+        if (redoInfo.Item1 != UndoManager.UndoType.None)
         {
-            onRecordingRedo?.Invoke(this, replayables);
+            onRecordingRedo?.Invoke(this, redoInfo);
         }
     }
 
@@ -247,7 +248,9 @@ public class RecordingManager : MonoBehaviour
     private IEnumerator CreateFromThumbnail(int index)
     {
         Debug.Log("Creating from thumbnail idx: " + index);
-        loadManager.CreateFromThumbnail(recordingThumbnails[index], ref spawnedObjects);
+        var newObjects = loadManager.CreateFromThumbnail(recordingThumbnails[index], ref spawnedObjects);
+        DespawnObjects(); // clear the current spawned objects
+        spawnedObjects = newObjects;
         Debug.Log("spawned objects: " + spawnedObjects.Count);
         yield return null;
         onThumbnailSpawned?.Invoke(this, spawnedObjects);
@@ -267,6 +270,7 @@ public class RecordingManager : MonoBehaviour
      */
     private IEnumerator CreateFromRecording(Dictionary<Guid, Replayable> replayablesDict)
     {
+        Debug.Log("Create from recording");
         var newSpawned = loadManager.CreateFromRecording(Recording, replayablesDict);
         // add newly spawned objects to the list of thumbnailObjects
         foreach (var go in newSpawned)
@@ -293,14 +297,19 @@ public class RecordingManager : MonoBehaviour
 
     public void ClearThumbnail()
     {
+        DespawnObjects();
+        currentThumbnailIndex = -1;
+        onUnspawned?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void DespawnObjects()
+    {
         foreach(var spawnedObject in spawnedObjects)
         {
             Debug.Log("Despawning: " + spawnedObject);
             spawnManager.Despawn(spawnedObject);
         }
         spawnedObjects.Clear();
-        currentThumbnailIndex = -1;
-        onUnspawned?.Invoke(this, EventArgs.Empty);
     }
     
     /*
