@@ -15,7 +15,7 @@ using UnityEngine.XR.Interaction.Toolkit;
 public class InteractableSphere : MonoBehaviour
 {
     private XRSimpleInteractable _sphereInteractable;
-
+    
     private bool _pulsing;
     private bool _reset;
     private bool _shrinking;
@@ -32,9 +32,16 @@ public class InteractableSphere : MonoBehaviour
     public float speed;
     public float multiplier;
     public Color color;
+    private bool highlight;
     private Material _mat;
 
     public event EventHandler onSphereSelected;
+    
+    public void EnableInteractable(bool enable)
+    {
+        _sphereInteractable.enabled = enable;
+    }
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -49,11 +56,26 @@ public class InteractableSphere : MonoBehaviour
         // _sphereInteractable.selectExited.AddListener(SelectExited);
             
     }
+    
+    // we set highlight to true so we know when the animations happen that it should stay highlighted
+    // and not go back to default color
+    public void EnableHighlight()
+    {
+        _mat.color = color;
+        highlight = true;
+    }
+
+    public void DisableHighlight()
+    { 
+        _mat.color = new Color(1f, 1f, 1f, 0.4f);
+        highlight = false;
+    }
+    
     // when the user hovers close to the sphere it starts pulsing
     // if sphere is currently shrinking or expanding don't do anything
     private void HoverEntered(HoverEnterEventArgs args)
     {
-        // Debug.Log("Hover entered");
+        Debug.Log("Hover entered");
         if (_shrinking || _expanding) return;
         _pulsing = true;
     }
@@ -63,7 +85,7 @@ public class InteractableSphere : MonoBehaviour
     // we let the current process finish and do not reset as we would if the sphere is only pulsing
     private void HoverExited(HoverExitEventArgs args)
     {
-        // Debug.Log("Hover exited");
+        Debug.Log("Hover exited");
         if (_shrinking || _expanding) return;
         _pulsing = false;
         if (Mathf.Approximately(_currentScale, _defaultScale)) return;
@@ -72,7 +94,7 @@ public class InteractableSphere : MonoBehaviour
     // when the user selects the sphere, hovering stops and the sphere shrinks
     private void SelectEntered(SelectEnterEventArgs args)
     {
-        // Debug.Log("Select entered");
+        Debug.Log("Select entered");
         if (_shrinking || _expanding) return;
         _pulsing = false;
         _shrinking = true;
@@ -93,7 +115,7 @@ public class InteractableSphere : MonoBehaviour
         _currentScale = _defaultScale + sin * 0.01f;
         _delta += Time.deltaTime;
 
-        if (Mathf.Sign(sin) != Mathf.Sign(_previousSin))
+        if (!Mathf.Approximately(Mathf.Sign(sin), Mathf.Sign(_previousSin)))
         {
             transform.localScale = new Vector3(_defaultScale, _defaultScale, _defaultScale);
             _reset = false;
@@ -118,8 +140,12 @@ public class InteractableSphere : MonoBehaviour
 
     private void Shrinking(float speed)
     {
-        _currentScale = _currentScale - Time.deltaTime * 0.01f * speed;
-        _mat.color = color;
+        _currentScale -= Time.deltaTime * 0.02f * speed;
+        if (highlight)
+            EnableHighlight();
+        else
+        {  
+        }
         
         if (_currentScale < _minScale)
         {
@@ -136,14 +162,16 @@ public class InteractableSphere : MonoBehaviour
 
     private void Expanding(float speed)
     {
-        _currentScale = _currentScale + Time.deltaTime * 0.01f * speed;
+        _currentScale += Time.deltaTime * 0.02f * speed;
 
         if (_currentScale > _defaultScale)
         {
             transform.localScale = new Vector3(_defaultScale, _defaultScale, _defaultScale);
             _currentScale = _defaultScale;
             _expanding = false;
-            _mat.color = new Color(1f, 1f, 1f, 0.4f);
+            
+            if (!highlight)
+                DisableHighlight();
         }
         else
         {

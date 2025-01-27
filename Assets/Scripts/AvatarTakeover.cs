@@ -194,6 +194,11 @@ public class AvatarTakeover : MonoBehaviour
         replayable = go.GetComponent<Replayable>();
         // this has to be called once we know which replayable to take over
         replayable.OnUpdateReplayablePose += OnUpdateReplayablePose;
+
+        if (avatarManager.avatarPrefab.name == "MetaAvatar")
+        {
+            
+        }
         
         // if we don't need to change the avatarPrefab because it is already the same, we don't need to wait to get the recordable and set the materials
         if (avatarManager.avatarPrefab.name ==

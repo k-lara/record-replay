@@ -35,7 +35,6 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
     
     private AudioReplayable _audioReplayable;
     
-    private HeadAndHandsAvatar _trackedAvatar;
     private Avatar _avatar; // remove this only need it for debugging
     private int _trackingPoints;
     private int _fps;
@@ -66,7 +65,6 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         _replayer.onReplayStop += OnReplayStop;
         _replayer.onFrameUpdate += OnFrameUpdate;
         
-        _trackedAvatar = GetComponent<HeadAndHandsAvatar>();
         _avatar = GetComponent<Avatar>();
 
         _replayablePose = new ReplayablePose();

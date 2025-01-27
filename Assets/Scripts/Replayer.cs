@@ -1,15 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using HVR;
-using Ubiq.Avatars;
-using Ubiq.Messaging;
 using Ubiq.Spawning;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering.UI;
 
 public class Replayer : MonoBehaviour
 {
@@ -87,6 +79,12 @@ public class Replayer : MonoBehaviour
                 StopReplay();
             }
         }
+    }
+
+    public float GetCurrentFrameNormalized()
+    {
+        if (!_isLoaded || _frameNr == 0) return 0.0f;
+        return currentFrame / _frameNr;
     }
     
     // this comes from a slider, so the normalized frame is between 0 and 1

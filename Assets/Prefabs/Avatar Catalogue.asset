@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: Avatar Catalogue
   m_EditorClassIdentifier: 
   prefabs:
+  - {fileID: 8105444539661125935, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
   - {fileID: 8401117980193901156, guid: a415908b5a0ef7d45a571447710f2971, type: 3}
   - {fileID: 3196489790097512048, guid: b7da701b814969946825297e1680711e, type: 3}
