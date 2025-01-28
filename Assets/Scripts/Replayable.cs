@@ -40,6 +40,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
     private int _fps;
     
     public ReplayablePose _replayablePose { get; private set; }
+    private int previousFrame;
 
     public class ReplayablePose
     {
@@ -139,6 +140,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
 
     public void SetReplayablePose(int frame)
     {
+        if (frame == previousFrame) return;
         // this could have been set manually, so we want to show the closest frame possible
         if (frame > _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1)
         {
@@ -148,12 +150,13 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         {
             frame = 0;
         }
-        
         Debug.Log("SetReplayablePose from frame: " + frame + "of " + _replayer.recording.recordableDataDict[replayableId].numFrames);
         var f = _replayer.recording.recordableDataDict[replayableId].dataFrames[frame];
         _replayablePose.head = new Pose(new Vector3(f.xPosHead, f.yPosHead, f.zPosHead), new Quaternion(f.xRotHead, f.yRotHead, f.zRotHead, f.wRotHead));
         _replayablePose.leftHand = new Pose(new Vector3(f.xPosLeftHand, f.yPosLeftHand, f.zPosLeftHand), new Quaternion(f.xRotLeftHand, f.yRotLeftHand, f.zRotLeftHand, f.wRotLeftHand));
         _replayablePose.rightHand = new Pose(new Vector3(f.xPosRightHand, f.yPosRightHand, f.zPosRightHand), new Quaternion(f.xRotRightHand, f.yRotRightHand, f.zRotRightHand, f.wRotRightHand));
+        
+        previousFrame = frame;
     }
     
     // here we don't have a recording with data loaded, so we have to set the pose from the frame we have in the thumbnail

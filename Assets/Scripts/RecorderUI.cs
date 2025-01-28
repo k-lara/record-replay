@@ -23,7 +23,6 @@ using UnityEngine.XR.Interaction.Toolkit.Inputs;
 public class RecorderUI : MonoBehaviour
 {
     public float recordingCountdown = 5.0f; // countdown before recording starts
-    public float currentFrameNormalized;
     private float _previousFrameNormalized;
     
     public InteractableSphere recordSphere;
@@ -63,7 +62,7 @@ public class RecorderUI : MonoBehaviour
     private bool _isRecording;
     private bool _isReplaying;
     
-    private bool _uiVisible;
+    private bool _uiVisible = true;
     
     // Start is called before the first frame update
     void Start()
@@ -115,12 +114,6 @@ public class RecorderUI : MonoBehaviour
         
         // TODO maybe make script execute later than RecordingManager!
         SetRecordingNumberText();
-    }
-
-    private void SetSliderFromFrame(object o, bool e)
-    {
-        if (_uiVisible) 
-            frameSlider.CalculateCubicBezierPointFromFrame(_replayer.GetCurrentFrameNormalized());
     }
 
     enum ActionType
@@ -322,19 +315,19 @@ public class RecorderUI : MonoBehaviour
         _takeoverSelector.TakeoverTestEditor();
     }
     
-    // TODO slider for frames or something like that!
     public void SetFrameManually(object o, float t)
     {
-        if (Mathf.Abs(currentFrameNormalized - _previousFrameNormalized) > 0.01f)
-        {
-            _replayer.SetCurrentFrameManually(currentFrameNormalized);
-        }
-        currentFrameNormalized = _previousFrameNormalized;
+        Debug.Log("SetFrameManually: " + t);
+        _replayer.SetCurrentFrameManually(t);
     }
-
-    public void SetSliderFromFrame()
+    
+    private void SetSliderFromFrame(object o, bool e)
     {
+        if (!_uiVisible) return;
+        if (!_isReplaying) return;
         
+        Debug.Log("SetSliderFromFrame: " + _replayer.GetCurrentFrameNormalized());
+        frameSlider.SetT(_replayer.GetCurrentFrameNormalized());
     }
     
     private void RecordingWithoutCountdown()

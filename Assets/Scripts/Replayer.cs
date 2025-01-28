@@ -20,6 +20,7 @@ public class Replayer : MonoBehaviour
     private Dictionary<Guid, Replayable> _replayablesDict;
     
     private bool _isLoaded;
+    public bool IsPlaying => _isPlaying;
     private bool _isPlaying;
     private bool _isTakingOver;
     public float currentFrame { get; set; } // could be between two frames
@@ -64,12 +65,15 @@ public class Replayer : MonoBehaviour
         if (_isPlaying)
         {
             _deltaTime += Time.deltaTime;
+            
+            // sometimes we want to start in the middle of a recording
+            // then we need to add a frameOffset otherwise the delta time would give us the wrong frame
+            // e.g. if we start at frame 0 and pause at frame 50 and then move the slider to frame 55
+            // then we have set our offset and need to reset deltaTime, since we don't want delta time to be added to the frameOffset
+           
             // current frame is a float, so we know between which two frames we are
             currentFrame = _deltaTime * _recorder.fps + frameOffset;
-            // if (currentFrame >= 57)
-            // {
-            //     Debug.Log("Replayer Update(): current: " + currentFrame + " max frames:" + _frameNr);
-            // }
+            
             onFrameUpdate?.Invoke(this, true);
 
             if (currentFrame >= _frameNr - 1)
@@ -96,7 +100,8 @@ public class Replayer : MonoBehaviour
         if (_isPlaying) return; // probably better not to jump between frames while playing
         
         frameOffset = Mathf.FloorToInt(normalizedFrame * _frameNr);
-        currentFrame = frameOffset;
+        currentFrame = frameOffset; // need to set this too because onFrameUpdate needs the currentFrame
+        _deltaTime = 0.0f;
         
         onFrameUpdate?.Invoke(this, false);
     }
@@ -142,6 +147,7 @@ public class Replayer : MonoBehaviour
         if (!_isPlaying) return; // no point in stopping if we are not playing
         
         Debug.Log("Stop Replay!");
+        frameOffset = 0; //have to reset it here so the slider is updated correctly too
         _isPlaying = false;
         onReplayStop?.Invoke(this, EventArgs.Empty);
     }

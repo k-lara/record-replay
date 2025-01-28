@@ -84,7 +84,7 @@ MonoBehaviour:
   _debugDrawing:
     drawTrackingPose: 1
     drawBoneNames: 0
-    drawSkelHierarchy: 1
+    drawSkelHierarchy: 0
     drawSkelHierarchyInGame: 0
     drawSkinTransformsInGame: 0
     drawCriticalJoints: 0
@@ -165,7 +165,7 @@ MonoBehaviour:
   _rightArmBlendFactor: 1
   _customAnimationBlendFactor: 0
   _enableTrackedUpperBodyRotation: 1
-  _enableDebugRigVisual: 1
+  _enableDebugRigVisual: 0
   _enableIndependentUpperBodyHorizontalRotation: 1
   _maxUpperBodyAngleDeviation: 45
   _lowerBodyRotationDegreesPerSecond: 90
