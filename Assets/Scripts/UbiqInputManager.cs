@@ -45,7 +45,6 @@ public class UbiqInputManager : OvrAvatarInputManager
         // but a Replayable is definitely not user controlled so should work as a check too
         if (_avatarEntity && gameObject.TryGetComponent(out Replayable replayable))
         {
-            
             // here we hide the replayed avatar and spawn a loopback avatar
             // the loopback avatar will be controlled by this invisible avatar
             _avatarEntity.SetView(CAPI.ovrAvatar2EntityViewFlags.None);

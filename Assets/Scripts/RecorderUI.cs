@@ -22,6 +22,10 @@ using UnityEngine.XR.Interaction.Toolkit.Inputs;
  */
 public class RecorderUI : MonoBehaviour
 {
+    private XRIControllerButtonInputActions controllerButtonInputActions;
+
+    public AvatarSwitcher AvatarSwitcher;
+    
     public float recordingCountdown = 5.0f; // countdown before recording starts
     private float _previousFrameNormalized;
     
@@ -105,20 +109,43 @@ public class RecorderUI : MonoBehaviour
         _recorder.onRecordingStart += OnRecordingStart;
         _recorder.onRecordingStop += OnRecordingStop;
         
-        // get input action from primary button press
-        InputActionManager manager;
-        manager = leftController.gameObject.GetComponent<InputActionManager>();
-        
-        // listen to primary button press event
-        
-        
         // TODO maybe make script execute later than RecordingManager!
         SetRecordingNumberText();
+    }
+
+    void OnEnable()
+    {
+        if (controllerButtonInputActions == null)
+        {
+            controllerButtonInputActions = new XRIControllerButtonInputActions();
+        }
+        controllerButtonInputActions.Enable();
+        // get button input actions
+        Debug.Log("Button Input Actions Enabled?" + controllerButtonInputActions.XRILeftControllerButtons.enabled);
+        controllerButtonInputActions.XRILeftControllerButtons.XButton.performed += c => XButtonPressed();
+        controllerButtonInputActions.XRIRightControllerButtons.AButton.performed += c => AButtonPressed();
+    }
+
+    void OnDisable()
+    {
+        controllerButtonInputActions.Disable();
     }
 
     enum ActionType
     {
         Record, Load, Start, Stop, Clear, Forward, Backward, Save, Undo, Redo
+    }
+
+    private void AButtonPressed()
+    {
+        Debug.Log("A Button Pressed: " + (_isRecording ? "Stop Recording" : "Start Recording"));
+        RecordButtonPressed(this, EventArgs.Empty);
+    }
+
+    private void XButtonPressed()
+    {
+        Debug.Log("X Button Pressed");
+        AvatarSwitcher.Next();
     }
 
     private void EnableSpheres()
@@ -317,7 +344,7 @@ public class RecorderUI : MonoBehaviour
     
     public void SetFrameManually(object o, float t)
     {
-        Debug.Log("SetFrameManually: " + t);
+        // Debug.Log("SetFrameManually: " + t);
         _replayer.SetCurrentFrameManually(t);
     }
     
@@ -326,7 +353,7 @@ public class RecorderUI : MonoBehaviour
         if (!_uiVisible) return;
         if (!_isReplaying) return;
         
-        Debug.Log("SetSliderFromFrame: " + _replayer.GetCurrentFrameNormalized());
+        // Debug.Log("SetSliderFromFrame: " + _replayer.GetCurrentFrameNormalized());
         frameSlider.SetT(_replayer.GetCurrentFrameNormalized());
     }
     

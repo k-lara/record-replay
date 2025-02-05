@@ -25,7 +25,7 @@ public class AvatarSwitcher : MonoBehaviour
     
     
     
-    private void Next()
+    public void Next()
     {
         currentAvatarIndex++;
         if (currentAvatarIndex < avatars.Length)
@@ -40,7 +40,7 @@ public class AvatarSwitcher : MonoBehaviour
         PlayerPrefs.SetInt("AvatarIndex", currentAvatarIndex);
     }
     
-    private void Previous()
+    public void Previous()
     {
         currentAvatarIndex--;
         if (currentAvatarIndex >= 0)

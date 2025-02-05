@@ -139,9 +139,11 @@ public class LoadManager
             
             var replayable = go.AddComponent<Replayable>(); // player doesn't need this, so add it here
             replayable.replayableId = entry.Key;
-            // set to last pose
-            replayable.SetReplayablePose(entry.Value.dataFrames.Count - 1);
-            
+            // set to last pose or first pose (last pose is a bit annoying when wanting to record from the beginning)
+            // replayable.SetReplayablePose(entry.Value.dataFrames.Count - 1);
+            // we set it to the first valid pose (there should be one at least at some point)
+            // even if the valid pose does not start at 0, it will find the next valid pose
+            replayable.SetReplayablePose(0); 
             replayable.SetIsLocal(true);
             replayablesDict.Add(entry.Key, replayable);
             Debug.Log("Spawned new replayable (id: " + entry.Key + ")");

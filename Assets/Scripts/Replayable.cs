@@ -142,6 +142,19 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
     {
         if (frame == previousFrame) return;
         // this could have been set manually, so we want to show the closest frame possible
+        if (!_replayer.recording.recordableDataDict[replayableId].dataFrames[frame].valid)
+        {
+            Debug.Log("SetReplayablePose: frame not valid, find next possible frame");
+            for (var i = frame + 1; i < _replayer.recording.recordableDataDict[replayableId].dataFrames.Count; i++)
+            {
+                if (_replayer.recording.recordableDataDict[replayableId].dataFrames[i].valid)
+                {
+                    frame = i;
+                    break;
+                }
+            }
+        }
+        
         if (frame > _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1)
         {
             frame = _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1;
