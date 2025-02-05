@@ -19,7 +19,6 @@ public class UbiqMetaAvatarEntity : SampleAvatarEntity
     
     public void SetView(CAPI.ovrAvatar2EntityViewFlags view)
     {
-        OvrAvatarLog.LogDebug("Setting view to " + view);
         SetActiveView(view);
         
         // instantiate another avatar for the loopback
@@ -27,8 +26,11 @@ public class UbiqMetaAvatarEntity : SampleAvatarEntity
         loopbackAvatar.SetIsLocal(false);
         
         var loopbackManager = gameObject.AddComponent<SampleRemoteLoopbackManager>();
+        loopbackAvatar.VerifyCanApplyStreaming();
         loopbackManager.Configure(this, new List<OvrAvatarEntity>() { loopbackAvatar });
         
+        // add a collider to this avatar's head joint so that the takeover selector can take it over
+        // get the head joint game object from this avatar
     }
 
     protected override void OnDestroyCalled()
