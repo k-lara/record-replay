@@ -63,7 +63,7 @@ MonoBehaviour:
   _facePoseBehavior: {fileID: 0}
   _eyePoseBehavior: {fileID: 0}
   _lipSync: {fileID: 0}
-  _criticalJointTypes: 0f0000001d00000031000000
+  _criticalJointTypes: 0f000000
   _useCriticalJointJobs: 0
   _debugDrawing:
     drawTrackingPose: 0
