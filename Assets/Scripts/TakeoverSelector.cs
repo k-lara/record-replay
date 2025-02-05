@@ -19,7 +19,8 @@ public class TakeoverSelector : MonoBehaviour
 {
     // fade in and out of player camera when taking over (vignetting)
 
-    private Dictionary<Guid, Collider> takeoverColliders = new();
+    // private Dictionary<Guid, Collider> takeoverColliders = new();
+    private Dictionary<Guid, GameObject> interactableSpheres = new();
     private Replayer replayer;
     private NetworkSpawnManager spawnManager;
     
@@ -27,6 +28,7 @@ public class TakeoverSelector : MonoBehaviour
     private TunnelingVignetteController vignetteController;
     private float currentFeathering = 1.0f; // the current vignetting effect
     private float previousDistance = 0.2f; // the current distance between the player's camera and the takeoverObject
+    public GameObject takeoverInteractable;
     public GameObject takeoverObject; // the object used to visualise the takeover
     private GameObject spawnedObject; // the spawned object when the player selects the takeover avatar
     private GameObject selectedReplayableObject; // the replayable avatar that the player has selected to take over
@@ -53,17 +55,16 @@ public class TakeoverSelector : MonoBehaviour
     // for testing in the editor, we don't have a takeoverObject, but we simply take over the first replayable avatar from the collider list
     public void TakeoverTestEditor()
     {
-        Debug.Log("TakeoverTesteEditor: colliders count:" + takeoverColliders.Count);
-        
-        // count is 0 when no replay is loaded. colliders only get added when replay data is loaded but are not automatically on a thumbnail replayable
-        if (takeoverColliders.Count > 0)
-        {
-            selectedReplayableObject = takeoverColliders.First().Value.gameObject;
-            onTakeoverSelected?.Invoke(this, selectedReplayableObject);
-            selectedReplayableObject = null;
-        }
+        // Debug.Log("TakeoverTesteEditor: colliders count:" + takeoverColliders.Count);
+        //
+        // // count is 0 when no replay is loaded. colliders only get added when replay data is loaded but are not automatically on a thumbnail replayable
+        // if (takeoverColliders.Count > 0)
+        // {
+        //     selectedReplayableObject = takeoverColliders.First().Value.gameObject;
+        //     onTakeoverSelected?.Invoke(this, selectedReplayableObject);
+        //     selectedReplayableObject = null;
+        // }
     }
-    
     
     // called when selectEntered on replayable avatar
     // we do this to make the takeover look cooler by spawning an object the player has to interact with
@@ -106,26 +107,70 @@ public class TakeoverSelector : MonoBehaviour
     // and not when only a thumbnail is loaded as I cannot see why it would be necessary already
     private void OnReplayCreated(object o, Dictionary<Guid, Replayable> replayables)
     {
-        // remove the old colliders
-        takeoverColliders.Clear();
+        // add sphere interactables above the head of the avatar
         foreach (var replayable in replayables)
         {
-            Debug.Log("TakeoverSelector: Get Colliders/ Add Interactables to replayable: " + replayable.Key);
-            if (replayable.Value.gameObject.TryGetComponent(out Collider coll))
+            if (!replayable.Value.gameObject.transform.GetChild(0).childCount.Equals(0))
             {
-                takeoverColliders.Add(replayable.Key, coll);
-                // check if it has the component already since this could be a reused object from a previous thumbnail
-                if (!replayable.Value.gameObject.TryGetComponent(out XRSimpleInteractable interactable))
-                {
-                    interactable = replayable.Value.gameObject.AddComponent<XRSimpleInteractable>();
-                }
-                interactable.selectEntered.AddListener(SpawnTakeoverObject);
+                Debug.Log("TakeoverSelector: Interactable Sphere already exists, skipping");
+                continue;
             }
+            
+            var sphere = Instantiate(takeoverInteractable, replayable.Value.gameObject.transform.GetChild(0));
+            sphere.SetActive(false);
+            sphere.GetComponent<InteractableSphere>().onSphereSelected += TakeoverSelected;
+            sphere.transform.localPosition = new Vector3(0.4f, 0, 0);
+            // sphere.transform.localRotation = Quaternion.identity;
+            interactableSpheres.Add(replayable.Key, sphere);
+            Debug.Log("Add interactable to replayable: " + replayable.Key);
+            
         }
+        // foreach (var replayable in replayables)
+        // {
+        //     Debug.Log("TakeoverSelector: Get Colliders/ Add Interactables to replayable: " + replayable.Key);
+        //     if (replayable.Value.gameObject.TryGetComponent(out Collider coll))
+        //     {
+        //         takeoverColliders.Add(replayable.Key, coll);
+        //         // check if it has the component already since this could be a reused object from a previous thumbnail
+        //         if (!replayable.Value.gameObject.TryGetComponent(out XRSimpleInteractable interactable))
+        //         {
+        //             interactable = replayable.Value.gameObject.AddComponent<XRSimpleInteractable>();
+        //         }
+        //         interactable.selectEntered.AddListener(SpawnTakeoverObject);
+        //     }
+        // }
+    }
+
+    public void EnableTakeover()
+    {
+        foreach(var sphere in interactableSpheres)
+        {
+            sphere.Value.SetActive(true);
+        }
+    }
+
+    public void DisableTakeover()
+    {
+        foreach (var sphere in interactableSpheres)
+        {
+            sphere.Value.SetActive(false);
+        }
+    }
+    
+    private void TakeoverSelected(object o, EventArgs e)
+    {
+        onTakeoverSelected?.Invoke(this, ((InteractableSphere) o).transform.parent.parent.gameObject);
     }
     private void OnReplayUnspawned(object o, EventArgs e)
     {
-        takeoverColliders.Clear();
+        // unsubscribe from events
+        foreach (var sphere in interactableSpheres)
+        {
+            sphere.Value.GetComponent<InteractableSphere>().onSphereSelected -= TakeoverSelected;
+            Destroy(sphere.Value);
+        }
+        
+        interactableSpheres.Clear();
     }
 
     public void TakeoverVignetting()

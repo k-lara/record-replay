@@ -65,6 +65,9 @@ public class RecorderUI : MonoBehaviour
     private RecordingManager _recordingManager;
     private bool _isRecording;
     private bool _isReplaying;
+    // this does not mean that we are currently taking over
+    // it just means we are seeing the spheres to select a takeover
+    private bool _takeoverMode;
     
     private bool _uiVisible = true;
     
@@ -100,7 +103,7 @@ public class RecorderUI : MonoBehaviour
         saveSphere.onSphereSelected += SaveButtonPressed;
         undoSphere.onSphereSelected += UndoButtonPressed;
         redoSphere.onSphereSelected += RedoButtonPressed;
-        takeoverSphere.onSphereSelected += SelectTakeoverInEditor;
+        takeoverSphere.onSphereSelected += TakeoverButtonPressed;
         
         frameSlider.onTChanged += SetFrameManually;
         _replayer.onFrameUpdate += SetSliderFromFrame;
@@ -335,6 +338,23 @@ public class RecorderUI : MonoBehaviour
     public void RedoButtonPressed(object o, EventArgs e)
     {
         _recordingManager.Redo();
+    }
+
+    // shows takeover spheres above the avatar's heads which can be selected to initiate a takeover
+    public void TakeoverButtonPressed(object o, EventArgs e)
+    {
+        if (!_takeoverMode)
+        {
+            takeoverSphere.EnableHighlight();
+            _takeoverSelector.EnableTakeover();
+            _takeoverMode = true;
+        }
+        else
+        {
+            takeoverSphere.DisableHighlight();
+            _takeoverSelector.DisableTakeover();
+            _takeoverMode = false;
+        }
     }
     
     public void SelectTakeoverInEditor(object o, EventArgs e)

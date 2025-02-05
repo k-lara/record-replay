@@ -40,7 +40,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
     private int _fps;
     
     public ReplayablePose _replayablePose { get; private set; }
-    private int previousFrame;
+    private int previousFrame = -1; // to allow setting the frame to 0 when the avatar is created
 
     public class ReplayablePose
     {

@@ -264,6 +264,13 @@ public class Recording
         }
     }
 
+    public void RemoveDataFrames(Guid id, int frame, int count)
+    {
+        flags.NewDataAvailable = true;
+        // make sure we don't remove more frames than we have!!!
+        recordableDataDict[id].dataFrames.RemoveRange(frame, count);
+    }
+
     public enum DataLabel
     {
         // position
