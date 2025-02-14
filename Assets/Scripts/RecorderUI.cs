@@ -23,6 +23,7 @@ using UnityEngine.XR.Interaction.Toolkit.Inputs;
 public class RecorderUI : MonoBehaviour
 {
     private XRIControllerButtonInputActions controllerButtonInputActions;
+    private XRIHandInputActions handInputActions;
 
     public AvatarSwitcher AvatarSwitcher;
     
@@ -127,6 +128,14 @@ public class RecorderUI : MonoBehaviour
         Debug.Log("Button Input Actions Enabled?" + controllerButtonInputActions.XRILeftControllerButtons.enabled);
         controllerButtonInputActions.XRILeftControllerButtons.XButton.performed += c => XButtonPressed();
         controllerButtonInputActions.XRIRightControllerButtons.AButton.performed += c => AButtonPressed();
+        controllerButtonInputActions.XRILeftControllerButtons.MenuButton.performed += c => LeftMenuButtonPressed();
+        
+        if (handInputActions == null)
+        {
+            handInputActions = new XRIHandInputActions();
+        }
+        handInputActions.Enable();
+        handInputActions.LeftHand.MenuGesture.performed += c => LeftMenuButtonGesturePerformed();
     }
 
     void OnDisable()
@@ -151,47 +160,18 @@ public class RecorderUI : MonoBehaviour
         AvatarSwitcher.Next();
     }
 
-    private void EnableSpheres()
+    private void LeftMenuButtonPressed()
     {
-        saveSphere.EnableInteractable(true);
-        takeoverSphere.EnableInteractable(true);
-        recordSphere.EnableInteractable(true);
-        loadSphere.EnableInteractable(true);
-        clearSphere.EnableInteractable(true);
-        startSphere.EnableInteractable(true);
-        stopSphere.EnableInteractable(true);
-        undoSphere.EnableInteractable(true);
-        redoSphere.EnableInteractable(true);
+        Debug.Log("Left Menu Button Pressed");
+        UIToggle();
     }
-
-    private void DisableSpheres(ActionType action)
+    
+    private void LeftMenuButtonGesturePerformed()
     {
-        switch (action)
-        {
-            case ActionType.Record:
-                saveSphere.EnableInteractable(false);
-                takeoverSphere.EnableInteractable(false);
-                break;
-            case ActionType.Load:
-                break;
-            case ActionType.Start:
-                break;
-            case ActionType.Stop:
-                break;
-            case ActionType.Clear:
-                break;
-            case ActionType.Forward:
-                break;
-            case ActionType.Backward:
-                break;
-            case ActionType.Save:
-                break;
-            case ActionType.Undo:
-                break;
-            case ActionType.Redo:
-                break;
-        }
+        Debug.Log("Left Menu Gesture Performed");
+        UIToggle();
     }
+    
 
     public void UIToggle()
     {
@@ -201,7 +181,12 @@ public class RecorderUI : MonoBehaviour
         Camera cam = Camera.main;
         if (cam && _uiVisible)
         {
-            uiGameObject.transform.position = cam.transform.position + new Vector3(0.0f, -0.5f, 0.5f);
+            // align it with the direction the camera is looking at
+            uiGameObject.transform.rotation = Quaternion.LookRotation(cam.transform.forward);
+            uiGameObject.transform.position = 
+                new Vector3(cam.transform.position.x, cam.transform.position.y - 0.3f, cam.transform.position.z) + 
+                cam.transform.forward * 0.45f;
+            
         }
         uiGameObject.SetActive(_uiVisible);
     }
