@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Org.BouncyCastle.Crypto.Tls;
+using Ubiq;
+using Ubiq.XRHands;
 using UnityEngine;
 
 /* this class comprises a recording that is stored in memory for extending and editing it
@@ -14,6 +16,8 @@ public class Recording
     
     // contains the data of the recording which is the data from all recordables
     public Dictionary<Guid, RecordableData> recordableDataDict { get; private set; }
+    
+    private Vector3 defaultVec3 = new(-1, -1, -1);
 
     public Flags flags { get; set; } = new();
 
@@ -105,6 +109,14 @@ public class Recording
         public float yRotRightHand;
         public float zRotRightHand;
         public float wRotRightHand;
+        
+        // hand data
+        public bool handDataValid;
+        public Pose leftWrist;
+        public Pose rightWrist;
+        public Quaternion[] leftFingerRotations;
+        public Quaternion[] rightFingerRotations;
+        
     }
 
     [System.Serializable]
@@ -227,6 +239,25 @@ public class Recording
     public void AddDataFrame(Guid id, int frame, Recordable.RecordablePose pose)
     {
         flags.NewDataAvailable = true;
+        
+        var handDataValid = true;
+        var leftFingerRotations = new Quaternion[(int)HandSkeleton.Joint.Count - 1];
+        var rightFingerRotations = new Quaternion[(int)HandSkeleton.Joint.Count - 1];
+        if (pose.leftHandSkeleton[0].position.Equals(defaultVec3))
+        {
+            handDataValid = false;
+        }
+        else
+        {
+            // exclude wrist (but not palm, don't wanna make it too complicated even if we don't use the palm)
+            for (var i = 0; i < leftFingerRotations.Length; i++) 
+            {
+                leftFingerRotations[i] = pose.leftHandSkeleton[i+1].rotation;
+                rightFingerRotations[i] = pose.rightHandSkeleton[i+1].rotation;
+            }
+        }
+        
+        
         var df = new RecordableDataFrame()
         {
             frameNr = frame,
@@ -251,7 +282,13 @@ public class Recording
             xRotRightHand = pose.rightHand.rotation.x,
             yRotRightHand = pose.rightHand.rotation.y,
             zRotRightHand = pose.rightHand.rotation.z,
-            wRotRightHand = pose.rightHand.rotation.w
+            wRotRightHand = pose.rightHand.rotation.w,
+            
+            handDataValid = handDataValid,
+            leftWrist = pose.leftHandSkeleton[0],
+            rightWrist = pose.rightHandSkeleton[0],
+            leftFingerRotations = leftFingerRotations,
+            rightFingerRotations = rightFingerRotations
         };
 
         if (recordableDataDict[id].dataFrames.Count <= frame)
@@ -270,32 +307,4 @@ public class Recording
         // make sure we don't remove more frames than we have!!!
         recordableDataDict[id].dataFrames.RemoveRange(frame, count);
     }
-
-    public enum DataLabel
-    {
-        // position
-        xPosHead, 
-        yPosHead, 
-        zPosHead,
-        xPosLeftHand,
-        yPosLeftHand,
-        zPosLeftHand,
-        xPosRightHand,
-        yPosRightHand, 
-        zPosRightHand,
-        // rotation
-        xRotHead, 
-        yRotHead, 
-        zRotHead, 
-        wRotHead,
-        xRotLeftHand,
-        yRotLeftHand,
-        zRotLeftHand,
-        wRotLeftHand,
-        xRotRightHand, 
-        yRotRightHand, 
-        zRotRightHand, 
-        wRotRightHand
-    };
-        
 }

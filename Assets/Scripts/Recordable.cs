@@ -57,6 +57,17 @@ public class Recordable : MonoBehaviour
             recordablePose.leftHand.rotation = pose.leftHand.rotation;
             recordablePose.rightHand.position = pose.rightHand.position;
             recordablePose.rightHand.rotation = pose.rightHand.rotation;
+            // wrist position and rotation
+            recordablePose.leftHandSkeleton[0].position = pose.leftHandSkeleton[0].position;
+            recordablePose.leftHandSkeleton[0].rotation = pose.leftHandSkeleton[0].rotation;
+            recordablePose.rightHandSkeleton[0].position = pose.rightHandSkeleton[0].position;
+            recordablePose.rightHandSkeleton[0].rotation = pose.rightHandSkeleton[0].rotation;
+            // finger rotations
+            for (var i = 1; i < (int)HandSkeleton.Joint.Count; i++)
+            {
+                recordablePose.leftHandSkeleton[i].rotation = pose.leftHandSkeleton[i].rotation;
+                recordablePose.rightHandSkeleton[i].rotation = pose.rightHandSkeleton[i].rotation;
+            }
         }
     }
     
@@ -65,12 +76,16 @@ public class Recordable : MonoBehaviour
         public Pose head;
         public Pose leftHand;
         public Pose rightHand;
+        public Pose[] leftHandSkeleton = new Pose[(int)HandSkeleton.Joint.Count];
+        public Pose[] rightHandSkeleton = new Pose[(int)HandSkeleton.Joint.Count];
     }
 
     private RecordablePose _recordablePose;
     private Pose _prevHead;
     private Pose _prevLeftHand;
     private Pose _prevRightHand;
+    private Pose[] _prevLeftHandSkeleton = new Pose[(int)HandSkeleton.Joint.Count];
+    private Pose[] _prevRightHandSkeleton = new Pose[(int)HandSkeleton.Joint.Count];
     
     // Start is called before the first frame update
     void Start()
@@ -120,7 +135,38 @@ public class Recordable : MonoBehaviour
                 var rightHandRotN = src.rightHand.value.rotation.normalized;
                 _recordablePose.rightHand.position = Vector3.Lerp(_prevRightHand.position, src.rightHand.value.position, _t);
                 _recordablePose.rightHand.rotation = Quaternion.Lerp(_prevRightHand.rotation, rightHandRotN, _t);
-
+                
+                // check if we have hand tracking data
+                if (_avatarInput.TryGet(out IHandSkeletonInput srcSkel))
+                {
+                    // check if valid
+                    if (srcSkel.leftHandSkeleton.poses[0].valid)
+                    {
+                        _recordablePose.leftHandSkeleton[0].position = Vector3.Lerp(_prevLeftHandSkeleton[0].position, srcSkel.leftHandSkeleton.poses[0].value.position, _t);
+                        _recordablePose.leftHandSkeleton[0].rotation = Quaternion.Lerp(_prevLeftHandSkeleton[0].rotation, srcSkel.leftHandSkeleton.poses[0].value.rotation.normalized, _t);
+                        _recordablePose.rightHandSkeleton[0].position = Vector3.Lerp(_prevRightHandSkeleton[0].position, srcSkel.rightHandSkeleton.poses[0].value.position, _t);
+                        _recordablePose.rightHandSkeleton[0].rotation = Quaternion.Lerp(_prevRightHandSkeleton[0].rotation, srcSkel.rightHandSkeleton.poses[0].value.rotation.normalized, _t);
+                        _prevLeftHandSkeleton[0].position = srcSkel.leftHandSkeleton.poses[0].value.position;
+                        _prevLeftHandSkeleton[0].rotation = srcSkel.leftHandSkeleton.poses[0].value.rotation.normalized;
+                        _prevRightHandSkeleton[0].position = srcSkel.rightHandSkeleton.poses[0].value.position;
+                        _prevRightHandSkeleton[0].rotation = srcSkel.rightHandSkeleton.poses[0].value.rotation.normalized;
+                        for (var i = 1; i < srcSkel.leftHandSkeleton.poses.Count; i++)
+                        {   
+                            // don't care about positions for now
+                            // don't need to do i-2 because the poses arrays have the same length as the incoming poses
+                            _recordablePose.leftHandSkeleton[i].rotation = Quaternion.Lerp(_prevLeftHandSkeleton[i].rotation, srcSkel.leftHandSkeleton.poses[i].value.rotation.normalized, _t);
+                            _recordablePose.rightHandSkeleton[i].rotation = Quaternion.Lerp(_prevRightHandSkeleton[i].rotation, srcSkel.rightHandSkeleton.poses[i].value.rotation.normalized, _t);
+                            _prevLeftHandSkeleton[i].rotation = srcSkel.leftHandSkeleton.poses[i].value.rotation.normalized;
+                            _prevRightHandSkeleton[i].rotation = srcSkel.rightHandSkeleton.poses[i].value.rotation.normalized;
+                        }
+                    }
+                    else
+                    {
+                        // if the data is invalid maybe we should mark this, because it could be invalid if we just don't use hand tracking but controllers!
+                        // could set the leftHandSkeleton[0] to a default value that we check when writing things to the Recording
+                        _recordablePose.leftHandSkeleton[0].position = new Vector3(-1, -1, -1);
+                    }
+                }
                 if (_isTakingOver)
                 {
                     // the takeover gathers the data and merges it with the original replay data after recording is done
@@ -140,6 +186,7 @@ public class Recordable : MonoBehaviour
             _prevLeftHand.rotation = src.leftHand.value.rotation.normalized;
             _prevRightHand.position = src.rightHand.value.position;
             _prevRightHand.rotation = src.rightHand.value.rotation.normalized;
+            // skeleton data is overwritten above^
         }
         _previousPoseTime = _frameInterval;
     }
@@ -226,6 +273,14 @@ public class Recordable : MonoBehaviour
         {
             // set this back here instead of in AvatarTakeover otherwise it might be set too soon and the above code gets executed
             _isTakingOver = false;
+        }
+    }
+
+    private void OverwriteArray(Pose[] oldArray, Pose[] newArray)
+    {
+        for (var i = 0; i < oldArray.Length; i++)
+        {
+            oldArray[i] = newArray[i];
         }
     }
     private void OnDestroy()

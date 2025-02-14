@@ -265,6 +265,8 @@ public class AvatarTakeover : MonoBehaviour
                     // update data
                     var newPose = new Recordable.RecordablePose(){head = new Pose(headPos, headRot), leftHand = new Pose(leftHandPos, leftHandRot), rightHand = new Pose(rightHandPos, rightHandRot)};
                     replayer.recording.AddDataFrame(replayable.replayableId, i, newPose);
+                    
+                    // TODO: add hand tracking stuff! not needed right now for my studies but might be suitable for later...
                 }
                 // add new recorded data to the replayable
                 // Debug.Log("add new data to replayable from: " + (j + 1) + " to " + currentTakeoverOverwrite.Count);
@@ -323,6 +325,20 @@ public class AvatarTakeover : MonoBehaviour
                     rp.rightHand.position = Vector3.Lerp(rp.rightHand.position, src.rightHand.value.position, t);
                     rp.rightHand.rotation = Quaternion.Lerp(rp.rightHand.rotation, src.rightHand.value.rotation, t);
                 }
+                
+                // TODO: not needed right now for my studies but might be suitable for later...
+                if (playerInput.TryGet(out IHandSkeletonInput srcSkel))
+                {
+                    // this might not work because of index 1 which is the palm which we don't tend to set because we don't need it
+                    // so values might be invalid
+                    for (var i = 0; i < srcSkel.leftHandSkeleton.poses.Count; i++)
+                    {
+                        var pos =Vector3.Lerp(rp.leftHandSkeleton[i].value.position, srcSkel.leftHandSkeleton.poses[i].value.position, t);
+                        var rot = Quaternion.Lerp(rp.leftHandSkeleton[i].value.rotation, srcSkel.leftHandSkeleton.poses[i].value.rotation, t);
+                        rp.leftHandSkeleton[i] = new InputVar<Pose>(new Pose(pos, rot));
+                    }
+                }
+                
                 break;
         }
         

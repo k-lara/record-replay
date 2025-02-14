@@ -1,15 +1,17 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using Ubiq;
 using Ubiq.Avatars;
 using Ubiq.Geometry;
 using Ubiq.Messaging;
+using Unity.VisualScripting;
 using UnityEngine;
 using Avatar = Ubiq.Avatars.Avatar;
 
-public class Replayable : MonoBehaviour, IHeadAndHandsInput
+public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
 {
     public int priority { get; set; }
     public bool active => isActiveAndEnabled;
@@ -18,6 +20,9 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
     public InputVar<Pose> rightHand => new(_replayablePose.rightHand);
     public InputVar<float> leftGrip => InputVar<float>.invalid;
     public InputVar<float> rightGrip => InputVar<float>.invalid;
+
+    public HandSkeleton leftHandSkeleton => new(HandSkeleton.Handedness.Left, new ReadOnlyCollection<InputVar<Pose>>(_replayablePose.leftHandSkeleton));
+    public HandSkeleton rightHandSkeleton => new(HandSkeleton.Handedness.Right, new ReadOnlyCollection<InputVar<Pose>>(_replayablePose.rightHandSkeleton));
     
     private Replayer _replayer;
     // this is the id of the avatar that was recorded and links to the data recorded by that avatar
@@ -47,6 +52,8 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         public Pose head;
         public Pose leftHand;
         public Pose rightHand;
+        public InputVar<Pose>[] leftHandSkeleton = new InputVar<Pose>[(int)HandSkeleton.Joint.Count];
+        public InputVar<Pose>[] rightHandSkeleton = new InputVar<Pose>[(int)HandSkeleton.Joint.Count];
     }
 
     public event EventHandler<ReplayablePose> OnUpdateReplayablePose;
@@ -71,6 +78,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         _replayablePose = new ReplayablePose();
         
         _avatarInput.Add(this as IHeadAndHandsInput);
+        _avatarInput.Add(this as IHandSkeletonInput);
         _avatar.SetInput(_avatarInput);
         
     }
@@ -82,20 +90,9 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         _replayer.onFrameUpdate -= OnFrameUpdate;
     }
     
-    // private void Start()
-    // {
-    //     // _context = NetworkScene.Register(this, NetworkId.Create(_avatar.NetworkId, "Replayable"));
-    //     // _networkSceneRoot = _context.Scene.transform;
-    //     // _lastTransmitTime = Time.time;
-    // }
-
     private void OnReplayStart(object o, EventArgs e)
     {
         Debug.Log("Replayable OnReplayStart(): id: " + replayableId);
-        // if (!_audioReplayable)
-        // {
-        //     _audioReplayable = GetComponent<AudioReplayable>();
-        // }
         
         _isPlaying = true;
     }
@@ -134,6 +131,21 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         rot = Quaternion.Lerp(new Quaternion(f0.xRotRightHand, f0.yRotRightHand, f0.zRotRightHand, f0.wRotRightHand), new Quaternion(f1.xRotRightHand, f1.yRotRightHand, f1.zRotRightHand, f1.wRotRightHand), t);
         _replayablePose.rightHand = new Pose(pos, rot);
         
+        // hand tracking 
+        if (f0.handDataValid)
+        {
+            // wrists
+            _replayablePose.leftHandSkeleton[0] = new InputVar<Pose>(new Pose(Vector3.Lerp(f0.leftWrist.position, f1.leftWrist.position, t), 
+                Quaternion.Lerp(f0.leftWrist.rotation, f1.leftWrist.rotation, t))); // valid true by default for this constructor
+            _replayablePose.rightHandSkeleton[0] = new InputVar<Pose>(new Pose(Vector3.Lerp(f0.rightWrist.position, f1.rightWrist.position, t),
+                Quaternion.Lerp(f0.rightWrist.rotation, f1.rightWrist.rotation, t)));
+            for (var i = 1; i < f0.leftFingerRotations.Length; i++)
+            {
+                _replayablePose.leftHandSkeleton[i] = new InputVar<Pose>(new Pose(Vector3.zero, Quaternion.Lerp(f0.leftFingerRotations[i], f1.leftFingerRotations[i], t)));
+                _replayablePose.rightHandSkeleton[i] = new InputVar<Pose>(new Pose(Vector3.zero, Quaternion.Lerp(f0.rightFingerRotations[i], f1.rightFingerRotations[i], t)));
+            }
+        }
+        
         // AvatarTakeover only subscribes to the one event from the avatar it is taking over
         OnUpdateReplayablePose?.Invoke(this, _replayablePose);
     }
@@ -169,6 +181,18 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput
         _replayablePose.leftHand = new Pose(new Vector3(f.xPosLeftHand, f.yPosLeftHand, f.zPosLeftHand), new Quaternion(f.xRotLeftHand, f.yRotLeftHand, f.zRotLeftHand, f.wRotLeftHand));
         _replayablePose.rightHand = new Pose(new Vector3(f.xPosRightHand, f.yPosRightHand, f.zPosRightHand), new Quaternion(f.xRotRightHand, f.yRotRightHand, f.zRotRightHand, f.wRotRightHand));
         
+        // set hand tracking data
+        if (f.handDataValid)
+        {
+            // wrists
+            _replayablePose.leftHandSkeleton[0] = new InputVar<Pose>(new Pose(f.leftWrist.position, f.leftWrist.rotation)); // valid true by default for this constructor 
+            _replayablePose.rightHandSkeleton[0] = new InputVar<Pose>(new Pose(f.rightWrist.position, f.rightWrist.rotation));
+            for (var i = 1; i < f.leftFingerRotations.Length; i++)
+            {
+                _replayablePose.leftHandSkeleton[i] = new InputVar<Pose>(new Pose(Vector3.zero, f.leftFingerRotations[i]));
+                _replayablePose.rightHandSkeleton[i] = new InputVar<Pose>(new Pose(Vector3.zero, f.rightFingerRotations[i]));
+            }
+        }
         previousFrame = frame;
     }
     

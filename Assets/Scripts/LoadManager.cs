@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Ubiq;
 using UnityEngine;
 using Ubiq.Spawning;
 using UnityEngine.Pool;
@@ -153,11 +154,26 @@ public class LoadManager
     
     private Replayable.ReplayablePose ToPose(Recording.RecordableDataFrame dataFrame)
     {
+        var leftHandSkeletonPoses = new InputVar<Pose>[(int)HandSkeleton.Joint.Count];
+        var rightHandSkeletonPoses = new InputVar<Pose>[(int)HandSkeleton.Joint.Count];
+        if (dataFrame.handDataValid)
+        {
+            leftHandSkeletonPoses[0] = new InputVar<Pose>(dataFrame.leftWrist);
+            rightHandSkeletonPoses[0] = new InputVar<Pose>(dataFrame.rightWrist);
+            for (int i = 0; i < dataFrame.leftFingerRotations.Length; i++)
+            {
+                leftHandSkeletonPoses[i] = new InputVar<Pose>(new Pose(Vector3.zero, dataFrame.leftFingerRotations[i]));
+                rightHandSkeletonPoses[i] = new InputVar<Pose>(new Pose(Vector3.zero, dataFrame.rightFingerRotations[i]));
+            }
+        }
+        
         var pose = new Replayable.ReplayablePose
         {
             head = new Pose(new Vector3(dataFrame.xPosHead, dataFrame.yPosHead, dataFrame.zPosHead), new Quaternion(dataFrame.xRotHead, dataFrame.yRotHead, dataFrame.zRotHead, dataFrame.wRotHead)),
             leftHand = new Pose(new Vector3(dataFrame.xPosLeftHand, dataFrame.yPosLeftHand, dataFrame.zPosLeftHand), new Quaternion(dataFrame.xRotLeftHand, dataFrame.yRotLeftHand, dataFrame.zRotLeftHand, dataFrame.wRotLeftHand)),
-            rightHand = new Pose(new Vector3(dataFrame.xPosRightHand, dataFrame.yPosRightHand, dataFrame.zPosRightHand), new Quaternion(dataFrame.xRotRightHand, dataFrame.yRotRightHand, dataFrame.zRotRightHand, dataFrame.wRotRightHand))
+            rightHand = new Pose(new Vector3(dataFrame.xPosRightHand, dataFrame.yPosRightHand, dataFrame.zPosRightHand), new Quaternion(dataFrame.xRotRightHand, dataFrame.yRotRightHand, dataFrame.zRotRightHand, dataFrame.wRotRightHand)),
+            leftHandSkeleton = leftHandSkeletonPoses,
+            rightHandSkeleton = rightHandSkeletonPoses
         };
         return pose;
     }
