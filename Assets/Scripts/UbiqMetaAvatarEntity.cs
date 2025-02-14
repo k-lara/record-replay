@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using Oculus.Avatar2;
+using Oculus.Avatar2.Experimental;
 using Ubiq.Spawning;
 using UnityEngine;
+using CAPI = Oculus.Avatar2.CAPI;
 
 /// <summary>
 /// The UbiqMetaAvatarEntity receives its input from the UbiqMetaAvatarInputManager - thus from Ubiq
@@ -14,21 +16,23 @@ using UnityEngine;
 /// </summary>
 public class UbiqMetaAvatarEntity : SampleAvatarEntity
 {
-    public GameObject loopbackAvatarPrefab;
     private OvrAvatarEntity loopbackAvatar;
     
     public void SetView(CAPI.ovrAvatar2EntityViewFlags view)
     {
         SetActiveView(view);
+
+        // we also want full body animation
+        GetComponent<OvrAvatarAnimationBehavior>()._enableLocalAnimationPlayback = true;
         
-        // instantiate another avatar for the loopback
-        loopbackAvatar = Instantiate(loopbackAvatarPrefab).GetComponent<SampleAvatarEntity>();
-        loopbackAvatar.SetIsLocal(false);
-        
-        var loopbackManager = gameObject.AddComponent<SampleRemoteLoopbackManager>();
-        loopbackAvatar.VerifyCanApplyStreaming();
-        loopbackManager.Configure(this, new List<OvrAvatarEntity>() { loopbackAvatar });
-        
+        // // instantiate another avatar for the loopback
+        // loopbackAvatar = Instantiate(loopbackAvatarPrefab).GetComponent<SampleAvatarEntity>();
+        // loopbackAvatar.SetIsLocal(false);
+        //
+        // var loopbackManager = gameObject.AddComponent<SampleRemoteLoopbackManager>();
+        // loopbackAvatar.VerifyCanApplyStreaming();
+        // loopbackManager.Configure(this, new List<OvrAvatarEntity>() { loopbackAvatar });
+        //
         // add a collider to this avatar's head joint so that the takeover selector can take it over
         // get the head joint game object from this avatar
     }

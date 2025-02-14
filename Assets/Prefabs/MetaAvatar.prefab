@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5348993008749250758
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7108832122885296672}
+  m_Layer: 0
+  m_Name: Hand Tracking Test
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7108832122885296672
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5348993008749250758}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3521002303106949551}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8105444539661125935
 GameObject:
   m_ObjectHideFlags: 0
@@ -13,6 +44,8 @@ GameObject:
   - component: {fileID: 355362245484386152}
   - component: {fileID: 6422074476336512381}
   - component: {fileID: 562741351597714767}
+  - component: {fileID: -771597477014143382}
+  - component: {fileID: -1255415116790280594}
   m_Layer: 0
   m_Name: MetaAvatar
   m_TagString: Untagged
@@ -32,7 +65,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 7108832122885296672}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1764813505084291673
@@ -79,7 +113,7 @@ MonoBehaviour:
   _facePoseBehavior: {fileID: 0}
   _eyePoseBehavior: {fileID: 0}
   _lipSync: {fileID: 0}
-  _criticalJointTypes: 0f000000
+  _criticalJointTypes: 0f0000001c0000001d00000013000000
   _useCriticalJointJobs: 0
   _debugDrawing:
     drawTrackingPose: 1
@@ -128,7 +162,6 @@ MonoBehaviour:
   _autoCdnRetry: 1
   _enablePollingForAvatarCreation: 1
   _changeCheckInterval: 8
-  loopbackAvatarPrefab: {fileID: 6392810097463487173, guid: 2bb26d8d25e6f744cb0a2bdfc8a8b0c5, type: 3}
 --- !u!114 &6422074476336512381
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -144,7 +177,14 @@ MonoBehaviour:
   _bodyTrackingMode: 0
   _useAsyncBodySolver: 0
   _enableHipLock: 0
+  qmul1: {x: -1, y: -1, z: 1, w: 1}
+  qmul2: {x: 0, y: 90, z: 0, w: 1}
+  qmul3: {x: 0, y: 0, z: 0, w: 1}
   ubiqAvatar: {fileID: 0}
+  leftHand: {fileID: 0}
+  rightHand: {fileID: 0}
+  xrOrigin: {fileID: 0}
+  updateLeftHand: 1
 --- !u!114 &562741351597714767
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -160,6 +200,7 @@ MonoBehaviour:
   _customRigPrefab: {fileID: 0}
   _customAnimationOnly: 0
   _enableStaticAnimationOptimization: 0
+  _enableLocalAnimationPlayback: 0
   _inputBlended: 1
   _leftArmBlendFactor: 1
   _rightArmBlendFactor: 1
@@ -173,3 +214,51 @@ MonoBehaviour:
   _remoteScaleFactor: 1
   _mixedRealityAnimationOptions:
     anchoringState: 0
+  _jointOverrides:
+    jointOverrideTransitionTime: 0.25
+    leftAnkleJoint:
+      enableOverride: 0
+      overrideTransform: {fileID: 0}
+    rightAnkleJoint:
+      enableOverride: 0
+      overrideTransform: {fileID: 0}
+--- !u!114 &-771597477014143382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8105444539661125935}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32f3cd2ab93d875418350b1b6f51d33f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _side: 0
+  _handSkeleton: {fileID: 7534483591808359254, guid: 8bd35c20b077959449e5f44de472b784, type: 3}
+  _handSkelLocalForward: {x: 0, y: 0, z: -1}
+  _handPose: {fileID: 3111271924436487619, guid: 03085587f27d1d343ad37a1fbc39fc08, type: 3}
+  _wristOffset: {fileID: 0}
+  setHandPose: 0
+  setWristOffset: 1
+  _entity: {fileID: 355362245484386152}
+--- !u!114 &-1255415116790280594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8105444539661125935}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32f3cd2ab93d875418350b1b6f51d33f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _side: 1
+  _handSkeleton: {fileID: 9195030365049692335, guid: 92dc2374677ddee43acd479ecf441901, type: 3}
+  _handSkelLocalForward: {x: 0, y: 0, z: 1}
+  _handPose: {fileID: 1027227086985392307, guid: a84be7b1c9d21f44da58623235e4820c, type: 3}
+  _wristOffset: {fileID: 0}
+  setHandPose: 0
+  setWristOffset: 1
+  _entity: {fileID: 355362245484386152}
