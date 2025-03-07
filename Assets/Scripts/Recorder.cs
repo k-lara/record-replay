@@ -70,20 +70,9 @@ public class Recorder : MonoBehaviour
         StartCoroutine(WaitForSaveReady());
     }
     
-    /*
-     * Initializes the undoStack with a base state in case we need to get back to an initial state.
-     * If it is already initialized this function does nothing.
-     * @param data: can be null if we add a new recordable, !null when we edit an existing recordable
-     */
-    public void InitUndoStack(UndoManager.UndoType type, Guid id, Recording.RecordableData data)
-    {
-        Debug.Log("Init undo stack");
-        _recordingManager.InitUndoStack(type, id, data);
-    }
-
     public void AddUndoState(UndoManager.UndoType type, Guid id, Recording.RecordableData data)
     {
-        Debug.Log("Add undo stack");
+        // Debug.Log("Add undo stack");
         _recordingManager.AddUndoState(type, id, data);
     }
     

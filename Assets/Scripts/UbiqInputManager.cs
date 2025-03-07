@@ -1,8 +1,10 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
+using Meta.XR.Movement.FaceTracking.Samples;
 using Oculus.Avatar2;
 using Oculus.Avatar2.Experimental;
+using Oculus.Movement;
 using Ubiq;
 using Ubiq.Geometry;
 using Unity.XR.CoreUtils;
@@ -16,17 +18,16 @@ using CAPI = Oculus.Avatar2.CAPI;
 public class UbiqInputManager : OvrAvatarInputManager
 {
     // public Vector3 hiklary;
-    public Vector4 qmul1 = new Vector4(0, 0, 0, 1);
-    public Vector4 qmul2 = new Vector4(0, 0, 0, 1);
-    public Vector4 qmul3 = new Vector4(0, 0, 0, 1);
+    // public Vector4 qmul1 = new Vector4(0, 0, 0, 1);
+    // public Vector4 qmul2 = new Vector4(0, 0, 0, 1);
+    // public Vector4 qmul3 = new Vector4(0, 0, 0, 1);
     public Avatar ubiqAvatar;
     // the hand skeletons for animating the hands
     private UbiqMetaAvatarEntity _avatarEntity;
-
-    public GameObject leftHand;
-    public GameObject rightHand;
-    public Transform xrOrigin;
-    public bool updateLeftHand = true;
+    public bool isRecorded = false;
+    
+    private OVRWeightsProvider _weightsProvider;
+    private OVREyeGaze _eyeGaze;
     
     [Serializable]
     // controller state
@@ -47,22 +48,25 @@ public class UbiqInputManager : OvrAvatarInputManager
         {
             ubiqAvatar = GetComponent<Avatar>();
         }
-        leftHand = GameObject.FindWithTag("MetaInputLeft");
-        rightHand = GameObject.FindWithTag("MetaInputRight");
-
-        xrOrigin = GameObject.FindAnyObjectByType<XROrigin>().transform;
     }
 
     // if this avatar is not a user controlled avatar, we want it to be third-person with head!
     protected void Start()
     {
         _avatarEntity = gameObject.GetComponent<UbiqMetaAvatarEntity>();
+        
+        var provider = gameObject.GetComponent<OvrAvatarFaceTrackingBehaviorOvrPlugin>();
+        
         // not sure how else to check... the peer uuid is empty? null or ""?
         // but a Replayable is definitely not user controlled so should work as a check too
-        if (_avatarEntity && gameObject.TryGetComponent(out Replayable replayable))
+        if (_avatarEntity && gameObject.TryGetComponent(out Replayable _))
         { 
             _avatarEntity.SetView(CAPI.ovrAvatar2EntityViewFlags.ThirdPerson);
+            isRecorded = true;
         }
+        
+        _weightsProvider = gameObject.GetComponent<OVRWeightsProvider>();
+        _eyeGaze = gameObject.GetComponentInChildren<OVREyeGaze>();
     }
     
     protected override void OnTrackingInitialized()
@@ -71,6 +75,25 @@ public class UbiqInputManager : OvrAvatarInputManager
         _inputTrackingProvider = new OvrAvatarInputTrackingDelegatedProvider(new UbiqInputTrackingDelegate(this));
         _inputControlProvider = new OvrAvatarInputControlDelegatedProvider(new UbiqInputControlDelegate());
         _handTrackingProvider = new OvrAvatarHandTrackingDelegatedProvider(new UbiqHandTrackingDelegate(this));
+    }
+    
+    protected void Update()
+    {
+        var list = _weightsProvider.GetWeights();
+        var names = _weightsProvider.GetWeightNames();
+
+        string s = "";
+        string eyeGaze = "";
+        if (_eyeGaze)
+        {
+            eyeGaze += _eyeGaze.transform.position + " " + _eyeGaze.transform.rotation + "\n";
+        }
+        // Debug.Log(eyeGaze);
+        for (int i = 0; i < list.Count; i++)
+        {
+            s += names[i] + " " + list[i] + "\n";
+        }
+        // Debug.Log(s);
     }
 }
 
@@ -91,7 +114,12 @@ public class UbiqHandTrackingDelegate : IOvrAvatarHandTrackingDelegate
         {
             // don't bother doing anything if poses are not valid
             // seems like sometimes the poses collection is empty... but for some reason we still get here
-            if (src.leftHandSkeleton.poses.Count == 0) return false;
+            if (src.leftHandSkeleton.poses.Count == 0)
+            {
+                // Debug.Log("Got no hand data");
+                return false;
+            }
+            // Debug.Log("Got hand data");
             
             var posesLeft = src.leftHandSkeleton.poses;
             var posesRight = src.rightHandSkeleton.poses;
@@ -117,7 +145,21 @@ public class UbiqHandTrackingDelegate : IOvrAvatarHandTrackingDelegate
             
             handData.wristPosLeft = new CAPI.ovrAvatar2Transform(leftWrist.position, leftWrist.rotation);
             handData.wristPosRight = new CAPI.ovrAvatar2Transform(rightWrist.position, rightWrist.rotation);;
-            
+
+            // if (_inputManager.isRecorded)
+            // {
+            //     string s = "";
+            //     for (int i = 0; i < posesLeft.Count; i++)
+            //     {
+            //         if (i == 1) // palm
+            //         {
+            //             s += "Palm ";
+            //         }
+            //         s += posesLeft[i].value.rotation + "\n";
+            //         
+            //     }
+            //     Debug.Log(s);
+            // }
             // transform rotations
             for (int i = 2; i < posesLeft.Count; i++) // we start at 2 because we exclude wrist and palm
             {
@@ -136,6 +178,15 @@ public class UbiqHandTrackingDelegate : IOvrAvatarHandTrackingDelegate
             handData.boneRotations[3] = Quaternion.Inverse(transformedLeft[1]) * transformedLeft[2]; // dist
             // left index finger
             handData.boneRotations[4] = Quaternion.Inverse(leftWrist.rotation) * transformedLeft[5]; // prox
+            // if (_inputManager.isRecorded)
+            // {
+            //     string s = "" + leftWrist.rotation;
+            //     for (int i = 0; i < transformedLeft.Length; i++)
+            //     {
+            //         s += transformedLeft[i] + "\n" ;
+            //     }
+            //     Debug.Log(s);
+            // } 
             handData.boneRotations[5] = Quaternion.Inverse(transformedLeft[5]) * transformedLeft[6]; // intermediate
             handData.boneRotations[6] = Quaternion.Inverse(transformedLeft[6]) * transformedLeft[7]; // dist
             // left middle finger
@@ -183,6 +234,7 @@ public class UbiqHandTrackingDelegate : IOvrAvatarHandTrackingDelegate
             handData.handScaleRight = 1;
             return true;
         }
+        // Debug.Log("No hand data (2)");
         return false;
     }
 

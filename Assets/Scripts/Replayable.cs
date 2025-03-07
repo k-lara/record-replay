@@ -40,7 +40,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
     
     private AudioReplayable _audioReplayable;
     
-    private Avatar _avatar; // remove this only need it for debugging
+    private Avatar _avatar;
     private int _trackingPoints;
     private int _fps;
     
@@ -54,11 +54,16 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
         public Pose rightHand;
         public InputVar<Pose>[] leftHandSkeleton = new InputVar<Pose>[(int)HandSkeleton.Joint.Count];
         public InputVar<Pose>[] rightHandSkeleton = new InputVar<Pose>[(int)HandSkeleton.Joint.Count];
+        public float[] faceWeights = new float[63];
+        public Pose leftEye;
+        public Pose rightEye;
     }
 
     public event EventHandler<ReplayablePose> OnUpdateReplayablePose;
 
     private AvatarInput _avatarInput = new();
+    private FacePoseBehavior _facePoseProvider;
+    private EyePoseBehavior _eyePoseProvider;
 
     public void SetIsLocal(bool isLocal)
     {
@@ -74,6 +79,8 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
         _replayer.onFrameUpdate += OnFrameUpdate;
         
         _avatar = GetComponent<Avatar>();
+        _facePoseProvider = GetComponent<FacePoseBehavior>();
+        _eyePoseProvider = GetComponent<EyePoseBehavior>();
 
         _replayablePose = new ReplayablePose();
         
@@ -139,11 +146,45 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
                 Quaternion.Lerp(f0.leftWrist.rotation, f1.leftWrist.rotation, t))); // valid true by default for this constructor
             _replayablePose.rightHandSkeleton[0] = new InputVar<Pose>(new Pose(Vector3.Lerp(f0.rightWrist.position, f1.rightWrist.position, t),
                 Quaternion.Lerp(f0.rightWrist.rotation, f1.rightWrist.rotation, t)));
-            for (var i = 1; i < f0.leftFingerRotations.Length; i++)
+            // string s = "";
+            // s = s + _replayablePose.leftHandSkeleton[0].value.rotation + "\n";
+            for (var i = 0; i < f0.leftFingerRotations.Length; i++) // excludes wrist
             {
-                _replayablePose.leftHandSkeleton[i] = new InputVar<Pose>(new Pose(Vector3.zero, Quaternion.Lerp(f0.leftFingerRotations[i], f1.leftFingerRotations[i], t)));
-                _replayablePose.rightHandSkeleton[i] = new InputVar<Pose>(new Pose(Vector3.zero, Quaternion.Lerp(f0.rightFingerRotations[i], f1.rightFingerRotations[i], t)));
+                _replayablePose.leftHandSkeleton[i+1] = new InputVar<Pose>(new Pose(Vector3.zero, Quaternion.Lerp(f0.leftFingerRotations[i], f1.leftFingerRotations[i], t)));
+                _replayablePose.rightHandSkeleton[i+1] = new InputVar<Pose>(new Pose(Vector3.zero, Quaternion.Lerp(f0.rightFingerRotations[i], f1.rightFingerRotations[i], t)));
+                // s += _replayablePose.leftHandSkeleton[i+1].value.rotation + "\n";
             }
+            // Debug.Log(s);
+        }
+        
+        // face tracking
+        // this data goes directly to the avatar and not through Ubiq,
+        // so we need to get the data to the FacePoseBehaviour here!
+        if (f0.faceDataValid)
+        {
+            for (var i = 0; i < f0.faceWeights.Length; i++)
+            {
+                _replayablePose.faceWeights[i] = Mathf.Lerp(f0.faceWeights[i], f1.faceWeights[i], t);
+            }
+            _facePoseProvider.recordedWeights = _replayablePose.faceWeights;
+            _facePoseProvider.recordedValid = true;
+        }
+        else
+        {
+            _facePoseProvider.recordedValid = false;
+        }
+
+        if (f0.eyeDataValid)
+        {
+            _replayablePose.leftEye = new Pose(Vector3.Lerp(f0.leftEye.position, f1.leftEye.position, t), Quaternion.Lerp(f0.leftEye.rotation, f1.leftEye.rotation, t));
+            _replayablePose.rightEye = new Pose(Vector3.Lerp(f0.rightEye.position, f1.rightEye.position, t), Quaternion.Lerp(f0.rightEye.rotation, f1.rightEye.rotation, t));
+            _eyePoseProvider.recordedRightEye = _replayablePose.rightEye;
+            _eyePoseProvider.recordedLeftEye = _replayablePose.leftEye;
+            _eyePoseProvider.recordedValid = true;
+        }
+        else
+        {
+            _eyePoseProvider.recordedValid = false;
         }
         
         // AvatarTakeover only subscribes to the one event from the avatar it is taking over
@@ -153,6 +194,15 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
     public void SetReplayablePose(int frame)
     {
         if (frame == previousFrame) return;
+        
+        if (frame > _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1)
+        {
+            frame = _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1;
+        }
+        if (frame < 0)
+        {
+            frame = 0;
+        }
         // this could have been set manually, so we want to show the closest frame possible
         if (!_replayer.recording.recordableDataDict[replayableId].dataFrames[frame].valid)
         {
@@ -166,16 +216,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
                 }
             }
         }
-        
-        if (frame > _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1)
-        {
-            frame = _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1;
-        }
-        if (frame < 0)
-        {
-            frame = 0;
-        }
-        Debug.Log("SetReplayablePose from frame: " + frame + "of " + _replayer.recording.recordableDataDict[replayableId].numFrames);
+        // Debug.Log("SetReplayablePose from frame: " + frame + "of " + _replayer.recording.recordableDataDict[replayableId].numFrames);
         var f = _replayer.recording.recordableDataDict[replayableId].dataFrames[frame];
         _replayablePose.head = new Pose(new Vector3(f.xPosHead, f.yPosHead, f.zPosHead), new Quaternion(f.xRotHead, f.yRotHead, f.zRotHead, f.wRotHead));
         _replayablePose.leftHand = new Pose(new Vector3(f.xPosLeftHand, f.yPosLeftHand, f.zPosLeftHand), new Quaternion(f.xRotLeftHand, f.yRotLeftHand, f.zRotLeftHand, f.wRotLeftHand));
@@ -187,12 +228,29 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
             // wrists
             _replayablePose.leftHandSkeleton[0] = new InputVar<Pose>(new Pose(f.leftWrist.position, f.leftWrist.rotation)); // valid true by default for this constructor 
             _replayablePose.rightHandSkeleton[0] = new InputVar<Pose>(new Pose(f.rightWrist.position, f.rightWrist.rotation));
-            for (var i = 1; i < f.leftFingerRotations.Length; i++)
+            for (var i = 0; i < f.leftFingerRotations.Length; i++) // excludes wrist
             {
-                _replayablePose.leftHandSkeleton[i] = new InputVar<Pose>(new Pose(Vector3.zero, f.leftFingerRotations[i]));
-                _replayablePose.rightHandSkeleton[i] = new InputVar<Pose>(new Pose(Vector3.zero, f.rightFingerRotations[i]));
+                _replayablePose.leftHandSkeleton[i+1] = new InputVar<Pose>(new Pose(Vector3.zero, f.leftFingerRotations[i]));
+                _replayablePose.rightHandSkeleton[i+1] = new InputVar<Pose>(new Pose(Vector3.zero, f.rightFingerRotations[i]));
+            }
+            // Debug.Log("index left  prox" + _replayablePose.leftHandSkeleton[7].value.rotation + " index left inter" + _replayablePose.leftHandSkeleton[8].value.rotation + "wrist " + _replayablePose.leftHandSkeleton[0].value.rotation);
+
+        }
+        // set face tracking data
+        if (f.faceDataValid)
+        {
+            for (var i = 0; i < f.faceWeights.Length; i++)
+            {
+                _replayablePose.faceWeights[i] = f.faceWeights[i];
             }
         }
+        // set eye tracking data
+        if (f.eyeDataValid)
+        {
+            _replayablePose.leftEye = new Pose(f.leftEye.position, f.leftEye.rotation);
+            _replayablePose.rightEye = new Pose(f.rightEye.position, f.rightEye.rotation);
+        }
+        
         previousFrame = frame;
     }
     

@@ -88,6 +88,7 @@ public class RecordingManager : MonoBehaviour
         prefabCatalogue = new Dictionary<string, GameObject>();
         foreach (var prefab in spawnManager.catalogue.prefabs)
         {
+            Debug.Log("Add: " + prefab.name);
             prefabCatalogue.Add(prefab.name, prefab);
         }
         
@@ -111,7 +112,7 @@ public class RecordingManager : MonoBehaviour
     }
     public void InitNewRecording()
     {
-        listPool.Clear();
+        // listPool.Clear(); // is called in UnloadRecording() so we shouldn't need it here
         Recording = new Recording(listPool);
         Recording.InitNew();
         
@@ -131,6 +132,8 @@ public class RecordingManager : MonoBehaviour
 
     public int GetCurrentRecordingNumber()
     {
+        if (currentThumbnailIndex == -1) return -1;
+        
         return currentThumbnailIndex + 1; // because we want to start counting at 1 and not 0
     }
     
@@ -143,6 +146,8 @@ public class RecordingManager : MonoBehaviour
      * if currentThumbnailIndex is -1, we don't have a thumbnail to load from
      * this could be either when we created a new recording that isn't saved yet and has no thumbnail
      * or when we cleared the recording and thumbnail and the scene is empty
+     *
+     * Load a recording given an existing thumbnail
      */
     public void LoadRecording()
     {
@@ -215,11 +220,6 @@ public class RecordingManager : MonoBehaviour
         }
     }
 
-    public void InitUndoStack(UndoManager.UndoType type, Guid id, Recording.RecordableData data)
-    {
-        undoManager.InitUndoStack(type, id, data);
-    }
-
     public void AddUndoState(UndoManager.UndoType type, Guid id, Recording.RecordableData data)
     {
         undoManager.AddUndoState(type, id, data);
@@ -290,6 +290,7 @@ public class RecordingManager : MonoBehaviour
     {
         if (!Recording.flags.DataLoaded) return;
         undoManager.Clear(); // clear the undo stack
+        listPool.Clear();
         Recording.Clear();
         Recording.flags.DataLoaded = false;
         onRecordingUnloaded?.Invoke(this, EventArgs.Empty);

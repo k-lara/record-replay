@@ -17,7 +17,8 @@ public class Recording
     // contains the data of the recording which is the data from all recordables
     public Dictionary<Guid, RecordableData> recordableDataDict { get; private set; }
     
-    private Vector3 defaultVec3 = new(-1, -1, -1);
+    private Vector3 invalidVec3 = new(-1, -1, -1);
+    private float invalidFloat = -1;
 
     public Flags flags { get; set; } = new();
 
@@ -87,6 +88,7 @@ public class Recording
         public int frameNr;
         public bool valid; // when adding empty data frames we shouldn't use the data in there bc it is not valid
         
+        // head and controller inputs
         public float xPosHead;
         public float yPosHead;
         public float zPosHead;
@@ -116,6 +118,16 @@ public class Recording
         public Pose rightWrist;
         public Quaternion[] leftFingerRotations;
         public Quaternion[] rightFingerRotations;
+        
+        // face weights
+        public bool faceDataValid;
+        public float[] faceWeights;
+
+        // eye gaze
+        public bool eyeDataValid;
+        public Pose leftEye;
+        public Pose rightEye;
+       
         
     }
 
@@ -240,57 +252,79 @@ public class Recording
     {
         flags.NewDataAvailable = true;
         
-        var handDataValid = true;
-        var leftFingerRotations = new Quaternion[(int)HandSkeleton.Joint.Count - 1];
-        var rightFingerRotations = new Quaternion[(int)HandSkeleton.Joint.Count - 1];
-        if (pose.leftHandSkeleton[0].position.Equals(defaultVec3))
+        var df = new RecordableDataFrame();
+        
+        df.frameNr = frame;
+        df.valid = true;
+        df.xPosHead = pose.head.position.x;
+        df.yPosHead = pose.head.position.y;
+        df.zPosHead = pose.head.position.z;
+        df.xRotHead = pose.head.rotation.x;
+        df.yRotHead = pose.head.rotation.y;
+        df.zRotHead = pose.head.rotation.z;
+        df.wRotHead = pose.head.rotation.w;
+        df.xPosLeftHand = pose.leftHand.position.x;
+        df.yPosLeftHand = pose.leftHand.position.y;
+        df.zPosLeftHand = pose.leftHand.position.z;
+        df.xRotLeftHand = pose.leftHand.rotation.x;
+        df.yRotLeftHand = pose.leftHand.rotation.y;
+        df.zRotLeftHand = pose.leftHand.rotation.z;
+        df.wRotLeftHand = pose.leftHand.rotation.w;
+        df.xPosRightHand = pose.rightHand.position.x;
+        df.yPosRightHand = pose.rightHand.position.y;
+        df.zPosRightHand = pose.rightHand.position.z;
+        df.xRotRightHand = pose.rightHand.rotation.x;
+        df.yRotRightHand = pose.rightHand.rotation.y;
+        df.zRotRightHand = pose.rightHand.rotation.z;
+        df.wRotRightHand = pose.rightHand.rotation.w;
+        
+        // hand data
+        if (pose.leftHandSkeleton[0].position.Equals(invalidVec3))
         {
-            handDataValid = false;
+            df.handDataValid = false;
         }
         else
         {
             // exclude wrist (but not palm, don't wanna make it too complicated even if we don't use the palm)
-            for (var i = 0; i < leftFingerRotations.Length; i++) 
+            // pose.leftHandSkeleton has all 26 joints, when iterating through we ignore the wrist
+            df.handDataValid = true;
+            df.leftWrist = pose.leftHandSkeleton[0];
+            df.rightWrist = pose.rightHandSkeleton[0];
+            df.leftFingerRotations = new Quaternion[(int)HandSkeleton.Joint.Count - 1]; // excluding wrist (but not palm)
+            df.rightFingerRotations = new Quaternion[(int)HandSkeleton.Joint.Count - 1];
+            for (var i = 0; i < df.leftFingerRotations.Length; i++) 
             {
-                leftFingerRotations[i] = pose.leftHandSkeleton[i+1].rotation;
-                rightFingerRotations[i] = pose.rightHandSkeleton[i+1].rotation;
+                df.leftFingerRotations[i] = pose.leftHandSkeleton[i+1].rotation;
+                df.rightFingerRotations[i] = pose.rightHandSkeleton[i+1].rotation;
             }
         }
-        
-        
-        var df = new RecordableDataFrame()
-        {
-            frameNr = frame,
-            valid = true,
-            xPosHead = pose.head.position.x,
-            yPosHead = pose.head.position.y,
-            zPosHead = pose.head.position.z,
-            xRotHead = pose.head.rotation.x,
-            yRotHead = pose.head.rotation.y,
-            zRotHead = pose.head.rotation.z,
-            wRotHead = pose.head.rotation.w,
-            xPosLeftHand = pose.leftHand.position.x,
-            yPosLeftHand = pose.leftHand.position.y,
-            zPosLeftHand = pose.leftHand.position.z,
-            xRotLeftHand = pose.leftHand.rotation.x,
-            yRotLeftHand = pose.leftHand.rotation.y,
-            zRotLeftHand = pose.leftHand.rotation.z,
-            wRotLeftHand = pose.leftHand.rotation.w,
-            xPosRightHand = pose.rightHand.position.x,
-            yPosRightHand = pose.rightHand.position.y,
-            zPosRightHand = pose.rightHand.position.z,
-            xRotRightHand = pose.rightHand.rotation.x,
-            yRotRightHand = pose.rightHand.rotation.y,
-            zRotRightHand = pose.rightHand.rotation.z,
-            wRotRightHand = pose.rightHand.rotation.w,
-            
-            handDataValid = handDataValid,
-            leftWrist = pose.leftHandSkeleton[0],
-            rightWrist = pose.rightHandSkeleton[0],
-            leftFingerRotations = leftFingerRotations,
-            rightFingerRotations = rightFingerRotations
-        };
 
+        // face data
+        if (pose.faceWeights[0] == invalidFloat)
+        {
+            df.faceDataValid = false;
+        }
+        else
+        {
+            df.faceDataValid = true;
+            df.faceWeights = new float[pose.faceWeights.Length];
+            for (var i = 0; i < df.faceWeights.Length; i++)
+            {
+                df.faceWeights[i] = pose.faceWeights[i];
+            }
+        }
+        // eye data
+        if (pose.leftEye.position.Equals(invalidVec3))
+        {
+            df.eyeDataValid = false;
+        }
+        else
+        {
+            df.eyeDataValid = true;
+            df.leftEye = pose.leftEye;
+            df.rightEye = pose.rightEye;
+        }
+        
         if (recordableDataDict[id].dataFrames.Count <= frame)
         {
             recordableDataDict[id].dataFrames.Add(df);

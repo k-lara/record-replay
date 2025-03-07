@@ -98,22 +98,24 @@ public class LoadManager
         for (var i = 0; i < thumbnail.prefabNames.Count; i++)
         {
             var name = thumbnail.prefabNames[i];
-            var prefab = currentSpawned.Find(obj => obj.name == name + "(Clone)");
+            // GameObject prefab = null; //currentSpawned.Find(obj => obj.name == name + "(Clone)");
             Replayable replayable;
-            if (prefab == null)
-            {
-                Debug.Log("Create fresh prefab: " + name);
-                var go = spawnManager.SpawnWithPeerScope(prefabCatalogue[name]);
-                replayable = go.AddComponent<Replayable>();
-                newlySpawned.Add(go);
-            }
-            else
-            {
-                Debug.Log("Reuse old prefab: " + name);
-                replayable = prefab.GetComponent<Replayable>();
-                newlySpawned.Add(prefab);
-                currentSpawned.Remove(prefab);
-            }
+            Debug.Log(prefabCatalogue[name]);
+            // if (prefab == null)
+            // {
+            Debug.Log("Create fresh prefab: " + name);
+            var go = spawnManager.SpawnWithPeerScope(prefabCatalogue[name]);
+            Debug.Log(go);
+            replayable = go.AddComponent<Replayable>();
+            newlySpawned.Add(go);
+            // }
+            // else // this does not work reliably with the Meta avatars... don't do it for now. 
+            // {
+            //     Debug.Log("Reuse old prefab: " + name);
+            //     replayable = prefab.GetComponent<Replayable>();
+            //     newlySpawned.Add(prefab);
+            //     currentSpawned.Remove(prefab);
+            // }
             replayable.replayableId = new Guid(thumbnail.recordableIds[i]);
             replayable.SetReplayablePose(ToPose(thumbnail.firstPoses[i]));
             replayable.SetIsLocal(true);
@@ -162,8 +164,8 @@ public class LoadManager
             rightHandSkeletonPoses[0] = new InputVar<Pose>(dataFrame.rightWrist);
             for (int i = 0; i < dataFrame.leftFingerRotations.Length; i++)
             {
-                leftHandSkeletonPoses[i] = new InputVar<Pose>(new Pose(Vector3.zero, dataFrame.leftFingerRotations[i]));
-                rightHandSkeletonPoses[i] = new InputVar<Pose>(new Pose(Vector3.zero, dataFrame.rightFingerRotations[i]));
+                leftHandSkeletonPoses[i+1] = new InputVar<Pose>(new Pose(Vector3.zero, dataFrame.leftFingerRotations[i]));
+                rightHandSkeletonPoses[i+1] = new InputVar<Pose>(new Pose(Vector3.zero, dataFrame.rightFingerRotations[i]));
             }
         }
         

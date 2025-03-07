@@ -142,6 +142,12 @@ public class AvatarTakeover : MonoBehaviour
         // this has to be called once we know which replayable to take over
         replayable.OnUpdateReplayablePose += OnUpdateReplayablePose;
         
+        // make replayable invisible
+        if (replayable.gameObject.TryGetComponent<UbiqMetaAvatarEntity>(out var metaAvatar))
+        {
+            metaAvatar.SetView(Oculus.Avatar2.CAPI.ovrAvatar2EntityViewFlags.None);
+        }
+        
         Debug.Log("Change the player's prefab to the takeover prefab");   
         // once the new prefab has been spawned OnAvatarCreated will be called where we add the recordable
         // after that we can modify the materials
@@ -150,8 +156,8 @@ public class AvatarTakeover : MonoBehaviour
         avatarManager.avatarPrefab = takeoverPrefab;
         replayer.SetIsTakingOver(isTakingOver);
         
-        // init undo stack
-        recorder.InitUndoStack(UndoManager.UndoType.Edit, replayable.replayableId, replayer.recording.recordableDataDict[replayable.replayableId]);
+        // init undo stack (if already initialized it should add to the existing stack)
+        recorder.AddUndoState(UndoManager.UndoType.Edit, replayable.replayableId, replayer.recording.recordableDataDict[replayable.replayableId]);
         
         SetTakeoverStart(); // replayable needs to be set before this
         if (PlayerPosToReplayablePos(replayable))
@@ -207,6 +213,12 @@ public class AvatarTakeover : MonoBehaviour
             // change player prefab back to previous prefab
             avatarManager.avatarPrefab = playerPrefab;
             playerPrefab = null; // reset
+            
+            // make replayable visible again
+            if (replayable.gameObject.TryGetComponent<UbiqMetaAvatarEntity>(out var metaAvatar))
+            {
+                metaAvatar.SetView(Oculus.Avatar2.CAPI.ovrAvatar2EntityViewFlags.ThirdPerson);
+            }
         }
        
         recordable.OnUpdateRecordablePose -= OnUpdateRecordablePose;
@@ -291,7 +303,6 @@ public class AvatarTakeover : MonoBehaviour
         // set replayable pose to first frame in new data
         replayable.SetReplayablePose(takeoverStart);
         
-        replayable = null; // reset
         flags.SaveReady = true;
         
         yield return null;

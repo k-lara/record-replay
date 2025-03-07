@@ -14,6 +14,7 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.Serialization;
+using UnityEngine.XR.Hands;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Inputs;
 
@@ -23,8 +24,8 @@ using UnityEngine.XR.Interaction.Toolkit.Inputs;
 public class RecorderUI : MonoBehaviour
 {
     private XRIControllerButtonInputActions controllerButtonInputActions;
-    private XRIHandInputActions handInputActions;
-
+    
+    public InputActionManager inputActionManager;
     public AvatarSwitcher AvatarSwitcher;
     
     public float recordingCountdown = 5.0f; // countdown before recording starts
@@ -46,15 +47,13 @@ public class RecorderUI : MonoBehaviour
     public InteractableSphere undoSphere;
     public InteractableSphere redoSphere;
     public InteractableSphere takeoverSphere;
+    public InteractableSphere avatarSwitchSphere;
     public CurveSlider frameSlider;
     
     public TextMeshProUGUI recordSphereText;
     public TextMeshProUGUI recordCountdownText;
     public TextMeshProUGUI replayNumberText;
     public TextMeshProUGUI thumbnailInfoText;
-
-    public ActionBasedController leftController;
-    public ActionBasedController rightController;
     
     private AudioSource _audioSourceLowBeep;
     private AudioSource _audioSourceHighBeep;
@@ -92,6 +91,7 @@ public class RecorderUI : MonoBehaviour
         _recordingManager = recorderGameObject.GetComponent<RecordingManager>();
         _recordingManager.onRecordingLoaded += OnRecordingLoaded;
         _recordingManager.onRecordingUnloaded += OnRecordingUnloaded;
+        _recordingManager.onUnspawned += OnRecordingUnspawned; // also clears the avatar and sets the thumbnail to -1
         _recordingManager.onRecordingSaved += OnRecordingSaved;
         
         recordSphere.onSphereSelected += RecordButtonPressed;
@@ -105,6 +105,7 @@ public class RecorderUI : MonoBehaviour
         undoSphere.onSphereSelected += UndoButtonPressed;
         redoSphere.onSphereSelected += RedoButtonPressed;
         takeoverSphere.onSphereSelected += TakeoverButtonPressed;
+        avatarSwitchSphere.onSphereSelected += SwitchAvatar;
         
         frameSlider.onTChanged += SetFrameManually;
         _replayer.onFrameUpdate += SetSliderFromFrame;
@@ -116,6 +117,13 @@ public class RecorderUI : MonoBehaviour
         // TODO maybe make script execute later than RecordingManager!
         SetRecordingNumberText();
     }
+    
+    // switches to the next avatar in the list using the UI sphere
+    private void SwitchAvatar(object o, EventArgs e)
+    {
+        _audioSourceButtonPress.Play();
+        AvatarSwitcher.Next();
+    }
 
     void OnEnable()
     {
@@ -125,17 +133,10 @@ public class RecorderUI : MonoBehaviour
         }
         controllerButtonInputActions.Enable();
         // get button input actions
-        Debug.Log("Button Input Actions Enabled?" + controllerButtonInputActions.XRILeftControllerButtons.enabled);
+        // Debug.Log("Button Input Actions Enabled?" + controllerButtonInputActions.XRILeftControllerButtons.enabled);
         controllerButtonInputActions.XRILeftControllerButtons.XButton.performed += c => XButtonPressed();
         controllerButtonInputActions.XRIRightControllerButtons.AButton.performed += c => AButtonPressed();
         controllerButtonInputActions.XRILeftControllerButtons.MenuButton.performed += c => LeftMenuButtonPressed();
-        
-        if (handInputActions == null)
-        {
-            handInputActions = new XRIHandInputActions();
-        }
-        handInputActions.Enable();
-        handInputActions.LeftHand.MenuGesture.performed += c => LeftMenuButtonGesturePerformed();
     }
 
     void OnDisable()
@@ -150,25 +151,25 @@ public class RecorderUI : MonoBehaviour
 
     private void AButtonPressed()
     {
-        Debug.Log("A Button Pressed: " + (_isRecording ? "Stop Recording" : "Start Recording"));
+        // Debug.Log("A Button Pressed: " + (_isRecording ? "Stop Recording" : "Start Recording"));
         RecordButtonPressed(this, EventArgs.Empty);
     }
 
     private void XButtonPressed()
     {
-        Debug.Log("X Button Pressed");
+        // Debug.Log("X Button Pressed");
         AvatarSwitcher.Next();
     }
 
     private void LeftMenuButtonPressed()
     {
-        Debug.Log("Left Menu Button Pressed");
+        // Debug.Log("Left Menu Button Pressed");
         UIToggle();
     }
     
-    private void LeftMenuButtonGesturePerformed()
+    public void LeftMenuButtonGesturePerformed()
     {
-        Debug.Log("Left Menu Gesture Performed");
+        // Debug.Log("Left Menu Gesture Performed");
         UIToggle();
     }
     
@@ -204,20 +205,21 @@ public class RecorderUI : MonoBehaviour
 
     public void ForwardButtonPressed(object o, EventArgs e)
     {
-        // _audioSourceButtonPress.Play();
+        _audioSourceButtonPress.Play();
         _recordingManager.GotoAdjacentThumbnail(1);
         SetRecordingNumberText();
     }
    
     public void BackwardButtonPressed(object o, EventArgs e)
     {
-        // _audioSourceButtonPress.Play();
+        _audioSourceButtonPress.Play();
         _recordingManager.GotoAdjacentThumbnail(-1);
         SetRecordingNumberText();
     }
 
     public void LoadButtonPressed(object o, EventArgs e)
     {
+        _audioSourceButtonPress.Play();
         _recordingManager.LoadRecording();
         // when collider is a trigger it does not respond to the Interactable apparently...
     }
@@ -232,9 +234,10 @@ public class RecorderUI : MonoBehaviour
 
     public void ClearButtonPressed(object o, EventArgs e)
     {
+        _audioSourceButtonPress.Play();
         _recordingManager.UnloadRecording(); // just clears recording data not the objects
         _recordingManager.ClearThumbnail(); // clears objects from the thumbnail
-        // remove the thumbnail info too
+        // remove the thumbnail info too (this is done in OnRecordingUnspawned)
     }
     
     public void OnRecordingUnloaded(object o, EventArgs e)
@@ -246,10 +249,17 @@ public class RecorderUI : MonoBehaviour
         SetRecordingNumberText();
     }
     
+    public void OnRecordingUnspawned(object o, EventArgs e)
+    {
+        SetRecordingInfoText();
+        SetRecordingNumberText();
+    }
+    
     // the highlight stuff is not that well thought through... 
     // maybe make a sound when things have successfully completed!
     public void SaveButtonPressed(object o, EventArgs e)
     {
+        _audioSourceButtonPress.Play();
         _recordingManager.SaveRecording();
         saveSphere.EnableHighlight();
     }
@@ -261,6 +271,7 @@ public class RecorderUI : MonoBehaviour
     
     public void RecordButtonPressed(object o, EventArgs e)
     {
+        _audioSourceButtonPress.Play();
         if (!_isRecording)
         {
             // If there is a thumbnail with no loaded data, we remove the spawned character
@@ -294,6 +305,7 @@ public class RecorderUI : MonoBehaviour
 
     public void StartButtonPressed(object o, EventArgs e)
     {
+        _audioSourceButtonPress.Play();
         _replayer.StartReplay();
     }
     
@@ -306,6 +318,7 @@ public class RecorderUI : MonoBehaviour
     
     public void StopButtonPressed(object o, EventArgs e)
     {
+        _audioSourceButtonPress.Play();
         _replayer.StopReplay();
     }
     
@@ -318,16 +331,19 @@ public class RecorderUI : MonoBehaviour
     
     public void UndoButtonPressed(object o, EventArgs e)
     {
+        _audioSourceButtonPress.Play();
         _recordingManager.Undo();
     }
     public void RedoButtonPressed(object o, EventArgs e)
     {
+        _audioSourceButtonPress.Play();
         _recordingManager.Redo();
     }
 
     // shows takeover spheres above the avatar's heads which can be selected to initiate a takeover
     public void TakeoverButtonPressed(object o, EventArgs e)
     {
+        _audioSourceButtonPress.Play();
         if (!_takeoverMode)
         {
             takeoverSphere.EnableHighlight();
@@ -349,6 +365,7 @@ public class RecorderUI : MonoBehaviour
     
     public void SetFrameManually(object o, float t)
     {
+        // _audioSourceButtonPress.PlayOneShot(_audioSourceButtonPress.clip);
         // Debug.Log("SetFrameManually: " + t);
         _replayer.SetCurrentFrameManually(t);
     }
@@ -380,12 +397,12 @@ public class RecorderUI : MonoBehaviour
         {
             recordCountdownText.text = (recordingCountdown - i).ToString();
             recordCountdownText.color = Color.Lerp(Color.white, recordSphere.color, (float)i / recordingCountdown);
-            // _audioSourceLowBeep.Play();
+            _audioSourceLowBeep.Play();
             yield return new WaitForSeconds(1.0f);
             Debug.Log("Countdown: " + (recordingCountdown - i));
         }
 
-        // _audioSourceHighBeep.Play();
+        _audioSourceHighBeep.Play();
         
         _recorder.StartRecording();
     }

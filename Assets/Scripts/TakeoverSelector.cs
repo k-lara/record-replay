@@ -22,6 +22,7 @@ public class TakeoverSelector : MonoBehaviour
     // private Dictionary<Guid, Collider> takeoverColliders = new();
     private Dictionary<Guid, GameObject> interactableSpheres = new();
     private Replayer replayer;
+    private RecordingManager recordingManager;
     private NetworkSpawnManager spawnManager;
     
     private Camera playerCamera;
@@ -48,6 +49,9 @@ public class TakeoverSelector : MonoBehaviour
         replayer = GetComponent<Replayer>();
         replayer.onReplaySpawned += OnReplayCreated;
         replayer.onReplayUnspawned += OnReplayUnspawned;
+        recordingManager = GetComponent<RecordingManager>();
+        recordingManager.onRecordingUndo += OnRecordingUndo;
+        recordingManager.onRecordingRedo += OnRecordingRedo;
         
         spawnManager = NetworkSpawnManager.Find(this);
     }
@@ -110,35 +114,67 @@ public class TakeoverSelector : MonoBehaviour
         // add sphere interactables above the head of the avatar
         foreach (var replayable in replayables)
         {
-            if (!replayable.Value.gameObject.transform.GetChild(0).childCount.Equals(0))
+            // Debug.Log("TakeoverSelector: OnReplayCreated(): replayable:" + replayable.Key);
+            // skip if we already have an interactable sphere on this replayable
+            if (interactableSpheres.ContainsKey(replayable.Key))
             {
-                Debug.Log("TakeoverSelector: Interactable Sphere already exists, skipping");
+                // Debug.Log("TakeoverSelector: Interactable Sphere already exists, skipping");
                 continue;
             }
             
-            var sphere = Instantiate(takeoverInteractable, replayable.Value.gameObject.transform.GetChild(0));
-            sphere.SetActive(false);
-            sphere.GetComponent<InteractableSphere>().onSphereSelected += TakeoverSelected;
-            sphere.transform.localPosition = new Vector3(0.4f, 0, 0);
-            // sphere.transform.localRotation = Quaternion.identity;
-            interactableSpheres.Add(replayable.Key, sphere);
-            Debug.Log("Add interactable to replayable: " + replayable.Key);
-            
+            // for the meta avatars, it would be great to attach it to the head joint.
+            // the head joint will be a critical joint and should sit as a child below the main avatar game object
+            // wait for the avatar to have a head joint
+            StartCoroutine(WaitForHeadTransform(replayable));
         }
-        // foreach (var replayable in replayables)
-        // {
-        //     Debug.Log("TakeoverSelector: Get Colliders/ Add Interactables to replayable: " + replayable.Key);
-        //     if (replayable.Value.gameObject.TryGetComponent(out Collider coll))
-        //     {
-        //         takeoverColliders.Add(replayable.Key, coll);
-        //         // check if it has the component already since this could be a reused object from a previous thumbnail
-        //         if (!replayable.Value.gameObject.TryGetComponent(out XRSimpleInteractable interactable))
-        //         {
-        //             interactable = replayable.Value.gameObject.AddComponent<XRSimpleInteractable>();
-        //         }
-        //         interactable.selectEntered.AddListener(SpawnTakeoverObject);
-        //     }
-        // }
+    }
+    
+    private IEnumerator WaitForHeadTransform(KeyValuePair<Guid, Replayable> replayable)
+    {
+        while (replayable.Value.transform.childCount == 0)
+        {
+            yield return null;
+        }
+        
+        // find "Joint Head" GameObject (for Meta Avatars only)
+        var headTransform = replayable.Value.gameObject.transform.Find("Joint Head");
+        
+        var sphere = Instantiate(takeoverInteractable, headTransform);
+        sphere.SetActive(false);
+        sphere.GetComponent<InteractableSphere>().onSphereSelected += TakeoverSelected;
+        // sphere.transform.localPosition = new Vector3(0.4f, 0, 0);
+        // sphere.transform.localRotation = Quaternion.identity;
+        interactableSpheres.Add(replayable.Key, sphere);
+        Debug.Log("Add interactable to replayable: " + replayable.Key);
+    }
+
+    private void OnRecordingUndo(object o, (UndoManager.UndoType, List<Guid>) args)
+    {
+        if (args.Item1 == UndoManager.UndoType.New) // remove the interactable from the replayable we undo
+        {
+            foreach (var id in args.Item2)
+            {
+                if (interactableSpheres.ContainsKey(id))
+                {
+                    Debug.Log("UndoNew: Remove interactable sphere from replayable: " + id);
+                    interactableSpheres[id].GetComponent<InteractableSphere>().onSphereSelected -= TakeoverSelected;
+                    Destroy(interactableSpheres[id]);
+                    interactableSpheres.Remove(id);
+                }
+            }
+        }
+    }
+    
+    private void OnRecordingRedo(object o, (UndoManager.UndoType, List<Replayable>) args)
+    {
+        if (args.Item1 == UndoManager.UndoType.New) // add the interactable to the replayable we redo
+        {
+            foreach (var replayable in args.Item2)
+            {
+                Debug.Log("Redo New");
+                StartCoroutine(WaitForHeadTransform(new KeyValuePair<Guid, Replayable>(replayable.replayableId, replayable)));
+            }
+        }
     }
 
     public void EnableTakeover()

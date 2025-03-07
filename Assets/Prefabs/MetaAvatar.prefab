@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &5348993008749250758
+--- !u!1 &1301360273825638768
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,21 +8,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7108832122885296672}
+  - component: {fileID: 4496396570793323049}
+  - component: {fileID: 3744524265879496148}
   m_Layer: 0
-  m_Name: Hand Tracking Test
+  m_Name: LeftEye
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7108832122885296672
+--- !u!4 &4496396570793323049
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5348993008749250758}
+  m_GameObject: {fileID: 1301360273825638768}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -31,6 +32,74 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3521002303106949551}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3744524265879496148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1301360273825638768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28dd40a6d175d01498e0477360d6c070, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Eye: 0
+  ConfidenceThreshold: 0.5
+  ApplyPosition: 1
+  ApplyRotation: 1
+  ReferenceFrame: {fileID: 4496396570793323049}
+  TrackingMode: 0
+--- !u!1 &5588782953490060195
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2504506194110250830}
+  - component: {fileID: 3239282343150282900}
+  m_Layer: 0
+  m_Name: RightEye
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2504506194110250830
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5588782953490060195}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3521002303106949551}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3239282343150282900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5588782953490060195}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28dd40a6d175d01498e0477360d6c070, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Eye: 1
+  ConfidenceThreshold: 0.5
+  ApplyPosition: 1
+  ApplyRotation: 1
+  ReferenceFrame: {fileID: 2504506194110250830}
+  TrackingMode: 0
 --- !u!1 &8105444539661125935
 GameObject:
   m_ObjectHideFlags: 0
@@ -44,8 +113,10 @@ GameObject:
   - component: {fileID: 355362245484386152}
   - component: {fileID: 6422074476336512381}
   - component: {fileID: 562741351597714767}
-  - component: {fileID: -771597477014143382}
-  - component: {fileID: -1255415116790280594}
+  - component: {fileID: 6543507829514504385}
+  - component: {fileID: -8387037628892498846}
+  - component: {fileID: -1417480363103063160}
+  - component: {fileID: 6106714926881923601}
   m_Layer: 0
   m_Name: MetaAvatar
   m_TagString: Untagged
@@ -66,7 +137,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 7108832122885296672}
+  - {fileID: 4496396570793323049}
+  - {fileID: 2504506194110250830}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1764813505084291673
@@ -110,10 +182,10 @@ MonoBehaviour:
   _activeSubMeshes: -1
   _activeSubMeshesIncludeUntyped: 1
   _inputManager: {fileID: 6422074476336512381}
-  _facePoseBehavior: {fileID: 0}
-  _eyePoseBehavior: {fileID: 0}
+  _facePoseBehavior: {fileID: -1417480363103063160}
+  _eyePoseBehavior: {fileID: 6106714926881923601}
   _lipSync: {fileID: 0}
-  _criticalJointTypes: 0f0000001c0000001d00000013000000
+  _criticalJointTypes: 0f0000001300000017000000
   _useCriticalJointJobs: 0
   _debugDrawing:
     drawTrackingPose: 1
@@ -177,14 +249,8 @@ MonoBehaviour:
   _bodyTrackingMode: 0
   _useAsyncBodySolver: 0
   _enableHipLock: 0
-  qmul1: {x: -1, y: -1, z: 1, w: 1}
-  qmul2: {x: 0, y: 90, z: 0, w: 1}
-  qmul3: {x: 0, y: 0, z: 0, w: 1}
   ubiqAvatar: {fileID: 0}
-  leftHand: {fileID: 0}
-  rightHand: {fileID: 0}
-  xrOrigin: {fileID: 0}
-  updateLeftHand: 1
+  isRecorded: 0
 --- !u!114 &562741351597714767
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -222,43 +288,124 @@ MonoBehaviour:
     rightAnkleJoint:
       enableOverride: 0
       overrideTransform: {fileID: 0}
---- !u!114 &-771597477014143382
+--- !u!114 &6543507829514504385
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8105444539661125935}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32f3cd2ab93d875418350b1b6f51d33f, type: 3}
+  m_Script: {fileID: 11500000, guid: 0d3d157ddb1100842ae1ae548f3f9317, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _side: 0
-  _handSkeleton: {fileID: 7534483591808359254, guid: 8bd35c20b077959449e5f44de472b784, type: 3}
-  _handSkelLocalForward: {x: 0, y: 0, z: -1}
-  _handPose: {fileID: 3111271924436487619, guid: 03085587f27d1d343ad37a1fbc39fc08, type: 3}
-  _wristOffset: {fileID: 0}
-  setHandPose: 0
-  setWristOffset: 1
-  _entity: {fileID: 355362245484386152}
---- !u!114 &-1255415116790280594
+  _ovrFaceExpressions: {fileID: -8387037628892498846}
+--- !u!114 &-8387037628892498846
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8105444539661125935}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 32f3cd2ab93d875418350b1b6f51d33f, type: 3}
+  m_Script: {fileID: 11500000, guid: a95044baf65b10c4e89b246d2f881ac9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _side: 1
-  _handSkeleton: {fileID: 9195030365049692335, guid: 92dc2374677ddee43acd479ecf441901, type: 3}
-  _handSkelLocalForward: {x: 0, y: 0, z: 1}
-  _handPose: {fileID: 1027227086985392307, guid: a84be7b1c9d21f44da58623235e4820c, type: 3}
-  _wristOffset: {fileID: 0}
-  setHandPose: 0
-  setWristOffset: 1
-  _entity: {fileID: 355362245484386152}
+--- !u!114 &-1417480363103063160
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8105444539661125935}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ce8494b1ada1684c9576e81f04549bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  recordedWeights:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  recordedValid: 0
+--- !u!114 &6106714926881923601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8105444539661125935}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37dd1813462bc9142b97e8e38ef4ca77, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  recordedLeftEye:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 0}
+  recordedRightEye:
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 0}
+  recordedValid: 0

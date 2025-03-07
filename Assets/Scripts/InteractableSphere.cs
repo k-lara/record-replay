@@ -14,6 +14,8 @@ using UnityEngine.XR.Interaction.Toolkit;
 // the sphere can be pressed again once it has returned to its original shape and transparency
 public class InteractableSphere : MonoBehaviour
 {
+    public AudioSource audioSource;
+    
     private XRSimpleInteractable _sphereInteractable;
     
     private bool _pulsing;
@@ -47,7 +49,6 @@ public class InteractableSphere : MonoBehaviour
     {
         _mat = GetComponent<MeshRenderer>().material;
         _defaultScale = transform.localScale.x;
-        _defaultScale = 0.1f;
         _currentScale = _defaultScale;
         _sphereInteractable = GetComponent<XRSimpleInteractable>();
         _sphereInteractable.hoverEntered.AddListener(HoverEntered);
@@ -75,7 +76,7 @@ public class InteractableSphere : MonoBehaviour
     // if sphere is currently shrinking or expanding don't do anything
     private void HoverEntered(HoverEnterEventArgs args)
     {
-        Debug.Log("Hover entered");
+        // Debug.Log("Hover entered");
         if (_shrinking || _expanding) return;
         _pulsing = true;
     }
@@ -85,7 +86,7 @@ public class InteractableSphere : MonoBehaviour
     // we let the current process finish and do not reset as we would if the sphere is only pulsing
     private void HoverExited(HoverExitEventArgs args)
     {
-        Debug.Log("Hover exited");
+        // Debug.Log("Hover exited");
         if (_shrinking || _expanding) return;
         _pulsing = false;
         if (Mathf.Approximately(_currentScale, _defaultScale)) return;
@@ -94,10 +95,13 @@ public class InteractableSphere : MonoBehaviour
     // when the user selects the sphere, hovering stops and the sphere shrinks
     private void SelectEntered(SelectEnterEventArgs args)
     {
-        Debug.Log("Select entered");
+        // Debug.Log("Select entered");
         if (_shrinking || _expanding) return;
         _pulsing = false;
         _shrinking = true;
+        
+        if (audioSource != null) audioSource.Play();
+        
         onSphereSelected?.Invoke(this, EventArgs.Empty);
     }
     
