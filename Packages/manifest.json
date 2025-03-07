@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.meta.movement": "https://github.com/oculus-samples/Unity-Movement.git",
     "com.meta.xr.sdk.avatars": "35.0.0-pre.2",
     "com.meta.xr.sdk.interaction": "72.0.0",
     "com.ucl.ubiq": "https://github.com/UCL-VR/ubiq.git#upm",
