@@ -36,6 +36,7 @@ public class Replayer : MonoBehaviour
     public event EventHandler onReplayUnspawned; // replayables have been unspawned
     public event EventHandler<bool> onFrameUpdate; // true if we need interpolated pose, false if not
     
+    public int GetFrameNr() => _frameNr;
     
     // Start is called before the first frame update
     void Awake()
@@ -81,6 +82,12 @@ public class Replayer : MonoBehaviour
                 currentFrame = 0.0f;
                 _deltaTime = 0.0f;
                 StopReplay();
+                // if we are doing base recordings (like for the user study)
+                // every subsequent recording will only be as long as the base recording)
+                if (_recordingManager.hasBaseRecordings)
+                {
+                    _recorder.StopRecording();
+                }
             }
         }
     }

@@ -107,8 +107,9 @@ public class RecorderUI : MonoBehaviour
         takeoverSphere.onSphereSelected += TakeoverButtonPressed;
         avatarSwitchSphere.onSphereSelected += SwitchAvatar;
         
-        frameSlider.onTChanged += SetFrameManually;
-        _replayer.onFrameUpdate += SetSliderFromFrame;
+        // won't use frame slider in study
+        // frameSlider.onTChanged += SetFrameManually;
+        // _replayer.onFrameUpdate += SetSliderFromFrame;
         _replayer.onReplayStart += OnReplayStart;
         _replayer.onReplayStop += OnReplayStop;
         _recorder.onRecordingStart += OnRecordingStart;
