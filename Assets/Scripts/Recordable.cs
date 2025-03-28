@@ -130,10 +130,13 @@ public class Recordable : MonoBehaviour
     private Pose _prevLeftEye;
     private Pose _prevRightEye;
     
+    private UbiqInputManager _inputManager;
+    
     // Start is called before the first frame update
     void Start()
     {
         _recorder = GameObject.FindWithTag("Recorder").GetComponent<Recorder>();
+        _inputManager = gameObject.GetComponent<UbiqInputManager>();
         
         _recorder.onRecordingStart += OnRecordingStart;
         _recorder.onRecordingStop += OnRecordingStop;
@@ -158,8 +161,13 @@ public class Recordable : MonoBehaviour
     {
         if (!_isRecording) return;
 
+        if (!_inputManager.AllInputValid())
+        {
+            _recorder.StopRecording();
+        }
+        
         _frameInterval += Time.deltaTime;
-
+        
         _avatarInput.TryGet(out IHeadAndHandsInput src);
         _avatarInput.TryGet(out IHandSkeletonInput skel);
         {
@@ -305,6 +313,9 @@ public class Recordable : MonoBehaviour
     private void OnRecordingStart(object o, EventArgs e)
     {
         if (_isRecording) return;
+        
+        // for user study: reset checks for valid input in ubiq meta avatar input manager
+        _inputManager.ResetValidationCheck(); // sets them all to true
 
         if (!_isTakingOver)
         {

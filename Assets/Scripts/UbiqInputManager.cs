@@ -26,8 +26,22 @@ public class UbiqInputManager : OvrAvatarInputManager
     private UbiqMetaAvatarEntity _avatarEntity;
     public bool isRecorded = false;
     
-    private OVRWeightsProvider _weightsProvider;
-    private OVREyeGaze _eyeGaze;
+    private EyePoseBehavior _eyePoseBehavior;
+    private FacePoseBehavior _facePoseBehavior;
+
+    public bool handTrackingValid = true;
+    public bool faceTrackingValid = true;
+    public bool eyeTrackingValid = true;
+    
+    public bool AllInputValid()
+    {
+        return handTrackingValid && faceTrackingValid && eyeTrackingValid;
+    }
+
+    public void ResetValidationCheck()
+    {
+        handTrackingValid = faceTrackingValid = eyeTrackingValid = true;
+    }
     
     [Serializable]
     // controller state
@@ -64,9 +78,6 @@ public class UbiqInputManager : OvrAvatarInputManager
             _avatarEntity.SetView(CAPI.ovrAvatar2EntityViewFlags.ThirdPerson);
             isRecorded = true;
         }
-        
-        _weightsProvider = gameObject.GetComponent<OVRWeightsProvider>();
-        _eyeGaze = gameObject.GetComponentInChildren<OVREyeGaze>();
     }
     
     protected override void OnTrackingInitialized()
@@ -79,21 +90,21 @@ public class UbiqInputManager : OvrAvatarInputManager
     
     protected void Update()
     {
-        var list = _weightsProvider.GetWeights();
-        var names = _weightsProvider.GetWeightNames();
-
-        string s = "";
-        string eyeGaze = "";
-        if (_eyeGaze)
-        {
-            eyeGaze += _eyeGaze.transform.position + " " + _eyeGaze.transform.rotation + "\n";
-        }
-        // Debug.Log(eyeGaze);
-        for (int i = 0; i < list.Count; i++)
-        {
-            s += names[i] + " " + list[i] + "\n";
-        }
-        // Debug.Log(s);
+        // var list = _weightsProvider.GetWeights();
+        // var names = _weightsProvider.GetWeightNames();
+        //
+        // string s = "";
+        // string eyeGaze = "";
+        // if (_eyeGaze)
+        // {
+        //     eyeGaze += _eyeGaze.transform.position + " " + _eyeGaze.transform.rotation + "\n";
+        // }
+        // // Debug.Log(eyeGaze);
+        // for (int i = 0; i < list.Count; i++)
+        // {
+        //     s += names[i] + " " + list[i] + "\n";
+        // }
+        // // Debug.Log(s);
     }
 }
 
@@ -117,6 +128,7 @@ public class UbiqHandTrackingDelegate : IOvrAvatarHandTrackingDelegate
             if (src.leftHandSkeleton.poses.Count == 0)
             {
                 // Debug.Log("Got no hand data");
+                _inputManager.handTrackingValid = false;
                 return false;
             }
             // Debug.Log("Got hand data");
@@ -235,6 +247,7 @@ public class UbiqHandTrackingDelegate : IOvrAvatarHandTrackingDelegate
             return true;
         }
         // Debug.Log("No hand data (2)");
+        _inputManager.handTrackingValid = false;
         return false;
     }
 

@@ -28,6 +28,13 @@ public class RecordingManager : MonoBehaviour
     public int listCapacity; // the capacity of the recordable lists
     public int undoSaves; // the number of undo saves to keep
     public int backupSaves;
+
+    // for user study
+    // there are base recordings to which all the participants have to react to
+    // each participant's recordings are saved in a separate folder
+    // the base recordings have to be copied over to each participant's folder
+    // the base recording will be in the root folder together with the participant folders
+    public bool hasBaseRecordings;
     
     private RecordableListPool listPool;
     private UndoManager undoManager;
@@ -82,25 +89,51 @@ public class RecordingManager : MonoBehaviour
      */
     void Start()
     {
-        pathToRecordings = Application.persistentDataPath;
         spawnManager = NetworkSpawnManager.Find(this);
-        
         prefabCatalogue = new Dictionary<string, GameObject>();
         foreach (var prefab in spawnManager.catalogue.prefabs)
         {
             Debug.Log("Add: " + prefab.name);
             prefabCatalogue.Add(prefab.name, prefab);
         }
+
+        if (!hasBaseRecordings) // do everything as usual if we don't have base recordings
+        {
+            pathToRecordings = Application.persistentDataPath;
+        }
+        else
+        {
+            pathToRecordings = Application.persistentDataPath + "/" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            var newDirInfo = new DirectoryInfo(pathToRecordings);
+            newDirInfo.Create();
+            
+            // copy base recordings to the new folder
+            var baseDir = new DirectoryInfo(Application.persistentDataPath);
+            // only get folders that are not a date time formated string but a guid
+            var baseRecordings = baseDir.EnumerateDirectories().Where(d => Guid.TryParse(d.Name, out _)).ToList();
+
+            foreach (var baseRecording in baseRecordings)
+            {
+                newDirInfo.CreateSubdirectory(baseRecording.Name);
+                var newPath = Path.Combine(newDirInfo.FullName, baseRecording.Name);
+                foreach (var file in baseRecording.EnumerateFiles())
+                {
+                    Debug.Log("Copy: " + file.Name + " to: " + newPath);
+                    file.CopyTo(Path.Combine(newPath, file.Name));
+                }
+            }
+        }
         
         loadManager = new LoadManager(spawnManager, prefabCatalogue, pathToRecordings);
         saveManager = new SaveManager(pathToRecordings, backupSaves);
         listPool = new RecordableListPool(poolCapacity, listCapacity);
         undoManager = new UndoManager(spawnManager, prefabCatalogue, listPool, undoSaves);
-        
+
         Recording = new Recording(listPool);
-        
+
         currentThumbnailIndex = -1;
         StartCoroutine(PrepareThumbnails());
+        
     }
     void Update()
     {
@@ -232,13 +265,18 @@ public class RecordingManager : MonoBehaviour
         thumbnailsTask.Wait();
         recordingThumbnails = thumbnailsTask.Result;
         
-        // only spawn objects if we have at least one thumbnail
-        if (recordingThumbnails.Count > 0)
+        if (!hasBaseRecordings) // if we have base recordings we don't want to load them at startup
+        // but once the participant has read the instructions etc...
         {
-            currentThumbnailIndex = recordingThumbnails.Count - 1; // load most recent one
-            yield return CreateFromThumbnail(currentThumbnailIndex);
+            // only spawn objects if we have at least one thumbnail
+            if (recordingThumbnails.Count > 0)
+            {
+                currentThumbnailIndex = recordingThumbnails.Count - 1; // load most recent one
+                yield return CreateFromThumbnail(currentThumbnailIndex);
+            }
         }
     }
+    
     
     /*
      * This only creates the objects from the info in the thumbnail.
@@ -353,6 +391,31 @@ public class RecordingManager : MonoBehaviour
         // if the index is right, and we have a thumbnail for it, we load it
         UnloadRecording(); // just in case data is loaded
         StartCoroutine(CreateFromThumbnail(currentThumbnailIndex));
+        return recordingThumbnails[currentThumbnailIndex];
+    }
+
+    public IEnumerator GotoThumbnail(int value)
+    {
+        if (recordingThumbnails.Count == 0) yield break;
+        if (value == currentThumbnailIndex) yield break;
+
+        if (value >= 0 && value < recordingThumbnails.Count)
+        {
+            Debug.Log("RecordingManager: Goto thumbnail: " + value);
+            currentThumbnailIndex = value;
+            // if the index is right, and we have a thumbnail for it, we load it
+            UnloadRecording(); // just in case data is loaded
+            yield return CreateFromThumbnail(currentThumbnailIndex);
+        }
+    }
+    
+    public int GetThumbnailCount()
+    {
+        return recordingThumbnails.Count;
+    }
+
+    public Recording.ThumbnailData GetCurrentThumbnail()
+    {
         return recordingThumbnails[currentThumbnailIndex];
     }
 }

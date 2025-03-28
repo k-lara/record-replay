@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Ubiq;
 using Ubiq.Avatars;
 using Ubiq.Messaging;
@@ -68,6 +69,18 @@ public class TakeoverSelector : MonoBehaviour
         //     onTakeoverSelected?.Invoke(this, selectedReplayableObject);
         //     selectedReplayableObject = null;
         // }
+    }
+
+    public void TakeoverLastReplay()
+    {
+        if (interactableSpheres.Count == 0) return;
+
+        var lastInteractable = interactableSpheres.Last();
+        selectedReplayableObject = lastInteractable.Value.transform.parent.parent.gameObject;
+        onTakeoverSelected?.Invoke(this, selectedReplayableObject);
+        selectedReplayableObject = null;
+        
+        Debug.Log("Takeover last replay: " + lastInteractable.Key);
     }
     
     // called when selectEntered on replayable avatar

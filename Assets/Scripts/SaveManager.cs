@@ -17,7 +17,7 @@ public class SaveManager
     private string pathToRecordings;
     private int numBackupSaves;
 
-    public float saveInterval = 300; // in seconds (5 minutes)
+    public float saveInterval = 600; // in seconds (10 minutes)
     private float timeSinceLastSave;
 
     private Task<Recording.ThumbnailData> t;

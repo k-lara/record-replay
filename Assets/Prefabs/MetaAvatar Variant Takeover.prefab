@@ -1,0 +1,180 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &5405388314115688512
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3521002303106949551, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105444539661125935, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      propertyPath: m_Name
+      value: MetaAvatar Variant Takeover
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 562741351597714767, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+    - {fileID: 355362245484386152, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8105444539661125935, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+      insertIndex: 2
+      addedObject: {fileID: 1368584800878503004}
+  m_SourcePrefab: {fileID: 100100000, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+--- !u!114 &1304925403882337597 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6422074476336512381, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+  m_PrefabInstance: {fileID: 5405388314115688512}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4287320008394555759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b25c5a528554055b81fcc29f2ec4a84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &2286883955577104977 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6106714926881923601, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+  m_PrefabInstance: {fileID: 5405388314115688512}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4287320008394555759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37dd1813462bc9142b97e8e38ef4ca77, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &2834968784925604808 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: -1417480363103063160, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+  m_PrefabInstance: {fileID: 5405388314115688512}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4287320008394555759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ce8494b1ada1684c9576e81f04549bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!1 &4287320008394555759 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8105444539661125935, guid: dbb6e004597fa3540a65a2d93e92f8c9, type: 3}
+  m_PrefabInstance: {fileID: 5405388314115688512}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1368584800878503004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4287320008394555759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f775fcfeef42d0543abbd1e03dfe74fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _creationInfo:
+    features: 1398
+    renderFilters:
+      lodFlags: 31
+      manifestationFlags: 2
+      viewFlags: 3
+      subMeshInclusionFlags: -1
+      quality: 1
+      loadRigZipFromGlb: 1
+      reserved: 0000000000000000000000000000000000000000000000000000000000000000
+  _validateCache: 1
+  _activeView: 1
+  _activeManifestation: 2
+  _activeSubMeshes: -1
+  _activeSubMeshesIncludeUntyped: 1
+  _inputManager: {fileID: 1304925403882337597}
+  _facePoseBehavior: {fileID: 2834968784925604808}
+  _eyePoseBehavior: {fileID: 2286883955577104977}
+  _lipSync: {fileID: 0}
+  _criticalJointTypes: 
+  _useCriticalJointJobs: 0
+  _debugDrawing:
+    drawTrackingPose: 0
+    drawBoneNames: 0
+    drawSkelHierarchy: 0
+    drawSkelHierarchyInGame: 0
+    drawSkinTransformsInGame: 0
+    drawCriticalJoints: 0
+    skeletonColor: {r: 1, g: 0, b: 0, a: 1}
+    drawGazePos: 0
+    gazePosColor: {r: 1, g: 0, b: 1, a: 1}
+  OnCreatedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnSkeletonLoadedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDefaultAvatarLoadedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnFastLoadAvatarLoadedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnUserAvatarLoadedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  PreTeardownEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnLoadFailedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  MotionSmoothingSettings: 0
+  _hidden: 0
+  useRenderLods: 1
+  _isLocal: 1
+  _loadUserFromCdn: 0
+  _cdnUserID: 0
+  _style2DropdownIndex: 0
+  _deferLoading: 0
+  _assets: []
+  _underscorePostfix: 1
+  _overridePostfix: 
+  _autoCdnRetry: 0
+  _enablePollingForAvatarCreation: 0
+  _changeCheckInterval: 8
