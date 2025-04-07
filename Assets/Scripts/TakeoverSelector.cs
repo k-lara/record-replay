@@ -82,6 +82,17 @@ public class TakeoverSelector : MonoBehaviour
         
         Debug.Log("Takeover last replay: " + lastInteractable.Key);
     }
+
+    public void TakeoverNthReplay(int n)
+    {
+        if (interactableSpheres.Count == 0 || n >= interactableSpheres.Count) return;
+        
+        var nthInteractable = interactableSpheres.ElementAt(n);
+        selectedReplayableObject = nthInteractable.Value.transform.parent.parent.gameObject;
+        onTakeoverSelected?.Invoke(this, selectedReplayableObject);
+        selectedReplayableObject = null;
+        Debug.Log("Takeover " + n + ". replay: " + nthInteractable.Key);
+    }
     
     // called when selectEntered on replayable avatar
     // we do this to make the takeover look cooler by spawning an object the player has to interact with
