@@ -170,14 +170,14 @@ MonoBehaviour:
     features: 1398
     renderFilters:
       lodFlags: 31
-      manifestationFlags: 3
+      manifestationFlags: 2
       viewFlags: 3
       subMeshInclusionFlags: -1
       quality: 1
       loadRigZipFromGlb: 0
       reserved: 0000000000000000000000000000000000000000000000000000000000000000
   _validateCache: 1
-  _activeView: 1
+  _activeView: 2
   _activeManifestation: 2
   _activeSubMeshes: -1
   _activeSubMeshesIncludeUntyped: 1
@@ -251,6 +251,9 @@ MonoBehaviour:
   _enableHipLock: 0
   ubiqAvatar: {fileID: 0}
   isRecorded: 0
+  handTrackingValid: 1
+  faceTrackingValid: 1
+  eyeTrackingValid: 1
 --- !u!114 &562741351597714767
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -267,17 +270,20 @@ MonoBehaviour:
   _customAnimationOnly: 0
   _enableStaticAnimationOptimization: 0
   _enableLocalAnimationPlayback: 0
+  _enableRotationalTrackingOffset: 0
   _inputBlended: 1
   _leftArmBlendFactor: 1
   _rightArmBlendFactor: 1
   _customAnimationBlendFactor: 0
   _enableTrackedUpperBodyRotation: 1
   _enableDebugRigVisual: 0
+  _enableCrouching: 1
   _enableIndependentUpperBodyHorizontalRotation: 1
   _maxUpperBodyAngleDeviation: 45
   _lowerBodyRotationDegreesPerSecond: 90
   _enableRemoteScaling: 0
   _remoteScaleFactor: 1
+  _maxArmLengthScalar: 1
   _mixedRealityAnimationOptions:
     anchoringState: 0
   _jointOverrides:
@@ -390,6 +396,7 @@ MonoBehaviour:
   - 0
   - 0
   recordedValid: 0
+  inputManager: {fileID: 0}
 --- !u!114 &6106714926881923601
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -409,3 +416,4 @@ MonoBehaviour:
     position: {x: 0, y: 0, z: 0}
     rotation: {x: 0, y: 0, z: 0, w: 0}
   recordedValid: 0
+  inputManager: {fileID: 0}
