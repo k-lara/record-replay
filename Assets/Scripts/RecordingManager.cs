@@ -29,6 +29,8 @@ public class RecordingManager : MonoBehaviour
     public int undoSaves; // the number of undo saves to keep
     public int backupSaves;
 
+    public bool autoSave;
+    
     // for user study
     // there are base recordings to which all the participants have to react to
     // each participant's recordings are saved in a separate folder
@@ -79,8 +81,11 @@ public class RecordingManager : MonoBehaviour
             Debug.Log("Disposing thumbnails task");
             thumbnailsTask.Dispose();
         }
-        
-        saveManager.Dispose(); // disposes save task
+
+        if (saveManager != null)
+        {
+            saveManager.Dispose(); // disposes save task
+        }
     }
 
     /*
@@ -97,48 +102,67 @@ public class RecordingManager : MonoBehaviour
             prefabCatalogue.Add(prefab.name, prefab);
         }
 
-        if (!hasBaseRecordings) // do everything as usual if we don't have base recordings
-        {
-            pathToRecordings = Application.persistentDataPath;
-        }
-        else
-        {
-            pathToRecordings = Application.persistentDataPath + "/" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-            var newDirInfo = new DirectoryInfo(pathToRecordings);
-            newDirInfo.Create();
-            
-            // copy base recordings to the new folder
-            var baseDir = new DirectoryInfo(Application.persistentDataPath);
-            // only get folders that are not a date time formated string but a guid
-            var baseRecordings = baseDir.EnumerateDirectories().Where(d => Guid.TryParse(d.Name, out _)).ToList();
-
-            foreach (var baseRecording in baseRecordings)
-            {
-                newDirInfo.CreateSubdirectory(baseRecording.Name);
-                var newPath = Path.Combine(newDirInfo.FullName, baseRecording.Name);
-                foreach (var file in baseRecording.EnumerateFiles())
-                {
-                    Debug.Log("Copy: " + file.Name + " to: " + newPath);
-                    file.CopyTo(Path.Combine(newPath, file.Name));
-                }
-            }
-        }
-        
         loadManager = new LoadManager(spawnManager, prefabCatalogue, pathToRecordings);
         saveManager = new SaveManager(pathToRecordings, backupSaves);
         listPool = new RecordableListPool(poolCapacity, listCapacity);
         undoManager = new UndoManager(spawnManager, prefabCatalogue, listPool, undoSaves);
 
         Recording = new Recording(listPool);
-
-        currentThumbnailIndex = -1;
-        StartCoroutine(PrepareThumbnails());
         
+        if (!hasBaseRecordings) // do everything as usual if we don't have base recordings
+        {
+            pathToRecordings = Application.persistentDataPath;
+            currentThumbnailIndex = -1;
+            StartCoroutine(PrepareThumbnails());
+        }
     }
+
+    public void PreparePreviousUserFolder()
+    {
+        // get the most recent folder
+        var dirInfo = new DirectoryInfo(Application.persistentDataPath);
+        var userFolder = dirInfo.EnumerateDirectories().Where(d => DateTime.TryParse(d.Name, out _)).OrderBy(d => d.CreationTime).ToList();
+        pathToRecordings = userFolder[^1].FullName;
+        
+        currentThumbnailIndex = -1;
+        StartCoroutine(PrepareThumbnails()); // here this just loads the files into memory
+    }
+
+    public void NewUserFolderWithBaseRecordings()
+    {
+        pathToRecordings = Application.persistentDataPath + "/" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        var newDirInfo = new DirectoryInfo(pathToRecordings);
+        newDirInfo.Create();
+            
+        // copy base recordings to the new folder
+        var baseDir = new DirectoryInfo(Application.persistentDataPath);
+        // only get folders that are not a date time formated string but a guid
+        var baseRecordings = baseDir.EnumerateDirectories().Where(d => Guid.TryParse(d.Name, out _)).ToList();
+
+        foreach (var baseRecording in baseRecordings)
+        {
+            newDirInfo.CreateSubdirectory(baseRecording.Name);
+            var newPath = Path.Combine(newDirInfo.FullName, baseRecording.Name);
+            // now the save directories
+            var saves = baseRecording.EnumerateDirectories().OrderBy(d => d.CreationTime).ToList();
+            foreach (var save in saves)
+            {
+                var savePath = Path.Combine(newPath, save.Name);
+                foreach (var file in save.EnumerateFiles())
+                {
+                    Debug.Log("Copy: " + file.Name + " to: " + file.FullName);
+                    file.CopyTo(Path.Combine(savePath, file.Name));
+                }
+            }
+        }
+        currentThumbnailIndex = -1;
+        StartCoroutine(PrepareThumbnails()); // here this just loads the files into memory
+    }
+    
     void Update()
     {
         // autosave
-        if (saveManager.ReadyToSave())
+        if (autoSave && saveManager.ReadyToSave())
         {
             SaveRecording();
         }
@@ -182,7 +206,7 @@ public class RecordingManager : MonoBehaviour
      *
      * Load a recording given an existing thumbnail
      */
-    public void LoadRecording()
+    public void LoadRecording(string exclude = null)
     {
         Debug.Log("data loaded: " + Recording.flags.DataLoaded + " spawned objects: " + spawnedObjects.Count + " current thumbnail: " + currentThumbnailIndex);
         // don't load if data is already loaded, or there are no spawned objects or there are no thumbnails that we could load from
@@ -197,20 +221,34 @@ public class RecordingManager : MonoBehaviour
         onRecordingLoaded?.Invoke(this, EventArgs.Empty);
         onReplayablesSpawnedAndLoaded?.Invoke(this, EventArgs.Empty);
     }
+    /*
+     * fileName does not need to be the whole file name!
+     */
+    public bool CheckIfSaveExists(string fileName)
+    {
+        var dirInfo = new DirectoryInfo(Path.Combine(pathToRecordings, Recording.recordingId.ToString()));
+        
+        // check if we have a folder that contains fileName in dirInfo
+        var saves = dirInfo.EnumerateDirectories().Where(d => d.Name.Contains(fileName)).ToList();
+        
+        if (saves.Count == 0) return false;
+        
+        return true;
+    }
 
     /*
      * Save the current recording to a file either on autosave after a predefined interval has passed or manually.
      * Only saves if there is new data available and the recording is not currently recording
      * and the recording is ready to be saved (meaning all new data has been added to the recording).
      */
-    public void SaveRecording()
+    public void SaveRecording(string fileName = null)
     {
         Debug.Log("save in progress: " + saveInProgress);
         if (saveInProgress) return;// to prevent manual save while autosave is in progress
         if (Recording.flags.NewDataAvailable && Recording.flags.SaveReady && !Recording.flags.IsRecording)
         {
             saveInProgress = true;
-            var newThumbnailData = saveManager.SaveRecording(Recording);
+            var newThumbnailData = saveManager.SaveRecording(Recording, fileName);
             // check if we already have a thumbnail for this recording in the list, if yes update it
             if (currentThumbnailIndex >= 0)
             {
@@ -261,7 +299,7 @@ public class RecordingManager : MonoBehaviour
     private IEnumerator PrepareThumbnails()
     {
         Debug.Log("Prepare thumbnails");
-        thumbnailsTask = Task.Run(loadManager.LoadThumbnailData);
+        thumbnailsTask = Task.Run(() => loadManager.LoadThumbnailData());
         thumbnailsTask.Wait();
         recordingThumbnails = thumbnailsTask.Result;
         
@@ -292,6 +330,7 @@ public class RecordingManager : MonoBehaviour
         Debug.Log("spawned objects: " + spawnedObjects.Count);
         yield return null;
         onThumbnailSpawned?.Invoke(this, spawnedObjects);
+        yield return null;
     }
     
     public void SpawnReplayables(Dictionary<Guid, Replayable> replayablesDict)
