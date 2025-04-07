@@ -18554,13 +18554,15 @@ MonoBehaviour:
   countdownCanvas: {fileID: 733144710}
   recordSphere: {fileID: 180526960}
   replaySphere: {fileID: 636432876}
-  redoRecordingSphere: {fileID: 2033130189}
+  redoSphere: {fileID: 2033130189}
   nextSphere: {fileID: 957791606}
   previousSphere: {fileID: 2052759800}
   skipSphere: {fileID: 1335377373}
   scenario1Sphere: {fileID: 1574483886}
   scenario2Sphere: {fileID: 350570762}
   scenario3Sphere: {fileID: 2031059560}
+  newUserSphere: {fileID: 345604725}
+  resumeUserSphere: {fileID: 733327055}
   mainPanel: {fileID: 663920246}
   mirror: {fileID: 1189054007}
   mirrorPanelTransform: {fileID: 1928082757}
@@ -18576,9 +18578,11 @@ MonoBehaviour:
   recordingDataLoaded: 0
   thumbnailAvatarsSpawned: 0
   recordingSaved: 0
+  newUserPressed: 0
+  resumeUserPressed: 0
   instructionsText: {fileID: 440193792}
   recordCountdownText: {fileID: 196748721}
-  headerText: {fileID: 0}
+  headerText: {fileID: 1822469002}
   audioGameObject: {fileID: 1624581495}
   recorder: {fileID: 0}
   replayer: {fileID: 0}
