@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.XR.CoreUtils;
-using UnityEditor.Rendering.LookDev;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -14,16 +13,25 @@ public class StudyProcedure : MonoBehaviour
 
     public Scenario scenario1;
     public Scenario scenario2;
+    public Scenario scenario3;
     
     // each participant has to act with the same scenarios using the same base recordings
     // so whenever a new participants starts, should we copy the base recordings to a new folder ? 
     
     private XROrigin xrOrigin;
+    private StudyProcedureSteps steps; 
     
     // Start is called before the first frame update
     void Start()
     {
         xrOrigin = FindObjectOfType<XROrigin>();
+        steps = GetComponent<StudyProcedureSteps>();
+        StartCoroutine(StudyCoroutine());
+    }
+    
+    IEnumerator StudyCoroutine()
+    {
+        yield return steps.NewOrResumeUser();
     }
     
     public void EnableFog(bool value)
@@ -44,19 +52,5 @@ public class StudyProcedure : MonoBehaviour
             yield return success;
         }
         yield return false;
-    }
-
-    IEnumerator StudyCoroutine()
-    {
-        //TODO: maybe add a recording test run at the beginning to let the users see how the recording works?
-        
-        
-        yield return null;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

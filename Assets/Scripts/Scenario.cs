@@ -3,10 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using Ubiq.Avatars;
 using UnityEngine;
+using UnityEngine.Serialization;
+using Avatar = Ubiq.Avatars.Avatar;
 
 public class Scenario : MonoBehaviour
 {
-    public int ScenarioNumber; // used as index for the thumbnail list via GotoThumbnail(int value)
+    public int ScenarioIndex; // used as index for the thumbnail list via GotoThumbnail(int value)
+    
+    public int NumberBaseAvatars; // the number of base avatars that are used in this scenario
     
     public string ScenarioDescription;
 
@@ -18,58 +22,11 @@ public class Scenario : MonoBehaviour
     // should be the same length as UserSpawnPoints
     public List<GameObject> AvatarPrefabs; // the avatars that are used in this scenario
     public AvatarManager AvatarManager;
+    public bool avatarCreated;
     
     private RecordingManager recordingManager;
     private int currentSpawnPoint;
     private int currentAvatarIndex;
-
-    public void LoadBaseRecording()
-    {
-        recordingManager.GotoThumbnail(ScenarioNumber); // spawns the avatars required for the base recording
-        recordingManager.LoadRecording();
-    }
-    
-    public GameObject NextSpawnPoint()
-    {
-        if (currentSpawnPoint < UserSpawnPoints.Count - 1)
-            currentSpawnPoint += 1;
-        return UserSpawnPoints[currentSpawnPoint];
-    }
-    
-    public GameObject PreviousSpawnPoint()
-    {
-        if (currentSpawnPoint > 0)
-            currentSpawnPoint -= 1;
-        return UserSpawnPoints[currentSpawnPoint];
-    }
-    
-    public void NextAvatar()
-    {
-        currentAvatarIndex++;
-        if (currentAvatarIndex < AvatarPrefabs.Count)
-        {
-            AvatarManager.avatarPrefab = AvatarPrefabs[currentAvatarIndex];
-        }
-        else
-        {
-            currentAvatarIndex = 0;
-            AvatarManager.avatarPrefab = AvatarPrefabs[currentAvatarIndex];
-        }
-    }
-    
-    public void PreviousAvatar()
-    {
-        currentAvatarIndex--;
-        if (currentAvatarIndex >= 0)
-        {
-            AvatarManager.avatarPrefab = AvatarPrefabs[currentAvatarIndex];
-        }
-        else
-        {
-            currentAvatarIndex = AvatarPrefabs.Count - 1;
-            AvatarManager.avatarPrefab = AvatarPrefabs[currentAvatarIndex];
-        }
-    }
     
     void Awake()
     {
@@ -80,7 +37,12 @@ public class Scenario : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        AvatarManager.OnAvatarCreated.AddListener(OnAvatarCreated);
+    }
+
+    public void OnAvatarCreated(Avatar avatar)
+    {
+        avatarCreated = true;
     }
 
     // Update is called once per frame
