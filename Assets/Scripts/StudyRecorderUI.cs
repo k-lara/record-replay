@@ -2,22 +2,34 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 public class StudyRecorderUI : MonoBehaviour
 {
+    // won't do recording logic but tests the flow through the coroutine
+    public bool debugTest = true;
+
+    public GameObject countdownCanvas;
     public InteractableSphere recordSphere;
     public InteractableSphere replaySphere;
-    public InteractableSphere redoRecordingSphere;
+    [FormerlySerializedAs("redoRecordingSphere")] public InteractableSphere redoSphere;
     public InteractableSphere nextSphere;
     public InteractableSphere previousSphere;
     public InteractableSphere skipSphere;
     public InteractableSphere scenario1Sphere;
     public InteractableSphere scenario2Sphere;
     public InteractableSphere scenario3Sphere;
+    public InteractableSphere newUserSphere;
+    public InteractableSphere resumeUserSphere;
+
+    public GameObject mainPanel;
+    private Vector3 mainPanelPosition;
+    private Quaternion mainPanelRotation;
 
     public GameObject mirror;
+    public Transform mirrorPanelTransform; // position panel to the side of the mirror when mirror is active
     
     // button press checks for coroutine advancement
     public bool recordPressed;
@@ -31,9 +43,13 @@ public class StudyRecorderUI : MonoBehaviour
     public bool scenario3Pressed;
     public bool recordingDataLoaded;
     public bool thumbnailAvatarsSpawned;
+    public bool recordingSaved;
+    public bool newUserPressed;
+    public bool resumeUserPressed;
     
     public TextMeshProUGUI instructionsText;
     public TextMeshProUGUI recordCountdownText;
+    public TextMeshProUGUI headerText;
 
     public GameObject audioGameObject; 
     private AudioSource audioSourceLowBeep;
@@ -42,13 +58,14 @@ public class StudyRecorderUI : MonoBehaviour
 
     private int recordingCountdown = 5;
 
-    public Recorder recorder;
-    public Replayer replayer;
-    public RecordingManager recordingManager;
-    public TakeoverSelector takeoverSelector;
+    [HideInInspector] public Recorder recorder;
+    [HideInInspector] public Replayer replayer;
+    [HideInInspector] public RecordingManager recordingManager;
+    [HideInInspector] public TakeoverSelector takeoverSelector;
+    [HideInInspector] public AvatarTakeover avatarTakeover;
     
     
-    public int maxFrameNrReplay;
+    private int maxFrameNrReplay;
     public float maxReplayTime;
     public bool maxFrameNrSet;
 
@@ -60,13 +77,15 @@ public class StudyRecorderUI : MonoBehaviour
     {
         recordSphere.onSphereSelected += StartRecording;
         replaySphere.onSphereSelected += StartReplay;
-        redoRecordingSphere.onSphereSelected += RedoRecordingButtonPressed;
+        redoSphere.onSphereSelected += RedoRecordingButtonPressed;
         nextSphere.onSphereSelected += NextButtonPressed;
         previousSphere.onSphereSelected += PreviousButtonPressed;
         skipSphere.onSphereSelected += SkipButtonPressed;
         scenario1Sphere.onSphereSelected += Scenario1ButtonPressed;
         scenario2Sphere.onSphereSelected += Scenario2ButtonPressed;
         scenario3Sphere.onSphereSelected += Scenario3ButtonPressed;
+        newUserSphere.onSphereSelected += NewUserButtonPressed;
+        resumeUserSphere.onSphereSelected += ResumeUserButtonPressed;
         
         var audioSources = audioGameObject.GetComponents<AudioSource>();
         audioSourceLowBeep = audioSources[0];
@@ -78,17 +97,47 @@ public class StudyRecorderUI : MonoBehaviour
         replayer = recorderGameObject.GetComponent<Replayer>();
         recordingManager = recorderGameObject.GetComponent<RecordingManager>();
         takeoverSelector = recorderGameObject.GetComponent<TakeoverSelector>();
+        avatarTakeover = recorderGameObject.GetComponent<AvatarTakeover>();
         
         replayer.onReplaySpawned += GetMaxFrameNr;
         replayer.onReplayStop += OnReplayStop;
         recorder.onRecordingStop += OnRecordingStop;
+        // recorder.onSaveReady += OnSaveReady; // gets invoked when data is ready to be saved to disk
         
         recordingManager.onThumbnailSpawned += OnThumbnailSpawned;
         recordingManager.onRecordingLoaded += OnRecordingLoaded;
+        recordingManager.onRecordingSaved += OnRecordingSaved;
+        
+        mainPanelPosition = mainPanel.transform.localPosition;
+        mainPanelRotation = mainPanel.transform.localRotation;
+    }
+    // the recording.flags.saveReady could also be checked instead of getting the event here
+
+    public void OnRecordingSaved(object o, EventArgs e)
+    {
+        recordingSaved = true;
+    }
+    
+    public void PanelToMirrorPosition()
+    {
+        mainPanel.transform.localPosition = mirrorPanelTransform.localPosition;
+        mainPanel.transform.localRotation = mirrorPanelTransform.localRotation;
+    }
+
+    public void PanelToMainPosition()
+    {
+        mainPanel.transform.localPosition = mainPanelPosition;
+        mainPanel.transform.localRotation = mainPanelRotation;
     }
 
     public void StartRecording(object o, EventArgs e)
     {
+        if (debugTest)
+        {
+            recordPressed = recording = true;
+            return;
+        }
+        
         audioSourceButtonPress.Play();
         // If there is a thumbnail with no loaded data, we remove the spawned character
         if (!recordingManager.Recording.flags.DataLoaded)
@@ -100,9 +149,10 @@ public class StudyRecorderUI : MonoBehaviour
 
     private IEnumerator RecordingWithCountdown()
     {
+        countdownCanvas.SetActive(true);
         recordCountdownText.color = Color.white;
         // print a recording countdown that changes the text from white to red gradually
-        for (int i = 0; i < recordingCountdown; i++)
+        for (int i = 0; i < recordingCountdown-1; i++) // -1 so we hear the high beep on 5th second and then it stops after that
         {
             recordCountdownText.text = (recordingCountdown - i).ToString();
             recordCountdownText.color = Color.Lerp(Color.white, recordSphere.color, (float)i / recordingCountdown);
@@ -112,6 +162,7 @@ public class StudyRecorderUI : MonoBehaviour
         }
 
         audioSourceHighBeep.Play();
+        countdownCanvas.SetActive(false);
         
         recordPressed = recording = true;
         
@@ -119,6 +170,11 @@ public class StudyRecorderUI : MonoBehaviour
     }
     public void StartReplay(object o, EventArgs e)
     {
+        if (debugTest)
+        {
+            replayPressed = replaying = !replaying;
+
+        }
         if (!replaying)
         {
             audioSourceButtonPress.Play();
@@ -136,10 +192,13 @@ public class StudyRecorderUI : MonoBehaviour
     // redo the last recording the user made
     public void RedoRecordingButtonPressed(object o, EventArgs e)
     {
-        if (redoPressed) return;
         audioSourceButtonPress.Play();
-        takeoverSelector.TakeoverLastReplay();
         redoPressed = true;
+    }
+    
+    public void SetTakeoverAvatar(GameObject avatar)
+    {
+        avatarTakeover.takeoverPrefab = avatar;
     }
 
     public void NextButtonPressed(object o, EventArgs e)
@@ -178,6 +237,18 @@ public class StudyRecorderUI : MonoBehaviour
         audioSourceButtonPress.Play();
         scenario3Pressed = true;
     }
+    
+    public void NewUserButtonPressed(object o, EventArgs e)
+    {
+        audioSourceButtonPress.Play();
+        newUserPressed = true;
+    }
+    
+    public void ResumeUserButtonPressed(object o, EventArgs e)
+    {
+        audioSourceButtonPress.Play();
+        resumeUserPressed = true;
+    }
 
     public void GetMaxFrameNr(object o, Dictionary<Guid, Replayable> replayables)
     {
@@ -203,7 +274,7 @@ public class StudyRecorderUI : MonoBehaviour
     
     public void OnThumbnailSpawned(object o, List<GameObject> spawned)
     {
-        thumbnailAvatarsSpawned = false;
+        thumbnailAvatarsSpawned = true;
     }
     
     public void PlayLowBeep()
@@ -221,3 +292,62 @@ public class StudyRecorderUI : MonoBehaviour
         audioSourceButtonPress.Play();
     }
 }
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(StudyRecorderUI))]
+public class StudyRecorderUIEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+        if (!Application.isPlaying) return;
+        
+        StudyRecorderUI recorderUI = (StudyRecorderUI) target;
+
+        if (GUILayout.Button("Scenario 1"))
+        {
+            recorderUI.Scenario1ButtonPressed(null, EventArgs.Empty);
+        }
+        if (GUILayout.Button("Scenario 2"))
+        {
+            recorderUI.Scenario2ButtonPressed(null, EventArgs.Empty);
+        }
+        if (GUILayout.Button("Scenario 3"))
+        {
+            recorderUI.Scenario3ButtonPressed(null, EventArgs.Empty);
+        }
+        
+        GUILayout.Box("-----", GUILayout.ExpandWidth(true), GUILayout.Height(1));
+
+        if (GUILayout.Button("Record"))
+        {
+            recorderUI.StartRecording(null, EventArgs.Empty);
+        }
+        if (GUILayout.Button("Replay"))
+        {
+            recorderUI.StartReplay(null, EventArgs.Empty);
+        }
+        if (GUILayout.Button("Redo"))
+        {
+            recorderUI.RedoRecordingButtonPressed(null, EventArgs.Empty);
+        }
+        
+        GUILayout.Box("-----", GUILayout.ExpandWidth(true), GUILayout.Height(1));
+
+        if (GUILayout.Button("Next"))
+        {
+            recorderUI.NextButtonPressed(null, EventArgs.Empty);
+        }
+        
+        if (GUILayout.Button("Skip"))
+        {
+            recorderUI.SkipButtonPressed(null, EventArgs.Empty);
+        }
+        
+        if (GUILayout.Button("Previous"))
+        {
+            recorderUI.PreviousButtonPressed(null, EventArgs.Empty);
+        }
+    }
+}
+#endif
