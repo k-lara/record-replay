@@ -14,9 +14,13 @@ public class Recorder : MonoBehaviour
     public bool _replayPlaying { get; private set; }
     
     public int fps = 10;
+
+    public bool allInputValid {get; private set;}
     
     public event EventHandler onRecordingStart;
     public event EventHandler<Recording.Flags> onRecordingStop; // tell everyone to stop and add the data
+
+    public event EventHandler onSaveReady;
     
     private Replayer _replayer;
     
@@ -31,10 +35,6 @@ public class Recorder : MonoBehaviour
         
         _replayer = GetComponent<Replayer>();
         _replayer.onReplayStart += OnReplayStart;
-        
-        // _avatarManager = AvatarManager.Find(this);
-        // var recordable = _avatarManager.LocalAvatar.gameObject.AddComponent<Recordable>();
-        // recordable.prefabName = _avatarManager.avatarPrefab.name;
     }
 
     public void StartRecording()
@@ -57,7 +57,7 @@ public class Recorder : MonoBehaviour
         onRecordingStart?.Invoke(this, EventArgs.Empty);
     }
 
-    public void StopRecording()
+    public void StopRecording(bool save = true)
     {
         if (!_isRecording) return;
         Debug.Log("Stop recording!");
@@ -67,7 +67,10 @@ public class Recorder : MonoBehaviour
         onRecordingStop?.Invoke(this, recording.flags);
         Debug.Log(recording.ToString());
 
-        StartCoroutine(WaitForSaveReady());
+        if (save)
+        {
+            StartCoroutine(WaitForSaveReady());
+        }
     }
     
     public void AddUndoState(UndoManager.UndoType type, Guid id, Recording.RecordableData data)
@@ -79,7 +82,9 @@ public class Recorder : MonoBehaviour
     private IEnumerator WaitForSaveReady()
     {
         yield return new WaitUntil(() => recording.flags.SaveReady);
-        Debug.Log("Recorder: Save ready!");
+        // onSaveReady?.Invoke(this, EventArgs.Empty);
+        // Debug.Log("Recorder: Save ready!");
+        // _recordingManager.SaveRecording();
     }
     
     private void OnReplayStart(object o, EventArgs e)

@@ -163,7 +163,7 @@ public class Recordable : MonoBehaviour
 
         if (!_inputManager.AllInputValid())
         {
-            _recorder.StopRecording();
+            _recorder.StopRecording(false); // don't save a recording that has invalid tracking data (at least for now)
         }
         
         _frameInterval += Time.deltaTime;
