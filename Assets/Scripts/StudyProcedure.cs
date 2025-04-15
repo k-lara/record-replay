@@ -7,8 +7,6 @@ using UnityEngine.Serialization;
 [RequireComponent(typeof(StudyProcedureSteps))]
 public class StudyProcedure : MonoBehaviour
 { 
-    public ParticleSystem ParticleSystem;
-    
     public float MaxFogValue = 0.3f;
 
     public Scenario scenario1;
@@ -26,7 +24,7 @@ public class StudyProcedure : MonoBehaviour
     {
         xrOrigin = FindObjectOfType<XROrigin>();
         steps = GetComponent<StudyProcedureSteps>();
-        StartCoroutine(StudyCoroutine());
+        // StartCoroutine(StudyCoroutine());
     }
     
     IEnumerator StudyCoroutine()

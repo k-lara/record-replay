@@ -8,15 +8,18 @@ using Avatar = Ubiq.Avatars.Avatar;
 
 public class Scenario : MonoBehaviour
 {
+    public string ScenarioName;
     public int ScenarioIndex; // used as index for the thumbnail list via GotoThumbnail(int value)
     
     public int NumberBaseAvatars; // the number of base avatars that are used in this scenario
     
     public string ScenarioDescription;
+    
+    public AudioClip backgroundAudio;
+    public AudioClip person1Audio;
+    public AudioClip person2Audio; // if any
 
-    public string PathBaseRecording; // the path to the base recording that the users have to react to (if any)
-
-    public AudioClip ScenarioAudio; // TODO!!!
+    public ParticleSystem particleSystem;
     
     public List<GameObject> UserSpawnPoints; // where the user and his avatars are spawned
     // should be the same length as UserSpawnPoints
