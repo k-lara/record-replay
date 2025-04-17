@@ -344,10 +344,10 @@ public class Recording
         recordableDataDict[id].prefabName = "";
     }
 
-    public void RemoveRecordableData(Guid id)
+    public void RemoveDataFrames(Guid id, int frame, int count)
     {
         flags.NewDataAvailable = true;
         // make sure we don't remove more frames than we have!!!
-        recordableDataDict.Remove(id);
+        recordableDataDict[id].dataFrames.RemoveRange(frame, count);
     }
 }
