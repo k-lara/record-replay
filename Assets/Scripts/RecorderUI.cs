@@ -114,6 +114,7 @@ public class RecorderUI : MonoBehaviour
         _replayer.onReplayStop += OnReplayStop;
         _recorder.onRecordingStart += OnRecordingStart;
         _recorder.onRecordingStop += OnRecordingStop;
+        _recorder.onInvalidRecording += InvalidRecordingSound;
         
         // TODO maybe make script execute later than RecordingManager!
         SetRecordingNumberText();
@@ -287,6 +288,13 @@ public class RecorderUI : MonoBehaviour
             _recorder.StopRecording();
         }
     }
+
+    // when some of the tracking input is invalid, we stop the recording
+    // let's give the user a sound notification so they understand what's happening
+    public void InvalidRecordingSound(object o, EventArgs e)
+    {
+        _audioSourceHighBeep.Play();
+    }
     
     private void OnRecordingStart(object o, EventArgs e)
     {
@@ -345,18 +353,19 @@ public class RecorderUI : MonoBehaviour
     public void TakeoverButtonPressed(object o, EventArgs e)
     {
         _audioSourceButtonPress.Play();
-        if (!_takeoverMode)
-        {
-            takeoverSphere.EnableHighlight();
-            _takeoverSelector.EnableTakeover();
-            _takeoverMode = true;
-        }
-        else
-        {
-            takeoverSphere.DisableHighlight();
-            _takeoverSelector.DisableTakeover();
-            _takeoverMode = false;
-        }
+        _takeoverSelector.TakeoverLastReplay();
+        // if (!_takeoverMode)
+        // {
+        //     takeoverSphere.EnableHighlight();
+        //     _takeoverSelector.EnableTakeover();
+        //     _takeoverMode = true;
+        // }
+        // else
+        // {
+        //     takeoverSphere.DisableHighlight();
+        //     _takeoverSelector.DisableTakeover();
+        //     _takeoverMode = false;
+        // }
     }
     
     public void SelectTakeoverInEditor(object o, EventArgs e)

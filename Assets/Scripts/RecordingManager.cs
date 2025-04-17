@@ -37,6 +37,7 @@ public class RecordingManager : MonoBehaviour
     // the base recordings have to be copied over to each participant's folder
     // the base recording will be in the root folder together with the participant folders
     public bool hasBaseRecordings;
+    public bool loadOnStartup; // if true, we load the most recent recording on startup
     
     private RecordableListPool listPool;
     private UndoManager undoManager;
@@ -101,9 +102,7 @@ public class RecordingManager : MonoBehaviour
             Debug.Log("Add: " + prefab.name);
             prefabCatalogue.Add(prefab.name, prefab);
         }
-
-        loadManager = new LoadManager(spawnManager, prefabCatalogue, pathToRecordings);
-        saveManager = new SaveManager(pathToRecordings, backupSaves);
+        
         listPool = new RecordableListPool(poolCapacity, listCapacity);
         undoManager = new UndoManager(spawnManager, prefabCatalogue, listPool, undoSaves);
 
@@ -113,6 +112,8 @@ public class RecordingManager : MonoBehaviour
         {
             pathToRecordings = Application.persistentDataPath;
             currentThumbnailIndex = -1;
+            loadManager = new LoadManager(spawnManager, prefabCatalogue, pathToRecordings);
+            saveManager = new SaveManager(pathToRecordings, backupSaves);
             StartCoroutine(PrepareThumbnails());
         }
     }
@@ -131,6 +132,10 @@ public class RecordingManager : MonoBehaviour
     public void NewUserFolderWithBaseRecordings()
     {
         pathToRecordings = Application.persistentDataPath + "/" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        
+        loadManager = new LoadManager(spawnManager, prefabCatalogue, pathToRecordings);
+        saveManager = new SaveManager(pathToRecordings, backupSaves);
+        
         var newDirInfo = new DirectoryInfo(pathToRecordings);
         newDirInfo.Create();
             
@@ -303,7 +308,7 @@ public class RecordingManager : MonoBehaviour
         thumbnailsTask.Wait();
         recordingThumbnails = thumbnailsTask.Result;
         
-        if (!hasBaseRecordings) // if we have base recordings we don't want to load them at startup
+        if (loadOnStartup) // if we have base recordings we don't want to load them at startup
         // but once the participant has read the instructions etc...
         {
             // only spawn objects if we have at least one thumbnail

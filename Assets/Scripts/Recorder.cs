@@ -20,6 +20,8 @@ public class Recorder : MonoBehaviour
     public event EventHandler onRecordingStart;
     public event EventHandler<Recording.Flags> onRecordingStop; // tell everyone to stop and add the data
 
+    public event EventHandler onInvalidRecording;
+    
     public event EventHandler onSaveReady;
     
     private Replayer _replayer;
@@ -35,6 +37,16 @@ public class Recorder : MonoBehaviour
         
         _replayer = GetComponent<Replayer>();
         _replayer.onReplayStart += OnReplayStart;
+    }
+
+    public void RecordingValid(bool valid)
+    {
+        allInputValid = valid;
+
+        if (!valid)
+        {
+            onInvalidRecording?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public void StartRecording()
@@ -72,11 +84,23 @@ public class Recorder : MonoBehaviour
             StartCoroutine(WaitForSaveReady());
         }
     }
+
+    public void InvalidRecordingFrom(Guid guid)
+    {
+        
+    }
     
     public void AddUndoState(UndoManager.UndoType type, Guid id, Recording.RecordableData data)
     {
         // Debug.Log("Add undo stack");
         _recordingManager.AddUndoState(type, id, data);
+    }
+
+    // we currently use this when a recording has become invalid and to remove the last added undo state
+    // (which is the state that gets added before an UndoType.New in OnRecordingStart)
+    public void Undo()
+    {
+        _recordingManager.Undo();
     }
     
     private IEnumerator WaitForSaveReady()

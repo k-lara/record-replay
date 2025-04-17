@@ -556,19 +556,41 @@ public class StudyProcedureSteps : MonoBehaviour
         if (studyUI.scenario1Pressed)
         {
             studyUI.scenario1Pressed = false;
+            yield return EnableUserSpawnPoints(studyProcedure.scenario1);
+            yield return DisableUserSpawnPoints(studyProcedure.scenario2);
+            yield return DisableUserSpawnPoints(studyProcedure.scenario3);
             yield return Scenario(studyProcedure.scenario1, scenario1Introduction, s1c0, s1c1, s1c2, s1c3, s1c4);
         }
         else if (studyUI.scenario2Pressed)
         {
             studyUI.scenario2Pressed = false;
+            yield return EnableUserSpawnPoints(studyProcedure.scenario2);
+            yield return DisableUserSpawnPoints(studyProcedure.scenario1);
+            yield return DisableUserSpawnPoints(studyProcedure.scenario3);
             yield return Scenario(studyProcedure.scenario2, scenario2Introduction, s2c0, s2c1, s2c2, s2c3, s2c4);
         }
         else if (studyUI.scenario3Pressed)
         {
             studyUI.scenario3Pressed = false;
+            yield return EnableUserSpawnPoints(studyProcedure.scenario3);
+            yield return DisableUserSpawnPoints(studyProcedure.scenario1);
+            yield return DisableUserSpawnPoints(studyProcedure.scenario2);
             yield return Scenario(studyProcedure.scenario3, scenario3Introduction, s3c0, s3c1, s3c2, s3c3, s3c4);
         }
     }
+
+    private IEnumerator EnableUserSpawnPoints(Scenario scenario)
+    {
+        scenario.UserSpawnPoints[0].transform.parent.gameObject.SetActive(true);
+        yield return null;
+    }
+
+    private IEnumerator DisableUserSpawnPoints(Scenario scenario)
+    {
+        scenario.UserSpawnPoints[0].transform.parent.gameObject.SetActive(false);
+        yield return null;
+    }
+    
     private IEnumerator Countdown(float countdownTime)
     {
         for (int i = 0; i < countdownTime; i++)

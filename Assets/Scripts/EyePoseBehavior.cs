@@ -63,8 +63,10 @@ public class EyeTrackingProvider : OvrAvatarEyePoseProviderBase
     {
         if (_eyePoseBehavior.EyeGazeLeft)
         {
+            // Debug.Log("Eye pose is not null");
             if (_eyePoseBehavior.EyeGazeLeft.EyeTrackingEnabled)
             {
+            // Debug.Log("Eye pose behavior, tracking enabled");
                 eyePose.leftEye = new CAPI.ovrAvatar2EyePose()
                 {
                     orientation = _eyePoseBehavior.EyeGazeLeft.transform.rotation,

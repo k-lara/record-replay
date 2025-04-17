@@ -19,6 +19,10 @@ public class Scenario : MonoBehaviour
     public AudioClip person1Audio;
     public AudioClip person2Audio; // if any
 
+    public AudioSource backgroundAudioSource;
+    public AudioSource person1AudioSource;
+    public AudioSource person2AudioSource; // if any
+    
     public ParticleSystem particleSystem;
     
     public List<GameObject> UserSpawnPoints; // where the user and his avatars are spawned

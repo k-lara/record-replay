@@ -170,7 +170,7 @@ MonoBehaviour:
     features: 1398
     renderFilters:
       lodFlags: 31
-      manifestationFlags: 2
+      manifestationFlags: 3
       viewFlags: 3
       subMeshInclusionFlags: -1
       quality: 1
@@ -178,7 +178,7 @@ MonoBehaviour:
       reserved: 0000000000000000000000000000000000000000000000000000000000000000
   _validateCache: 1
   _activeView: 2
-  _activeManifestation: 2
+  _activeManifestation: 1
   _activeSubMeshes: -1
   _activeSubMeshesIncludeUntyped: 1
   _inputManager: {fileID: 6422074476336512381}
@@ -269,7 +269,7 @@ MonoBehaviour:
   _customRigPrefab: {fileID: 0}
   _customAnimationOnly: 0
   _enableStaticAnimationOptimization: 0
-  _enableLocalAnimationPlayback: 0
+  _enableLocalAnimationPlayback: 1
   _enableRotationalTrackingOffset: 0
   _inputBlended: 1
   _leftArmBlendFactor: 1

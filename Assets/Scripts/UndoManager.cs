@@ -76,6 +76,10 @@ public class UndoManager
          }
          undoIndex--;
       }
+      else // we only have the initial state in the undo which we want to remove (it has no data)
+      {
+         RemoveLastUndoState();
+      }
 
       return (type, undoIds);
    }
@@ -228,6 +232,16 @@ public class UndoManager
       undoStack.Add(state);
       undoIndex = undoStack.Count - 1;
       Debug.Log("UndoManager: AddUndoState: undoIndex: " + undoIndex + " " + state);
+   }
+
+   // whe a recording is started an undo state is added to the undo stack so we can undo the recording.
+   // however, if the recording is terminated early because of invalid tracking for example
+   // we need to remove the last undo since the next time we record this would only be added again
+   public void RemoveLastUndoState()
+   {
+      // this is only used for the initial undo state at index 0 at the moment
+      Debug.Log("UndoManager: RemoveLastUndoState: undoIndex " + undoIndex);
+      undoStack.RemoveAt(undoIndex);
    }
    
    /*

@@ -185,8 +185,11 @@ public class Replayer : MonoBehaviour
         // if takeover: we don't want to spawn new replayables because we already have them
         if (!_isTakingOver)
         {
-            // this also updates _replayablesDict and adds newly spawned replayables!!!
-            _recordingManager.SpawnReplayables(_replayablesDict);
+            if (_recorder.allInputValid) // don't want to spawn new replayables if recording was invalid
+            {
+                // this also updates _replayablesDict and adds newly spawned replayables!!!
+                _recordingManager.SpawnReplayables(_replayablesDict);
+            }
         }
         else
         {
@@ -283,11 +286,14 @@ public class Replayer : MonoBehaviour
             // so far this is only 1 replayable anyway!
             foreach (var id in undoInfo.Item2)
             {
-                // _replayablesDict[id].SetReplayablePose(recording.recordableDataDict[id].dataFrames.Count - 1);
-                _replayablesDict[id].SetReplayablePose(0);
-                UpdateMaxFrameNumber(); // max frame number could be different now so we check again!
-                Debug.Log(recording.ToString());
+                if (_replayablesDict.ContainsKey(id))
+                {
+                    // _replayablesDict[id].SetReplayablePose(recording.recordableDataDict[id].dataFrames.Count - 1);
+                    _replayablesDict[id].SetReplayablePose(0);
+                    UpdateMaxFrameNumber(); // max frame number could be different now so we check again!
+                }
             }
+            Debug.Log(recording.ToString());
         }
     }
 

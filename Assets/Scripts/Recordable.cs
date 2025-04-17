@@ -131,6 +131,8 @@ public class Recordable : MonoBehaviour
     private Pose _prevRightEye;
     
     private UbiqInputManager _inputManager;
+
+    private float _recordingInterval;
     
     // Start is called before the first frame update
     void Start()
@@ -154,6 +156,95 @@ public class Recordable : MonoBehaviour
         _recordablePose = new RecordablePose();
         
         _sizeData = (_numTrackingPoints * 3 + _numTrackingPoints * 4) + _numBlendshapes;
+        
+        _recordingInterval = 1.0f / _recorder.fps;
+    }
+
+    private void UpdateHeadAndHands(IHeadAndHandsInput src)
+    {
+        var headRotN = src.head.value.rotation.normalized;
+        _recordablePose.head.position = Vector3.Lerp(_prevHead.position, src.head.value.position, _t);
+        _recordablePose.head.rotation = Quaternion.Lerp(_prevHead.rotation, headRotN, _t);
+                
+        var leftHandRotN = src.leftHand.value.rotation.normalized;
+        _recordablePose.leftHand.position = Vector3.Lerp(_prevLeftHand.position, src.leftHand.value.position, _t);
+        _recordablePose.leftHand.rotation = Quaternion.Lerp(_prevLeftHand.rotation, leftHandRotN, _t);
+                
+        var rightHandRotN = src.rightHand.value.rotation.normalized;
+        _recordablePose.rightHand.position = Vector3.Lerp(_prevRightHand.position, src.rightHand.value.position, _t);
+        _recordablePose.rightHand.rotation = Quaternion.Lerp(_prevRightHand.rotation, rightHandRotN, _t);
+    }
+
+    private void UpdateHandSkeleton(IHandSkeletonInput skel)
+    {
+        // check if we have hand tracking data
+        if (skel != null && skel.leftHandSkeleton.poses[0].valid)
+        {
+            // Debug.Log("Recording hand tracking data!");
+            _recordablePose.leftHandSkeleton[0].position = Vector3.Lerp(_prevLeftHandSkeleton[0].position,
+                skel.leftHandSkeleton.poses[0].value.position, _t);
+            _recordablePose.leftHandSkeleton[0].rotation = Quaternion.Lerp(_prevLeftHandSkeleton[0].rotation,
+                skel.leftHandSkeleton.poses[0].value.rotation.normalized, _t);
+            _recordablePose.rightHandSkeleton[0].position = Vector3.Lerp(_prevRightHandSkeleton[0].position,
+                skel.rightHandSkeleton.poses[0].value.position, _t);
+            _recordablePose.rightHandSkeleton[0].rotation = Quaternion.Lerp(_prevRightHandSkeleton[0].rotation,
+                skel.rightHandSkeleton.poses[0].value.rotation.normalized, _t);
+
+            for (var i = 1; i < skel.leftHandSkeleton.poses.Count; i++)
+            {
+                // don't care about positions for now
+                // don't need to do i-2 because the poses arrays have the same length as the incoming poses
+                _recordablePose.leftHandSkeleton[i].rotation = Quaternion.Lerp(
+                    _prevLeftHandSkeleton[i].rotation, skel.leftHandSkeleton.poses[i].value.rotation.normalized,
+                    _t);
+                _recordablePose.rightHandSkeleton[i].rotation = Quaternion.Lerp(
+                    _prevRightHandSkeleton[i].rotation,
+                    skel.rightHandSkeleton.poses[i].value.rotation.normalized, _t);
+            }
+        }
+        else
+        {
+            // if the data is invalid maybe we should mark this, because it could be invalid if we just don't use hand tracking but controllers!
+            // could set the leftHandSkeleton[0] to a default value that we check when writing things to the Recording
+            _recordablePose.leftHandSkeleton[0].position = invalidVec;
+        }
+    }
+
+    private void UpdateFaceWeights()
+    {
+        // check if we have face tracking data and if we don't mark it!
+        if (_facePoseProvider && _facePoseProvider.FaceExpressions.ValidExpressions)
+        {
+
+            var weights = _facePoseProvider.WeightsProvider.GetWeights();
+            // we don't iterate through the whole weights array because we don't need tongue weights
+            for (var i = 0; i < _recordablePose.faceWeights.Length; i++)
+            {
+                _recordablePose.faceWeights[i] = Mathf.Lerp(_prevFaceWeights[i], weights[i], _t);
+            }
+        }
+        else
+        {
+            // we don't have face tracking data, or it is invalid
+            _recordablePose.faceWeights[0] = invalidFloat;
+        }
+    }
+
+    private void UpdateEyes()
+    {
+        // eye tracking data
+        if (_eyePoseProvider && _eyePoseProvider.EyeGazeLeft.EyeTrackingEnabled)
+        {
+            _recordablePose.leftEye.position = Vector3.Lerp(_prevLeftEye.position, _eyePoseProvider.EyeGazeLeft.transform.position, _t);
+            _recordablePose.leftEye.rotation = Quaternion.Lerp(_prevLeftEye.rotation, _eyePoseProvider.EyeGazeLeft.transform.rotation, _t);
+            _recordablePose.rightEye.position = Vector3.Lerp(_prevRightEye.position, _eyePoseProvider.EyeGazeRight.transform.position, _t);
+            _recordablePose.rightEye.rotation = Quaternion.Lerp(_prevRightEye.rotation, _eyePoseProvider.EyeGazeRight.transform.rotation, _t);
+        }
+        else
+        {
+            // we don't have eye tracking data, or it is invalid
+            _recordablePose.leftEye.position = invalidVec;
+        }
     }
 
     // Update is called once per frame
@@ -163,149 +254,134 @@ public class Recordable : MonoBehaviour
 
         if (!_inputManager.AllInputValid())
         {
+            Debug.Log("Invalid input, stopping recording!!!! Hands: " 
+                      + _inputManager.handTrackingValid +  "Face: " + _inputManager.faceTrackingValid + "Eye: " + _inputManager.eyeTrackingValid);
             _recorder.StopRecording(false); // don't save a recording that has invalid tracking data (at least for now)
+            _recorder.RecordingValid(false);
         }
         
         _frameInterval += Time.deltaTime;
         
         _avatarInput.TryGet(out IHeadAndHandsInput src);
         _avatarInput.TryGet(out IHandSkeletonInput skel);
+        
+        // Debug.Log("Recording data!");
+        if (_frameInterval >= _recordingInterval) // recording interval e.g. 0.1
         {
-            // Debug.Log("Recording data!");
-            if (_frameInterval >= 1.0f / _recorder.fps)
-            {
-                _t = (1.0f/_recorder.fps - _previousPoseTime) / (_frameInterval - _previousPoseTime);
-                
-                var headRotN = src.head.value.rotation.normalized;
-                _recordablePose.head.position = Vector3.Lerp(_prevHead.position, src.head.value.position, _t);
-                _recordablePose.head.rotation = Quaternion.Lerp(_prevHead.rotation, headRotN, _t);
-                
-                var leftHandRotN = src.leftHand.value.rotation.normalized;
-                _recordablePose.leftHand.position = Vector3.Lerp(_prevLeftHand.position, src.leftHand.value.position, _t);
-                _recordablePose.leftHand.rotation = Quaternion.Lerp(_prevLeftHand.rotation, leftHandRotN, _t);
-                
-                var rightHandRotN = src.rightHand.value.rotation.normalized;
-                _recordablePose.rightHand.position = Vector3.Lerp(_prevRightHand.position, src.rightHand.value.position, _t);
-                _recordablePose.rightHand.rotation = Quaternion.Lerp(_prevRightHand.rotation, rightHandRotN, _t);
-                
-                // check if we have hand tracking data
-                if (skel != null && skel.leftHandSkeleton.poses[0].valid)
-                {
-                    // Debug.Log("Recording hand tracking data!");
-                    _recordablePose.leftHandSkeleton[0].position = Vector3.Lerp(_prevLeftHandSkeleton[0].position,
-                        skel.leftHandSkeleton.poses[0].value.position, _t);
-                    _recordablePose.leftHandSkeleton[0].rotation = Quaternion.Lerp(_prevLeftHandSkeleton[0].rotation,
-                        skel.leftHandSkeleton.poses[0].value.rotation.normalized, _t);
-                    _recordablePose.rightHandSkeleton[0].position = Vector3.Lerp(_prevRightHandSkeleton[0].position,
-                        skel.rightHandSkeleton.poses[0].value.position, _t);
-                    _recordablePose.rightHandSkeleton[0].rotation = Quaternion.Lerp(_prevRightHandSkeleton[0].rotation,
-                        skel.rightHandSkeleton.poses[0].value.rotation.normalized, _t);
-
-                    for (var i = 1; i < skel.leftHandSkeleton.poses.Count; i++)
-                    {
-                        // don't care about positions for now
-                        // don't need to do i-2 because the poses arrays have the same length as the incoming poses
-                        _recordablePose.leftHandSkeleton[i].rotation = Quaternion.Lerp(
-                            _prevLeftHandSkeleton[i].rotation, skel.leftHandSkeleton.poses[i].value.rotation.normalized,
-                            _t);
-                        _recordablePose.rightHandSkeleton[i].rotation = Quaternion.Lerp(
-                            _prevRightHandSkeleton[i].rotation,
-                            skel.rightHandSkeleton.poses[i].value.rotation.normalized, _t);
-                    }
-                }
-                else
-                {
-                    // if the data is invalid maybe we should mark this, because it could be invalid if we just don't use hand tracking but controllers!
-                    // could set the leftHandSkeleton[0] to a default value that we check when writing things to the Recording
-                    _recordablePose.leftHandSkeleton[0].position = invalidVec;
-                }
-                
-                // check if we have face tracking data and if we don't mark it!
-                if (_facePoseProvider && _facePoseProvider.FaceExpressions.ValidExpressions)
-                {
-
-                    var weights = _facePoseProvider.WeightsProvider.GetWeights();
-                    // we don't iterate through the whole weights array because we don't need tongue weights
-                    for (var i = 0; i < _recordablePose.faceWeights.Length; i++)
-                    {
-                        _recordablePose.faceWeights[i] = Mathf.Lerp(_prevFaceWeights[i], weights[i], _t);
-                    }
-                }
-                else
-                {
-                    // we don't have face tracking data, or it is invalid
-                    _recordablePose.faceWeights[0] = invalidFloat;
-                }
-                
-                // eye tracking data
-                if (_eyePoseProvider && _eyePoseProvider.EyeGazeLeft.EyeTrackingEnabled)
-                {
-                    _recordablePose.leftEye.position = Vector3.Lerp(_prevLeftEye.position, _eyePoseProvider.EyeGazeLeft.transform.position, _t);
-                    _recordablePose.leftEye.rotation = Quaternion.Lerp(_prevLeftEye.rotation, _eyePoseProvider.EyeGazeLeft.transform.rotation, _t);
-                    _recordablePose.rightEye.position = Vector3.Lerp(_prevRightEye.position, _eyePoseProvider.EyeGazeRight.transform.position, _t);
-                    _recordablePose.rightEye.rotation = Quaternion.Lerp(_prevRightEye.rotation, _eyePoseProvider.EyeGazeRight.transform.rotation, _t);
-                }
-                else
-                {
-                    // we don't have eye tracking data, or it is invalid
-                    _recordablePose.leftEye.position = invalidVec;
-                }
-                
-                if (_isTakingOver)
-                {
-                    // the takeover gathers the data and merges it with the original replay data after recording is done
-                    // NOTE: in the constructor of RecordablePoseArgs we create a new RecordablePose and copy the data, otherwise it's just a reference
-                    OnUpdateRecordablePose?.Invoke(this, new RecordablePoseArgs(_recordablePose, _currentFrameNr));
-                }
-                else
-                {
-                    _recorder.recording.AddDataFrame(_guid, _currentFrameNr, _recordablePose);
-                }
-                
-                // update frame number and frame interval!
-                _currentFrameNr++;
-                _frameInterval = _previousPoseTime - 1.0f / _recorder.fps;
-            }
-            // update previous head and controller positions
-            _prevHead.position = src.head.value.position;
-            _prevHead.rotation = src.head.value.rotation.normalized;
-            _prevLeftHand.position = src.leftHand.value.position;
-            _prevLeftHand.rotation = src.leftHand.value.rotation.normalized;
-            _prevRightHand.position = src.rightHand.value.position;
-            _prevRightHand.rotation = src.rightHand.value.rotation.normalized;
             
-            // update previous hand skeleton poses
-            if (skel != null && skel.leftHandSkeleton.poses[0].valid)
-            {
-                _prevLeftHandSkeleton[0].position = skel.leftHandSkeleton.poses[0].value.position;
-                _prevLeftHandSkeleton[0].rotation = skel.leftHandSkeleton.poses[0].value.rotation.normalized;
-                _prevRightHandSkeleton[0].position = skel.rightHandSkeleton.poses[0].value.position;
-                _prevRightHandSkeleton[0].rotation = skel.rightHandSkeleton.poses[0].value.rotation.normalized;
+            // check if we have skipped several recordingIntervals
+            // if yes, we need to interpolate all the frames between
 
-                for (var i = 1; i < skel.leftHandSkeleton.poses.Count; i++)
-                {
-                    _prevLeftHandSkeleton[i].rotation = skel.leftHandSkeleton.poses[i].value.rotation.normalized;
-                    _prevRightHandSkeleton[i].rotation = skel.rightHandSkeleton.poses[i].value.rotation.normalized;
-                }
-            }
-            if (_facePoseProvider && _facePoseProvider.FaceExpressions.ValidExpressions)
+            // frame interval could be 0.12, we are 0.02 over the recording interval (interpolate 1 frame)
+            // it could also be 0.32 which means there are 3 frames between which we need to interpolate
+            var framesBetween = _frameInterval / _recordingInterval;
+            if (framesBetween >= 2)
             {
-                var weights = _facePoseProvider.WeightsProvider.GetWeights();
-                for (var i = 0; i < _prevFaceWeights.Length; i++)
+                // round down to the nearest integer
+                var frames = Mathf.FloorToInt(framesBetween);
+
+                for (var f = 1; f <= frames+1; f++)
                 {
-                    _prevFaceWeights[i] = weights[i];
+                    _t = (f * _recordingInterval - _previousPoseTime) / (_frameInterval - _previousPoseTime);
+                    UpdateHeadAndHands(src);
+                    UpdateHandSkeleton(skel);
+                    UpdateFaceWeights();
+                    UpdateEyes();
+                    AddRecordablePose();
+                    _currentFrameNr++;
                 }
+                _frameInterval -= frames * _recordingInterval;
             }
-            if (_eyePoseProvider && _eyePoseProvider.EyeGazeLeft.EyeTrackingEnabled)
+            else
             {
-                _prevLeftEye.position = _eyePoseProvider.EyeGazeLeft.transform.position;
-                _prevLeftEye.rotation = _eyePoseProvider.EyeGazeLeft.transform.rotation;
-                _prevRightEye.position = _eyePoseProvider.EyeGazeRight.transform.position;
-                _prevRightEye.rotation = _eyePoseProvider.EyeGazeRight.transform.rotation;
+                _t = (_recordingInterval - _previousPoseTime) / (_frameInterval - _previousPoseTime);
+                UpdateHeadAndHands(src);
+                UpdateHandSkeleton(skel);
+                UpdateFaceWeights();
+                UpdateEyes();
+                AddRecordablePose();
+                _currentFrameNr++;
+                _frameInterval -= _recordingInterval;
             }
+            
+            
         }
+        UpdatePreviousHeadAndHands(src);
+        UpdatePreviousHandSkeleton(skel);
+        UpdatePreviousFaceWeights();
+        UpdatePreviousEyes();
+        
         _previousPoseTime = _frameInterval;
     }
+
+    // if we are doing a takeover, we add it to the takeover overwrite
+    // otherwise we just add it as usual to our recording
+    private void AddRecordablePose()
+    {
+        if (_isTakingOver)
+        {
+            // the takeover gathers the data and merges it with the original replay data after recording is done
+            // NOTE: in the constructor of RecordablePoseArgs we create a new RecordablePose and copy the data, otherwise it's just a reference
+            OnUpdateRecordablePose?.Invoke(this, new RecordablePoseArgs(_recordablePose, _currentFrameNr));
+        }
+        else
+        {
+            _recorder.recording.AddDataFrame(_guid, _currentFrameNr, _recordablePose);
+        }
+    }
+
+    private void UpdatePreviousHeadAndHands(IHeadAndHandsInput src)
+    {
+        // update previous head and controller positions
+        _prevHead.position = src.head.value.position;
+        _prevHead.rotation = src.head.value.rotation.normalized;
+        _prevLeftHand.position = src.leftHand.value.position;
+        _prevLeftHand.rotation = src.leftHand.value.rotation.normalized;
+        _prevRightHand.position = src.rightHand.value.position;
+        _prevRightHand.rotation = src.rightHand.value.rotation.normalized;
+    }
+
+    private void UpdatePreviousHandSkeleton(IHandSkeletonInput skel)
+    {
+        // update previous hand skeleton poses
+        if (skel != null && skel.leftHandSkeleton.poses[0].valid)
+        {
+            _prevLeftHandSkeleton[0].position = skel.leftHandSkeleton.poses[0].value.position;
+            _prevLeftHandSkeleton[0].rotation = skel.leftHandSkeleton.poses[0].value.rotation.normalized;
+            _prevRightHandSkeleton[0].position = skel.rightHandSkeleton.poses[0].value.position;
+            _prevRightHandSkeleton[0].rotation = skel.rightHandSkeleton.poses[0].value.rotation.normalized;
+
+            for (var i = 1; i < skel.leftHandSkeleton.poses.Count; i++)
+            {
+                _prevLeftHandSkeleton[i].rotation = skel.leftHandSkeleton.poses[i].value.rotation.normalized;
+                _prevRightHandSkeleton[i].rotation = skel.rightHandSkeleton.poses[i].value.rotation.normalized;
+            }
+        }
+    }
+
+    private void UpdatePreviousFaceWeights()
+    {
+        if (_facePoseProvider && _facePoseProvider.FaceExpressions.ValidExpressions)
+        {
+            var weights = _facePoseProvider.WeightsProvider.GetWeights();
+            for (var i = 0; i < _prevFaceWeights.Length; i++)
+            {
+                _prevFaceWeights[i] = weights[i];
+            }
+        }
+    }
+
+    private void UpdatePreviousEyes()
+    {
+        if (_eyePoseProvider && _eyePoseProvider.EyeGazeLeft.EyeTrackingEnabled)
+        {
+            _prevLeftEye.position = _eyePoseProvider.EyeGazeLeft.transform.position;
+            _prevLeftEye.rotation = _eyePoseProvider.EyeGazeLeft.transform.rotation;
+            _prevRightEye.position = _eyePoseProvider.EyeGazeRight.transform.position;
+            _prevRightEye.rotation = _eyePoseProvider.EyeGazeRight.transform.rotation;
+        }
+    }
+    
 
     // for additive recordings a recording could start in the middle of a replay 
     // so the currentFrameNr would depend on the current replay frame
@@ -316,7 +392,8 @@ public class Recordable : MonoBehaviour
         
         // for user study: reset checks for valid input in ubiq meta avatar input manager
         _inputManager.ResetValidationCheck(); // sets them all to true
-
+        _recorder.RecordingValid(true); // always assume a valid recording on start
+        
         if (!_isTakingOver)
         {
             var currentFloatFrame = _recorder.GetCurrentFrameFloat();
@@ -386,7 +463,15 @@ public class Recordable : MonoBehaviour
 
             _recorder.recording.UpdateMetaData(_guid, _currentFrameNr, _recorder.fps, prefabName);
             
-            _recorder.AddUndoState(UndoManager.UndoType.New, _guid, _recorder.recording.recordableDataDict[_guid]);
+            if (!_recorder.allInputValid)
+            {
+                _recorder.Undo(); // will remove the undo state that was added in OnRecordingStart
+            }
+            else
+            {
+                _recorder.AddUndoState(UndoManager.UndoType.New, _guid, _recorder.recording.recordableDataDict[_guid]);
+            }
+            
         }
         else
         {

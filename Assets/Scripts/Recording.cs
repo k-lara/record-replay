@@ -335,10 +335,19 @@ public class Recording
         }
     }
 
-    public void RemoveDataFrames(Guid id, int frame, int count)
+    public void ClearDataFrames(Guid id)
+    {
+        flags.NewDataAvailable = false; // no new data, we removed it all
+        recordableDataDict[id].dataFrames.Clear();
+        recordableDataDict[id].numFrames = 0;
+        recordableDataDict[id].fps = 0;
+        recordableDataDict[id].prefabName = "";
+    }
+
+    public void RemoveRecordableData(Guid id)
     {
         flags.NewDataAvailable = true;
         // make sure we don't remove more frames than we have!!!
-        recordableDataDict[id].dataFrames.RemoveRange(frame, count);
+        recordableDataDict.Remove(id);
     }
 }
