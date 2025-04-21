@@ -255,9 +255,9 @@ public class Recordable : MonoBehaviour
         if (!_inputManager.AllInputValid())
         {
             Debug.Log("Invalid input, stopping recording!!!! Hands: " 
-                      + _inputManager.handTrackingValid +  "Face: " + _inputManager.faceTrackingValid + "Eye: " + _inputManager.eyeTrackingValid);
-            _recorder.StopRecording(false); // don't save a recording that has invalid tracking data (at least for now)
+                      + _inputManager.handTrackingValid +  " Face: " + _inputManager.faceTrackingValid + " Eye: " + _inputManager.eyeTrackingValid);
             _recorder.RecordingValid(false);
+            _recorder.StopRecording(false); // don't save a recording that has invalid tracking data (at least for now)
         }
         
         _frameInterval += Time.deltaTime;
