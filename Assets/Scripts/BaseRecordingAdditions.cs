@@ -50,6 +50,7 @@ public class BaseRecordingAdditions : MonoBehaviour
         recorderUI = recorderGameObject.GetComponent<RecorderUI>();
         studyRecorderUI = GetComponentInChildren<StudyRecorderUI>();
         recorder.onRecordingStart += OnRecordingStart;
+        recorder.onRecordingStop += OnRecordingStop;
         replayer.onReplayStart += OnReplayStart;
         replayer.onReplayStop += OnReplayStop;
         
@@ -71,15 +72,8 @@ public class BaseRecordingAdditions : MonoBehaviour
                 {
                     Debug.Log(currentTime + " >= " + recordingLength + " stop recording");
                     // stop the recording
-                    // do it with button so it shows the correct button text again
-                    recorderUI.RecordButtonPressed(this, EventArgs.Empty);
-                    
-                    if (s2Selected && particlesOn)
-                    {
-                        StopParticlesS2();
-                    }
-                    isRecording = false;
-                    RenderSettings.fogDensity = 0;
+                    recorderUI.MakeButtonSound();
+                    recorder.StopRecording();
                 }
 
                 if (!particlesOn)
@@ -101,8 +95,9 @@ public class BaseRecordingAdditions : MonoBehaviour
 
         if (isReplaying)
         {
-            Debug.Log(replayer.currentFrame);
-            Debug.Log(backgroundAudioSource.time);
+            // Debug.Log(replayer.currentFrame);
+            // Debug.Log(backgroundAudioSource.time);
+            
         }
     }
 
@@ -147,6 +142,14 @@ public class BaseRecordingAdditions : MonoBehaviour
     {
         isRecording = true;
         StartAudioClips();
+        RenderSettings.fogDensity = 0;
+    }
+
+    private void OnRecordingStop(object o, Recording.Flags flags)
+    {
+        isRecording = false;
+        StopAudioClips();
+        StopParticlesS2();
     }
 
     private void OnReplayStart(object o, EventArgs e)
@@ -163,6 +166,8 @@ public class BaseRecordingAdditions : MonoBehaviour
     {
         isReplaying = false;
         StopAudioClips();
+        // also stop recording!
+        recorder.StopRecording();
         particlesOn = false;
     }
 
