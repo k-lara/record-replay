@@ -129,6 +129,9 @@ public class FaceTrackingProvider : OvrAvatarFacePoseProviderBase
             // if we don't have a weights provider, we must be a replayable or we don't have face tracking
             if (!_facePoseBehavior.recordedValid)
             {
+                // Debug.Log(_facePoseBehavior);
+                // Debug.Log(_facePoseBehavior.inputManager);
+                // Debug.Log(_facePoseBehavior.inputManager.faceTrackingValid);
                 _facePoseBehavior.inputManager.faceTrackingValid = false;
                 return false;
             }

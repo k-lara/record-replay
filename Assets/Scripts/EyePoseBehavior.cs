@@ -7,7 +7,7 @@ public class EyePoseBehavior : OvrAvatarEyePoseBehavior
 {
     public OVREyeGaze EyeGazeLeft { get; private set; }
     public OVREyeGaze EyeGazeRight { get; private set; }
-
+    
     public Pose recordedLeftEye;
     public Pose recordedRightEye;
     public bool recordedValid = false;
@@ -66,19 +66,31 @@ public class EyeTrackingProvider : OvrAvatarEyePoseProviderBase
             // Debug.Log("Eye pose is not null");
             if (_eyePoseBehavior.EyeGazeLeft.EyeTrackingEnabled)
             {
-            // Debug.Log("Eye pose behavior, tracking enabled");
-                eyePose.leftEye = new CAPI.ovrAvatar2EyePose()
-                {
-                    orientation = _eyePoseBehavior.EyeGazeLeft.transform.rotation,
-                    position = _eyePoseBehavior.EyeGazeLeft.transform.position,
-                    isValid = true
-                };
-                eyePose.rightEye = new CAPI.ovrAvatar2EyePose()
-                {
-                    orientation = _eyePoseBehavior.EyeGazeRight.transform.rotation,
-                    position = _eyePoseBehavior.EyeGazeRight.transform.position,
-                    isValid = true
-                };
+                // Debug.Log("Eye pose behavior, tracking enabled");
+                var lr = _eyePoseBehavior.EyeGazeLeft.transform.rotation;
+                var lp = _eyePoseBehavior.EyeGazeLeft.transform.position;
+                var rr = _eyePoseBehavior.EyeGazeRight.transform.rotation;
+                var rp = _eyePoseBehavior.EyeGazeRight.transform.position;
+
+                lr = new Quaternion(-lr.x, -lr.y, lr.z, lr.w);
+                rr = new Quaternion(-rr.x, -rr.y, rr.z, rr.w);
+                
+                eyePose.leftEye.orientation = lr;
+                eyePose.leftEye.position = lp;
+                eyePose.leftEye.isValid = true;
+                eyePose.rightEye.orientation = rr;
+                eyePose.rightEye.position = rp;
+                eyePose.rightEye.isValid = true;
+                
+                // Debug.Log("GetEyePose() " + new Quaternion(
+                //     eyePose.leftEye.orientation.x,
+                //     eyePose.leftEye.orientation.y,
+                //     eyePose.leftEye.orientation.z,
+                //     eyePose.leftEye.orientation.w).eulerAngles
+                // + " " + new Vector3(eyePose.leftEye.position.x, 
+                //     eyePose.leftEye.position.y,
+                //     eyePose.leftEye.position.z).ToString("F3")
+                // );
                 return true;
             }
         }
@@ -86,6 +98,9 @@ public class EyeTrackingProvider : OvrAvatarEyePoseProviderBase
         {
             if (!_eyePoseBehavior.recordedValid)
             {
+                // Debug.Log(_eyePoseBehavior);
+                // Debug.Log(_eyePoseBehavior.inputManager);
+                // Debug.Log(_eyePoseBehavior.inputManager.eyeTrackingValid);
                 _eyePoseBehavior.inputManager.eyeTrackingValid = false;
                 return false;
             }
