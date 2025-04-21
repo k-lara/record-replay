@@ -48,7 +48,7 @@ MonoBehaviour:
   ConfidenceThreshold: 0.5
   ApplyPosition: 1
   ApplyRotation: 1
-  ReferenceFrame: {fileID: 4496396570793323049}
+  ReferenceFrame: {fileID: 0}
   TrackingMode: 0
 --- !u!1 &5588782953490060195
 GameObject:
@@ -98,7 +98,7 @@ MonoBehaviour:
   ConfidenceThreshold: 0.5
   ApplyPosition: 1
   ApplyRotation: 1
-  ReferenceFrame: {fileID: 2504506194110250830}
+  ReferenceFrame: {fileID: 0}
   TrackingMode: 0
 --- !u!1 &8105444539661125935
 GameObject:
