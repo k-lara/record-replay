@@ -289,6 +289,11 @@ public class RecorderUI : MonoBehaviour
         }
     }
 
+    public void MakeButtonSound()
+    {
+        _audioSourceButtonPress.Play();
+    }
+
     // when some of the tracking input is invalid, we stop the recording
     // let's give the user a sound notification so they understand what's happening
     public void InvalidRecordingSound(object o, EventArgs e)
