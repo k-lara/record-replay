@@ -76,7 +76,7 @@ public class TakeoverSelector : MonoBehaviour
         if (interactableSpheres.Count == 0) return;
 
         var lastInteractable = interactableSpheres.Last();
-        selectedReplayableObject = lastInteractable.Value.transform.parent.parent.gameObject;
+        selectedReplayableObject = lastInteractable.Value.transform.parent.gameObject;
         onTakeoverSelected?.Invoke(this, selectedReplayableObject);
         selectedReplayableObject = null;
         
@@ -88,7 +88,7 @@ public class TakeoverSelector : MonoBehaviour
         if (interactableSpheres.Count == 0 || n >= interactableSpheres.Count) return;
         
         var nthInteractable = interactableSpheres.ElementAt(n);
-        selectedReplayableObject = nthInteractable.Value.transform.parent.parent.gameObject;
+        selectedReplayableObject = nthInteractable.Value.transform.parent.gameObject;
         onTakeoverSelected?.Invoke(this, selectedReplayableObject);
         selectedReplayableObject = null;
         Debug.Log("Takeover " + n + ". replay: " + nthInteractable.Key);
@@ -146,24 +146,15 @@ public class TakeoverSelector : MonoBehaviour
                 continue;
             }
             
-            // for the meta avatars, it would be great to attach it to the head joint.
-            // the head joint will be a critical joint and should sit as a child below the main avatar game object
-            // wait for the avatar to have a head joint
-            StartCoroutine(WaitForHeadTransform(replayable));
+            AddTakeoverInteractable(replayable);
         }
     }
     
-    private IEnumerator WaitForHeadTransform(KeyValuePair<Guid, Replayable> replayable)
+    private void AddTakeoverInteractable(KeyValuePair<Guid, Replayable> replayable)
     {
-        while (replayable.Value.transform.childCount == 0)
-        {
-            yield return null;
-        }
+        // let's keep it simple here, just add it to the replayable object
+        var sphere = Instantiate(takeoverInteractable, replayable.Value.transform);
         
-        // find "Joint Head" GameObject (for Meta Avatars only)
-        var headTransform = replayable.Value.gameObject.transform.Find("Joint Head");
-        
-        var sphere = Instantiate(takeoverInteractable, headTransform);
         sphere.SetActive(false);
         sphere.GetComponent<InteractableSphere>().onSphereSelected += TakeoverSelected;
         // sphere.transform.localPosition = new Vector3(0.4f, 0, 0);
@@ -196,7 +187,7 @@ public class TakeoverSelector : MonoBehaviour
             foreach (var replayable in args.Item2)
             {
                 Debug.Log("Redo New");
-                StartCoroutine(WaitForHeadTransform(new KeyValuePair<Guid, Replayable>(replayable.replayableId, replayable)));
+                AddTakeoverInteractable(new KeyValuePair<Guid, Replayable>(replayable.replayableId, replayable));
             }
         }
     }
@@ -219,7 +210,7 @@ public class TakeoverSelector : MonoBehaviour
     
     private void TakeoverSelected(object o, EventArgs e)
     {
-        onTakeoverSelected?.Invoke(this, ((InteractableSphere) o).transform.parent.parent.gameObject);
+        onTakeoverSelected?.Invoke(this, ((InteractableSphere) o).transform.parent.gameObject);
     }
     private void OnReplayUnspawned(object o, EventArgs e)
     {

@@ -108,11 +108,19 @@ public class StudyRecorderUI : MonoBehaviour
         recordingManager.onRecordingLoaded += OnRecordingLoaded;
         recordingManager.onRecordingSaved += OnRecordingSaved;
         
+        recorder.onInvalidRecording += InvalidRecordingSound;
+
+        
         mainPanelPosition = mainPanel.transform.localPosition;
         mainPanelRotation = mainPanel.transform.localRotation;
     }
     // the recording.flags.saveReady could also be checked instead of getting the event here
 
+    public void InvalidRecordingSound(object o, EventArgs e)
+    {
+        audioSourceButtonPress.Play();
+    }
+    
     public void OnRecordingSaved(object o, EventArgs e)
     {
         recordingSaved = true;
@@ -154,19 +162,19 @@ public class StudyRecorderUI : MonoBehaviour
         // print a recording countdown that changes the text from white to red gradually
         for (int i = 0; i < recordingCountdown-1; i++) // -1 so we hear the high beep on 5th second and then it stops after that
         {
-            recordCountdownText.text = (recordingCountdown - i).ToString();
-            recordCountdownText.color = Color.Lerp(Color.white, recordSphere.color, (float)i / recordingCountdown);
+            recordCountdownText.text = (recordingCountdown-1 - i).ToString();
+            recordCountdownText.color = Color.Lerp(Color.white, recordSphere.color, (float)i / recordingCountdown-1);
             audioSourceLowBeep.Play();
             yield return new WaitForSeconds(1.0f);
-            Debug.Log("Countdown: " + (recordingCountdown - i));
+            Debug.Log("Countdown: " + (recordingCountdown-1 - i));
         }
 
         audioSourceHighBeep.Play();
         countdownCanvas.SetActive(false);
         
-        recordPressed = recording = true;
         
         recorder.StartRecording();
+        recordPressed = recording = true;
     }
     public void StartReplay(object o, EventArgs e)
     {
@@ -265,6 +273,7 @@ public class StudyRecorderUI : MonoBehaviour
     public void OnRecordingStop(object o, Recording.Flags flags)
     {
         recording = false;
+        PlayHighBeep();
     }
 
     public void OnRecordingLoaded(object o, EventArgs e)

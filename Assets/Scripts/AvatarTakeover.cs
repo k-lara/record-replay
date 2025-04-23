@@ -60,7 +60,7 @@ public class AvatarTakeover : MonoBehaviour
         recorder.onRecordingStop += OnRecordingStop;
         
         takeoverSelector = GetComponent<TakeoverSelector>();
-        takeoverSelector.onTakeoverSelected += SelectTakeoverReplayable;
+        takeoverSelector.onTakeoverSelected += OnTakeoverSelected;
         
         replayer = GetComponent<Replayer>();
         avatarManager = AvatarManager.Find(this);
@@ -134,7 +134,7 @@ public class AvatarTakeover : MonoBehaviour
     // between our avatar and the one we take over
     // TODO needs to change: per default the takeover start is a few seconds from the end of the selected replayable's data
     // TODO if the user has set their own range, the takeover start is set to a few seconds before that range
-    private void SelectTakeoverReplayable(object o, GameObject go)
+    private void OnTakeoverSelected(object o, GameObject go)
     {
         Debug.Log("Takeover selected: " + go.name);
         isTakingOver = true;
@@ -145,12 +145,21 @@ public class AvatarTakeover : MonoBehaviour
         // make replayable invisible
         if (replayable.gameObject.TryGetComponent<UbiqMetaAvatarEntity>(out var metaAvatar))
         {
+            Debug.Log("SelectTakeoverReplayable: Hide replayable avatar!");
             metaAvatar.SetView(Oculus.Avatar2.CAPI.ovrAvatar2EntityViewFlags.None);
         }
         
         Debug.Log("Change the player's prefab to the takeover prefab");   
         // once the new prefab has been spawned OnAvatarCreated will be called where we add the recordable
-        // after that we can modify the materials
+
+        if (avatarManager.avatarPrefab == takeoverPrefab)
+        {
+            Debug.Log("Takeover prefab is the same as player prefab!");
+            recordable = avatarManager.LocalAvatar.gameObject.GetComponent<Recordable>();
+            recordable.OnUpdateRecordablePose += OnUpdateRecordablePose;
+            recordable.IsTakingOver = isTakingOver;
+        }
+        
         //save original prefab for later
         playerPrefab = avatarManager.avatarPrefab;
         avatarManager.avatarPrefab = takeoverPrefab;
@@ -160,10 +169,11 @@ public class AvatarTakeover : MonoBehaviour
         recorder.AddUndoState(UndoManager.UndoType.Edit, replayable.replayableId, replayer.recording.recordableDataDict[replayable.replayableId]);
         
         SetTakeoverStart(); // replayable needs to be set before this
-        if (PlayerPosToReplayablePos(replayable))
-        {
-            Debug.Log("Player position set to replayable position!");
-        }
+        // don't do this for user study as we need real world scale and can't teleport!
+        // if (PlayerPosToReplayablePos(replayable))
+        // {
+        //     Debug.Log("Player position set to replayable position!");
+        // }
     }
 
     private bool PlayerPosToReplayablePos(Replayable replayable)
@@ -189,15 +199,25 @@ public class AvatarTakeover : MonoBehaviour
         {
             isTakingOver = false;
             replayable.OnUpdateReplayablePose -= OnUpdateReplayablePose;
-            
-            // interpolate between the original replay and the currentTakeoverOverwrite
-            // there should be recorder.fps * takeoverDuration frames - 1 between which we need to interpolate
-            // the first one we don't get because the Recordable Update() due to the + deltaTime is already past frame 0
-            // but this shouldn't matter because frame 0 is 100% replayable anyway
-            // this is running in one frame anyway unfortunately... let's see if this is fast enough for longer recordings
-            StartCoroutine(OverwriteData(flags));
-            
+
             ChangeBackPlayerPrefab();
+            
+            if (!recorder.allInputValid)
+            {
+                recorder.Undo(); // will remove the undo state that was added in SelectTakeoverReplayable
+                
+                // we don't want to overwrite any data if it became invalid at some point
+                currentTakeoverOverwrite.Clear();
+            }
+            else
+            {
+                // interpolate between the original replay and the currentTakeoverOverwrite
+                // there should be recorder.fps * takeoverDuration frames - 1 between which we need to interpolate
+                // the first one we don't get because the Recordable Update() due to the + deltaTime is already past frame 0
+                // but this shouldn't matter because frame 0 is 100% replayable anyway
+                // this is running in one frame anyway unfortunately... let's see if this is fast enough for longer recordings
+                StartCoroutine(OverwriteData(flags));
+            }
         }
         else
         {
@@ -209,14 +229,24 @@ public class AvatarTakeover : MonoBehaviour
     {
         if (playerPrefab != null)
         {
-            Debug.Log("Change back player prefab to: " + playerPrefab.name);
-            // change player prefab back to previous prefab
-            avatarManager.avatarPrefab = playerPrefab;
+
+            if (playerPrefab == takeoverPrefab)
+            {
+                Debug.Log("Don't need to change back! Takeover prefab is the same as player prefab!");
+                
+            }
+            else
+            {
+                Debug.Log("Change back player prefab to: " + playerPrefab.name);
+                // change player prefab back to previous prefab
+                avatarManager.avatarPrefab = playerPrefab;
+            }
             playerPrefab = null; // reset
             
             // make replayable visible again
             if (replayable.gameObject.TryGetComponent<UbiqMetaAvatarEntity>(out var metaAvatar))
             {
+                Debug.Log("Takeover Done: Show replayable avatar again!");
                 metaAvatar.SetView(Oculus.Avatar2.CAPI.ovrAvatar2EntityViewFlags.ThirdPerson);
             }
         }

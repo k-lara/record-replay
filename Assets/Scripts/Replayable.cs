@@ -139,7 +139,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
         _replayablePose.rightHand = new Pose(pos, rot);
         
         // hand tracking 
-        if (f0.handDataValid)
+        if (f0.handDataValid && f1.handDataValid)
         {
             // wrists
             _replayablePose.leftHandSkeleton[0] = new InputVar<Pose>(new Pose(Vector3.Lerp(f0.leftWrist.position, f1.leftWrist.position, t), 
@@ -160,7 +160,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
         // face tracking
         // this data goes directly to the avatar and not through Ubiq,
         // so we need to get the data to the FacePoseBehaviour here!
-        if (f0.faceDataValid)
+        if (f0.faceDataValid && f1.faceDataValid)
         {
             for (var i = 0; i < f0.faceWeights.Length; i++)
             {
@@ -174,7 +174,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
             _facePoseProvider.recordedValid = false;
         }
 
-        if (f0.eyeDataValid)
+        if (f0.eyeDataValid && f1.eyeDataValid)
         {
             _replayablePose.leftEye = new Pose(Vector3.Lerp(f0.leftEye.position, f1.leftEye.position, t), Quaternion.Lerp(f0.leftEye.rotation, f1.leftEye.rotation, t));
             _replayablePose.rightEye = new Pose(Vector3.Lerp(f0.rightEye.position, f1.rightEye.position, t), Quaternion.Lerp(f0.rightEye.rotation, f1.rightEye.rotation, t));

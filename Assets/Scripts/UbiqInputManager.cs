@@ -123,9 +123,7 @@ public class UbiqHandTrackingDelegate : IOvrAvatarHandTrackingDelegate
     {
         if (_inputManager.ubiqAvatar.input.TryGet(out IHandSkeletonInput src))
         {
-            // don't bother doing anything if poses are not valid
-            // seems like sometimes the poses collection is empty... but for some reason we still get here
-            if (src.leftHandSkeleton.poses.Count == 0)
+            if (!src.leftHandSkeleton.poses[0].valid)
             {
                 // Debug.Log("Got no hand data");
                 _inputManager.handTrackingValid = false;

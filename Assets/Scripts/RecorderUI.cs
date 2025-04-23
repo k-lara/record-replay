@@ -171,8 +171,11 @@ public class RecorderUI : MonoBehaviour
     
     public void LeftMenuButtonGesturePerformed()
     {
-        // Debug.Log("Left Menu Gesture Performed");
-        UIToggle();
+        if (enabled)
+        {
+            // Debug.Log("Left Menu Gesture Performed");
+            UIToggle();
+        }
     }
     
 
@@ -228,10 +231,13 @@ public class RecorderUI : MonoBehaviour
     
     private void OnRecordingLoaded(object o, EventArgs e)
     {
-        SetRecordingInfoText();
-        SetRecordingNumberText();
-        loadSphere.EnableHighlight();
-        _loadSphereCollider.isTrigger = true; // prevent sphere from being interacted with while recording is loaded
+        if (loadSphere)
+        {
+            SetRecordingInfoText();
+            SetRecordingNumberText();
+            loadSphere.EnableHighlight();
+            _loadSphereCollider.isTrigger = true; // prevent sphere from being interacted with while recording is loaded
+        }
     }
 
     public void ClearButtonPressed(object o, EventArgs e)
@@ -244,11 +250,14 @@ public class RecorderUI : MonoBehaviour
     
     public void OnRecordingUnloaded(object o, EventArgs e)
     {
-        loadSphere.DisableHighlight();
-        stopSphere.DisableHighlight();
-        _loadSphereCollider.isTrigger = false;
-        SetRecordingInfoText();
-        SetRecordingNumberText();
+        if (loadSphere)
+        {
+            loadSphere.DisableHighlight();
+            stopSphere.DisableHighlight();
+            _loadSphereCollider.isTrigger = false;
+            SetRecordingInfoText();
+            SetRecordingNumberText();
+        }
     }
     
     public void OnRecordingUnspawned(object o, EventArgs e)
@@ -268,7 +277,10 @@ public class RecorderUI : MonoBehaviour
 
     private void OnRecordingSaved(object o, EventArgs e)
     {
-        saveSphere.DisableHighlight();
+        if (saveSphere)
+        {
+            saveSphere.DisableHighlight();
+        }
     }
     
     public void RecordButtonPressed(object o, EventArgs e)
@@ -298,23 +310,32 @@ public class RecorderUI : MonoBehaviour
     // let's give the user a sound notification so they understand what's happening
     public void InvalidRecordingSound(object o, EventArgs e)
     {
-        _audioSourceHighBeep.Play();
+        if (_audioSourceHighBeep)
+        {
+            _audioSourceHighBeep.Play();
+        }
     }
     
     private void OnRecordingStart(object o, EventArgs e)
     {
-        recordSphereText.text = "Stop";
-        _isRecording = true;
-        recordSphere.EnableHighlight();
-        recordCountdownText.color = Color.clear;
+        if (redoSphere)
+        {
+            recordSphereText.text = "Stop";
+            _isRecording = true;
+            recordSphere.EnableHighlight();
+            recordCountdownText.color = Color.clear;
+        }
     }
     
     private void OnRecordingStop(object o, Recording.Flags flags)
     {
-        recordSphereText.text = "Record";
-        _isRecording = false;
-        recordSphere.DisableHighlight();
-        recordCountdownText.color = Color.clear;
+        if (recordSphere)
+        {
+            recordSphereText.text = "Record";
+            _isRecording = false;
+            recordSphere.DisableHighlight();
+            recordCountdownText.color = Color.clear;
+        }
     }
 
     public void StartButtonPressed(object o, EventArgs e)
@@ -325,9 +346,12 @@ public class RecorderUI : MonoBehaviour
     
     private void OnReplayStart(object o, EventArgs e)
     {
-        _isReplaying = true;
-        startSphere.EnableHighlight();
-        stopSphere.DisableHighlight();
+        if (startSphere)
+        {
+            _isReplaying = true;
+            startSphere.EnableHighlight();
+            stopSphere.DisableHighlight();
+        }
     }
     
     public void StopButtonPressed(object o, EventArgs e)
@@ -338,9 +362,12 @@ public class RecorderUI : MonoBehaviour
     
     private void OnReplayStop(object o, EventArgs e)
     {
-        _isReplaying = false;
-        startSphere.DisableHighlight();
-        stopSphere.EnableHighlight();
+        if (stopSphere)
+        {
+            _isReplaying = false;
+            startSphere.DisableHighlight();
+            stopSphere.EnableHighlight();
+        }
     }
     
     public void UndoButtonPressed(object o, EventArgs e)

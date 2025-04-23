@@ -7,7 +7,7 @@ using UnityEngine.Serialization;
 [RequireComponent(typeof(StudyProcedureSteps))]
 public class StudyProcedure : MonoBehaviour
 { 
-    public float MaxFogValue = 0.3f;
+    public float MaxFogValue = 0.35f;
 
     public Scenario scenario1;
     public Scenario scenario2;
@@ -16,15 +16,15 @@ public class StudyProcedure : MonoBehaviour
     // each participant has to act with the same scenarios using the same base recordings
     // so whenever a new participants starts, should we copy the base recordings to a new folder ? 
     
-    private XROrigin xrOrigin;
+    // private XROrigin xrOrigin;
     private StudyProcedureSteps steps; 
     
     // Start is called before the first frame update
     void Start()
     {
-        xrOrigin = FindObjectOfType<XROrigin>();
+        // xrOrigin = FindObjectOfType<XROrigin>();
         steps = GetComponent<StudyProcedureSteps>();
-        // StartCoroutine(StudyCoroutine());
+        StartCoroutine(StudyCoroutine());
     }
     
     IEnumerator StudyCoroutine()
@@ -36,19 +36,20 @@ public class StudyProcedure : MonoBehaviour
     {
         RenderSettings.fog = value;
     }
-
+    
+    
     // x axis points where the arrow points on the floor
-    public IEnumerator SetUserPosition(GameObject target)
-    {
-        // set player position to replayable position
-        if (xrOrigin != null)
-        {
-            // TODO check if this works!
-            var forward = Quaternion.Euler(0, target.transform.rotation.eulerAngles.y, 0) * Vector3.right;
-            var success = xrOrigin.MoveCameraToWorldLocation(new Vector3(target.transform.position.x, xrOrigin.Camera.transform.position.y, target.transform.position.z));
-            success = success && xrOrigin.MatchOriginUpCameraForward(xrOrigin.transform.up, forward);
-            yield return success;
-        }
-        yield return false;
-    }
+    // public IEnumerator SetUserPosition(GameObject target)
+    // {
+    //     // set player position to replayable position
+    //     if (xrOrigin != null)
+    //     {
+    //         // TODO check if this works!
+    //         var forward = Quaternion.Euler(0, target.transform.rotation.eulerAngles.y, 0) * Vector3.right;
+    //         var success = xrOrigin.MoveCameraToWorldLocation(new Vector3(target.transform.position.x, xrOrigin.Camera.transform.position.y, target.transform.position.z));
+    //         success = success && xrOrigin.MatchOriginUpCameraForward(xrOrigin.transform.up, forward);
+    //         yield return success;
+    //     }
+    //     yield return false;
+    // }
 }

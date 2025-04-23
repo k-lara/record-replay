@@ -62,12 +62,14 @@ public class InteractableSphere : MonoBehaviour
     // and not go back to default color
     public void EnableHighlight()
     {
+        if (!gameObject.activeInHierarchy) return;
         _mat.color = color;
         highlight = true;
     }
 
     public void DisableHighlight()
     { 
+        if (!gameObject.activeInHierarchy) return;
         _mat.color = new Color(1f, 1f, 1f, 0.4f);
         highlight = false;
     }
@@ -145,11 +147,6 @@ public class InteractableSphere : MonoBehaviour
     private void Shrinking(float speed)
     {
         _currentScale -= Time.deltaTime * 0.02f * speed;
-        if (highlight)
-            EnableHighlight();
-        else
-        {  
-        }
         
         if (_currentScale < _minScale)
         {
@@ -173,9 +170,6 @@ public class InteractableSphere : MonoBehaviour
             transform.localScale = new Vector3(_defaultScale, _defaultScale, _defaultScale);
             _currentScale = _defaultScale;
             _expanding = false;
-            
-            if (!highlight)
-                DisableHighlight();
         }
         else
         {

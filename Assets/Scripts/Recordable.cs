@@ -280,7 +280,7 @@ public class Recordable : MonoBehaviour
                 // round down to the nearest integer
                 var frames = Mathf.FloorToInt(framesBetween);
 
-                for (var f = 1; f <= frames+1; f++)
+                for (var f = 1; f < frames+1; f++) // want to start at 1 so the _t calculation works
                 {
                     _t = (f * _recordingInterval - _previousPoseTime) / (_frameInterval - _previousPoseTime);
                     UpdateHeadAndHands(src);
@@ -420,7 +420,13 @@ public class Recordable : MonoBehaviour
             }
         
             // if this is the player it will only get a guid assigned when it starts a new recording
-            _guid = _recorder.recording.CreateNewRecordableData(Guid.Empty);
+            // OR when it doesn't have one already
+            // things changed slightly since we stop recordings when tracking is lost!!! which means
+            // we already have a guid but we don't have a recording yet (maybe this is unnecessary...)
+            if (_guid == Guid.Empty)
+            {
+                _guid = _recorder.recording.CreateNewRecordableData(Guid.Empty);
+            }
             // initialize the undo stack with a base state (if already initialized it should add to the existing stack)
             _recorder.AddUndoState(UndoManager.UndoType.New, _guid, null);
             
@@ -461,7 +467,6 @@ public class Recordable : MonoBehaviour
         {
             Debug.Log(_recorder.recording.recordableDataDict[_guid].dataFrames.Count);
 
-            _recorder.recording.UpdateMetaData(_guid, _currentFrameNr, _recorder.fps, prefabName);
             
             if (!_recorder.allInputValid)
             {
@@ -469,6 +474,7 @@ public class Recordable : MonoBehaviour
             }
             else
             {
+                _recorder.recording.UpdateMetaData(_guid, _currentFrameNr, _recorder.fps, prefabName);
                 _recorder.AddUndoState(UndoManager.UndoType.New, _guid, _recorder.recording.recordableDataDict[_guid]);
             }
             

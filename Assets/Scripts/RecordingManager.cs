@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -118,15 +119,32 @@ public class RecordingManager : MonoBehaviour
         }
     }
 
-    public void PreparePreviousUserFolder()
+    public bool PreparePreviousUserFolder()
     {
         // get the most recent folder
+        var format = "yyyy-MM-dd_HH-mm-ss";
         var dirInfo = new DirectoryInfo(Application.persistentDataPath);
-        var userFolder = dirInfo.EnumerateDirectories().Where(d => DateTime.TryParse(d.Name, out _)).OrderBy(d => d.CreationTime).ToList();
-        pathToRecordings = userFolder[^1].FullName;
+        var userFolder = dirInfo.EnumerateDirectories().
+            Where(d => DateTime.TryParseExact(d.Name, format, CultureInfo.CurrentCulture, DateTimeStyles.None, out _)).
+            OrderBy(d => d.CreationTime).ToList();
         
-        currentThumbnailIndex = -1;
-        StartCoroutine(PrepareThumbnails()); // here this just loads the files into memory
+        // check if we have a folder that contains the base recordings
+        if (userFolder.Count == 0)
+        {
+            return false;
+        }
+        else
+        {
+            pathToRecordings = userFolder[^1].FullName;
+            Debug.Log("Previous user folder: " + pathToRecordings);
+            
+            loadManager = new LoadManager(spawnManager, prefabCatalogue, pathToRecordings);
+            saveManager = new SaveManager(pathToRecordings, backupSaves);
+            
+            currentThumbnailIndex = -1;
+            StartCoroutine(PrepareThumbnails()); // here this just loads the files into memory
+            return true;
+        }
     }
 
     public void NewUserFolderWithBaseRecordings()
@@ -146,12 +164,13 @@ public class RecordingManager : MonoBehaviour
 
         foreach (var baseRecording in baseRecordings)
         {
-            newDirInfo.CreateSubdirectory(baseRecording.Name);
+            var newBase = newDirInfo.CreateSubdirectory(baseRecording.Name);
             var newPath = Path.Combine(newDirInfo.FullName, baseRecording.Name);
             // now the save directories
             var saves = baseRecording.EnumerateDirectories().OrderBy(d => d.CreationTime).ToList();
             foreach (var save in saves)
             {
+                newBase.CreateSubdirectory(save.Name);
                 var savePath = Path.Combine(newPath, save.Name);
                 foreach (var file in save.EnumerateFiles())
                 {
@@ -228,10 +247,14 @@ public class RecordingManager : MonoBehaviour
     }
     /*
      * fileName does not need to be the whole file name!
+     * for user study!!!
+     * at this stage we don't have a thumbnail loaded yet and thus don't know the recording id
+     * but I set the ids manually so I can check if a save exists for that id or not
      */
-    public bool CheckIfSaveExists(string fileName)
+    public bool CheckIfSaveExists(string fileName, Scenario scenario)
     {
-        var dirInfo = new DirectoryInfo(Path.Combine(pathToRecordings, Recording.recordingId.ToString()));
+        var scenarioFolder = recordingThumbnails[scenario.ScenarioIndex].recordingId;
+        var dirInfo = new DirectoryInfo(Path.Combine(pathToRecordings, scenarioFolder));
         
         // check if we have a folder that contains fileName in dirInfo
         var saves = dirInfo.EnumerateDirectories().Where(d => d.Name.Contains(fileName)).ToList();

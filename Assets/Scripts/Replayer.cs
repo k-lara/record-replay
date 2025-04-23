@@ -82,12 +82,6 @@ public class Replayer : MonoBehaviour
                 currentFrame = 0.0f;
                 _deltaTime = 0.0f;
                 StopReplay();
-                // if we are doing base recordings (like for the user study)
-                // every subsequent recording will only be as long as the base recording)
-                if (_recordingManager.hasBaseRecordings)
-                {
-                    _recorder.StopRecording();
-                }
             }
         }
     }
