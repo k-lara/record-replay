@@ -45,7 +45,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
     private int _fps;
     
     public ReplayablePose _replayablePose { get; private set; }
-    private int previousFrame = -1; // to allow setting the frame to 0 when the avatar is created
+    // private int previousFrame = -1; // to allow setting the frame to 0 when the avatar is created
 
     public class ReplayablePose
     {
@@ -193,7 +193,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
 
     public void SetReplayablePose(int frame)
     {
-        if (frame == previousFrame) return;
+        // if (frame == previousFrame) return;
         
         if (frame > _replayer.recording.recordableDataDict[replayableId].dataFrames.Count - 1)
         {
@@ -250,8 +250,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
             _replayablePose.leftEye = new Pose(f.leftEye.position, f.leftEye.rotation);
             _replayablePose.rightEye = new Pose(f.rightEye.position, f.rightEye.rotation);
         }
-        
-        previousFrame = frame;
+        // previousFrame = frame;
     }
     
     // here we don't have a recording with data loaded, so we have to set the pose from the frame we have in the thumbnail
