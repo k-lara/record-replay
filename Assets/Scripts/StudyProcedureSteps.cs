@@ -59,7 +59,7 @@ public class StudyProcedureSteps : MonoBehaviour
     private string headerScenarioSelection = "Scenario Selection";
     private string scenarioSelection = "You will experience 3 different incidents that are taking place at a Christmas party. \n" +
                                        "In each scenario, you will successively play the role of 5 different guests who are reacting to the incident." +
-                                       "The character descriptions are meant to give you an entry point into the character's role. \n" +
+                                       "The character descriptions are meant to give you an entry point into the character's role. Feel free to improvise as the scenario progresses.\n" +
                                        "No audio will be recorded.";
     
     private string trackingLost = "Tracking was lost temporarily during the recording. Please redo the recording! \n " +
@@ -90,8 +90,7 @@ public class StudyProcedureSteps : MonoBehaviour
     private string takeoverAvatarRun2 = "Like before, press the REDO button and you will embody an already recorded character. \n" +
                                         "The acting instructions for the character will be the same.";
     
-    private string nextTakeover = "Recording successful! :) \n" +
-                                  "Press the REDO button to embody the next character!";
+    private string nextTakeover = "Press the REDO button to embody the next character!";
     
     private string scenarioFinished = "You successfully finished the scenario! \n" +
                                       "Press NEXT to select another scenario!";
@@ -100,31 +99,35 @@ public class StudyProcedureSteps : MonoBehaviour
                                               "The direction of the arrows shows which way to face when starting the recording.";
 
     private string scenario1Introduction = "Scenario duration: 35 seconds \n" +
-                                           "Two friends are having a heated discussion.\n" + ARROW_EXPLANATION;
+                                           "Two friends are starting a heated discussion." +
+                                           "The room goes uncomfortably quiet as the other guests watch." + ARROW_EXPLANATION;
                                            
     private string scenario2Introduction = "Scenario duration: 30 seconds \n" +
-                                            "A fire breaks out during the party.";
+                                            "A fire breaks out during the party. The guests are urged to leave the room." + ARROW_EXPLANATION;
     private string scenario3Introduction = "Scenario duration: 30 seconds \n" +
-                                           "Two coaches start fighting about who has the better team.";
-    private static string STAND_ON_ARROW = "(Make sure you are standing on the red arrow and facing the right direction!)\n";
+                                           "Two coaches start fighting about who has the better team. The other guests get into a fight too." + ARROW_EXPLANATION;
+    private static string STAND_ON_ARROW = "(Make sure you are standing on the red arrow and facing the right direction!)\n \n";
+
+    private static string IMPROVISE = "\n \n The character description is meant to give you some ideas. Feel free to improvise as the scenario unfolds!";
     // TODO: face in the direction of the arrows on the floor
-    private string s1c0 = STAND_ON_ARROW + "S1 Character 1 (name?): ...";
-    private string s1c1 = STAND_ON_ARROW + "S1 Character 2 (name?): ...";
-    private string s1c2 = STAND_ON_ARROW + "S1 Character 3 (name?): ...";
-    private string s1c3 = STAND_ON_ARROW + "S1 Character 4 (name?): ...";
-    private string s1c4 = STAND_ON_ARROW + "S1 Character 5 (name?): ...";
+    private string s1c0 = STAND_ON_ARROW + "S1 Character 1 (Jules): Your friends at the table, Quinn and Ray, really love dogs. \n" +
+                          "You don't get their excitement at all and are rather bored." + IMPROVISE;
+    private string s1c1 = STAND_ON_ARROW + "S1 Character 2 (Quinn): You are so excited about your new dog and have to tell your friends Jules and Ray." + IMPROVISE;
+    private string s1c2 = STAND_ON_ARROW + "S1 Character 3 (Ray): You are happy for Quinn and don't understand why Jules is not interested." + IMPROVISE;
+    private string s1c3 = STAND_ON_ARROW + "S1 Character 4 (Parker): Toni is going through some hard times. You are trying to cheer them up." + IMPROVISE;
+    private string s1c4 = STAND_ON_ARROW + "S1 Character 5 (Toni): You are talking to Parker about your worries." + IMPROVISE;
     
-    private string s2c0 = STAND_ON_ARROW + "S2 Character 1 (name?): ...";
-    private string s2c1 = STAND_ON_ARROW + "S2 Character 2 (name?): ...";
-    private string s2c2 = STAND_ON_ARROW + "S2 Character 3 (name?): ...";
-    private string s2c3 = STAND_ON_ARROW + "S2 Character 4 (name?): ...";
-    private string s2c4 = STAND_ON_ARROW + "S2 Character 5 (name?): ...";
+    private string s2c0 = STAND_ON_ARROW + "S2 Character 1 (Sky): You are offering drinks to your friends Dana and Alex." + IMPROVISE;
+    private string s2c1 = STAND_ON_ARROW + "S2 Character 2 (Eden): You are talking to your friend Jesse. As the fire breaks out Jesse starts coughing from the smoke. You support her and you leave together." + IMPROVISE;
+    private string s2c2 = STAND_ON_ARROW + "S2 Character 3 (Jesse): You are talking to your friend Eden. As the fire breaks out you start coughing. Eden supports you." + IMPROVISE;
+    private string s2c3 = STAND_ON_ARROW + "S2 Character 4 (Dana): Sky is offering you various drinks. You only like coke." + IMPROVISE;
+    private string s2c4 = STAND_ON_ARROW + "S2 Character 5 (Alex): Sky is offering you various drinks. You can't decide, and go with what Dana is having." + IMPROVISE;
     
-    private string s3c0 = STAND_ON_ARROW + "S3 Character 1 (name?): ...";
-    private string s3c1 = STAND_ON_ARROW + "S3 Character 2 (name?): ...";
-    private string s3c2 = STAND_ON_ARROW + "S3 Character 3 (name?): ...";
-    private string s3c3 = STAND_ON_ARROW + "S3 Character 4 (name?): ...";
-    private string s3c4 = STAND_ON_ARROW + "S3 Character 5 (name?): ...";
+    private string s3c0 = STAND_ON_ARROW + "S3 Character 1 (Ash): Your friend Charlie is provoking the other team. He is getting punched. You are trying to deescalate but it's not helping." + IMPROVISE;
+    private string s3c1 = STAND_ON_ARROW + "S3 Character 2 (Charlie): You are provoking the other team. They are starting a fist fight." + IMPROVISE;
+    private string s3c2 = STAND_ON_ARROW + "S3 Character 3 (Robin): You are not going to put up with Charlie provoking you and your team." + IMPROVISE;
+    private string s3c3 = STAND_ON_ARROW + "S3 Character 4 (Blake): You are furious about what Charlie said and don't want Ash who is trying to deescalate to interfere." + IMPROVISE;
+    private string s3c4 = STAND_ON_ARROW + "S3 Character 5 (Billie): You are contemplating the many choices at the buffet when you hear the fight behind you getting louder. You interfere and separate the guys." + IMPROVISE;
     
     private float maxRecordingTime = 10.0f; // 10 seconds for the test recording
     private float finishCountdown = 2.0f; // 2 seconds to finish the recording
@@ -415,7 +418,9 @@ public class StudyProcedureSteps : MonoBehaviour
     
     public IEnumerator TakeoverRun(Scenario scenario, string takeoverRun, string c0, string c1, string c2, string c3, string c4)
     {
+        
         Debug.Log("Starting Takeover Run");
+        yield return WaitNextPressed();
         studyUI.instructionsText.text = takeoverRun;
         
         // get the correct takeover avatar prefab for the current takeover
@@ -488,7 +493,8 @@ public class StudyProcedureSteps : MonoBehaviour
     {
         yield return UIToggle(true);
         yield return MirrorToggle(true);
-        studyUI.instructionsText.text = "If you want to redo the recording, press the REDO button! \n" +
+        studyUI.instructionsText.text = "Recording Succesful! :) \n \n" + 
+                                        "If you want to redo the recording, press the REDO button! \n \n" +
                                         "Otherwise, press the NEXT button to continue!";
         yield return WaitRedoRecordingOrNext(scenario, studyProcedure.scenario1.AvatarManager.avatarPrefab, takeoverIndex);
     }
@@ -860,11 +866,11 @@ public class StudyProcedureSteps : MonoBehaviour
             studyUI.SetTakeoverAvatar(takeoverAvatar);
             if (takeoverIndex != -1)
             {
-                studyUI.takeoverSelector.TakeoverLastReplay();
+                studyUI.takeoverSelector.TakeoverNthReplay(takeoverIndex);
             }
             else
             {
-                studyUI.takeoverSelector.TakeoverNthReplay(takeoverIndex);
+                studyUI.takeoverSelector.TakeoverLastReplay();
             }
             
             studyUI.instructionsText.text = takeoverInstructions;
@@ -882,6 +888,9 @@ public class StudyProcedureSteps : MonoBehaviour
     }
 
     public void LeftMenuButtonGesturePerformed()
+    
+    
+    
     {
         if (!studyUI.recording)
         {
