@@ -118,7 +118,7 @@ GameObject:
   - component: {fileID: -1417480363103063160}
   - component: {fileID: 6106714926881923601}
   m_Layer: 0
-  m_Name: MetaAvatar
+  m_Name: MetaAvatar 4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
