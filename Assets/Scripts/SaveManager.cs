@@ -47,7 +47,7 @@ public class SaveManager
      * We keep 2 backup files in addition to the current recording.
      * @return the thumbnail data of the saved recording which we can add to our current list of thumbnails in memory
      */
-    public Recording.ThumbnailData SaveRecording(Recording recording, string fileName = null)
+    public async Task<Recording.ThumbnailData> SaveRecording(Recording recording, string fileName = null)
     {
         var idString = recording.recordingId.ToString();
         
@@ -70,9 +70,9 @@ public class SaveManager
             
         }
         // add new save
-        t = Task.Run(() => AddNewRecordingSave(recording, recordingPath, fileName));
-        t.Wait();
-        var thumbnailData = t.Result;
+        var thumbnailData = await Task.Run(() => AddNewRecordingSave(recording, recordingPath, fileName));
+        // t.Wait();
+        // var thumbnailData = t.Result;
         
         // remove oldest save
         if (previousSaves.Count >= numBackupSaves)

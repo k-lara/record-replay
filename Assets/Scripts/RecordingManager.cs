@@ -230,14 +230,14 @@ public class RecordingManager : MonoBehaviour
      *
      * Load a recording given an existing thumbnail
      */
-    public void LoadRecording(string exclude = null)
+    public async void LoadRecording(string exclude = null)
     {
         Debug.Log("data loaded: " + Recording.flags.DataLoaded + " spawned objects: " + spawnedObjects.Count + " current thumbnail: " + currentThumbnailIndex);
         // don't load if data is already loaded, or there are no spawned objects or there are no thumbnails that we could load from
         if (Recording.flags.DataLoaded || spawnedObjects.Count == 0 || currentThumbnailIndex == -1) return;
         
-        loadTask = Task.Run(() => loadManager.LoadRecordingData(listPool, Recording, recordingThumbnails[currentThumbnailIndex]));
-        loadTask.Wait();
+        await Task.Run(() => loadManager.LoadRecordingData(listPool, Recording, recordingThumbnails[currentThumbnailIndex]));
+        
         Debug.Log("Recording loaded!");
         Recording.flags.DataLoaded = true;
         Debug.Log(Recording.ToString());
@@ -245,6 +245,7 @@ public class RecordingManager : MonoBehaviour
         onRecordingLoaded?.Invoke(this, EventArgs.Empty);
         onReplayablesSpawnedAndLoaded?.Invoke(this, EventArgs.Empty);
     }
+    
     /*
      * fileName does not need to be the whole file name!
      * for user study!!!
@@ -269,14 +270,15 @@ public class RecordingManager : MonoBehaviour
      * Only saves if there is new data available and the recording is not currently recording
      * and the recording is ready to be saved (meaning all new data has been added to the recording).
      */
-    public void SaveRecording(string fileName = null)
+    public async void SaveRecording(string fileName = null)
     {
         Debug.Log("save in progress: " + saveInProgress);
         if (saveInProgress) return;// to prevent manual save while autosave is in progress
         if (Recording.flags.NewDataAvailable && Recording.flags.SaveReady && !Recording.flags.IsRecording)
         {
             saveInProgress = true;
-            var newThumbnailData = saveManager.SaveRecording(Recording, fileName);
+            var newThumbnailData = await saveManager.SaveRecording(Recording, fileName);
+            // var newThumbnailData = newThumbnailDataTask.Result;
             // check if we already have a thumbnail for this recording in the list, if yes update it
             if (currentThumbnailIndex >= 0)
             {
