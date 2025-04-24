@@ -152,6 +152,7 @@ public class StudyProcedureSteps : MonoBehaviour
         studyUI.scenario3Sphere.gameObject.SetActive(false);
         studyUI.skipSphere.gameObject.SetActive(false);
         studyUI.mirror.gameObject.SetActive(false);
+        studyUI.nextSphere.gameObject.SetActive(false);
         
         cameraMain = Camera.main;
     }
