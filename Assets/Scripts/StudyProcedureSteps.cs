@@ -65,6 +65,9 @@ public class StudyProcedureSteps : MonoBehaviour
     private string trackingLost = "Tracking was lost temporarily during the recording. Please redo the recording! \n " +
                                    "You can check in the mirror if the tracking works as expected! \n" +
                                    "Press the REDO button when you are ready!";
+    private string trackingLostTutorial = "Tracking was lost temporarily during the recording. Please redo the recording! \n " +
+                                   "You can check in the mirror if the tracking works as expected! \n" +
+                                   "Press the RECORD button when you are ready!";
     
     private string nextRecording = "Recording successful! :) \n" +
                                    "Press the NEXT button and then go to the red highlighted location on the floor!" +
@@ -421,7 +424,7 @@ public class StudyProcedureSteps : MonoBehaviour
     {
         
         Debug.Log("Starting Takeover Run");
-        yield return WaitNextPressed();
+        // yield return WaitNextPressed();
         studyUI.instructionsText.text = takeoverRun;
         
         // get the correct takeover avatar prefab for the current takeover
@@ -582,62 +585,30 @@ public class StudyProcedureSteps : MonoBehaviour
         if (studyUI.recording) // all good, tracking was not lost, stop recording now
         {
             studyUI.recorder.StopRecording();
+            
+            studyUI.instructionsText.text = replayInstructions;
+            yield return UIToggle(true); // show UI after recording in front of user
+
+            yield return WaitReplayPressed();
+        
+            // wait for replay to finish (can in theory be stopped by user when pressing the replay sphere again)
+            while(studyUI.replaying) yield return null;
+        
+            // enable next button
+            studyUI.instructionsText.text = finishHowTo;
+            yield return WaitNextPressed();
+        
+            // cleanup the current recording
+            studyUI.recordingManager.UnloadRecording();
+            studyUI.recordingManager.ClearThumbnail();
         }
         else // tracking was lost, recording is already stopped, attempt redo!
         {
             // shouldTakeover is true when we redo an existing replay.
             // otherwise when only tracking was lost, and there isn't a replay yet
             // all we want is to redo the normal recording
-            yield return HowToRecordReplay(trackingLost, true);
+            yield return HowToRecordReplay(trackingLostTutorial, true);
         }
-        
-        studyUI.instructionsText.text = replayInstructions;
-        yield return UIToggle(true); // show UI after recording in front of user
-
-        yield return WaitReplayPressed();
-        
-        // wait for replay to finish (can in theory be stopped by user when pressing the replay sphere again)
-        while(studyUI.replaying) yield return null;
-        
-        // redo instructions
-        // studyUI.instructionsText.text = redoInstructions;
-        
-        // yield return WaitRedoPressed(studyProcedure.scenario1.AvatarManager.avatarPrefab, TODO);
-        //
-        // studyUI.instructionsText.text = takeoverInstructions;
-        // yield return UIToggle(true); // just for adjusting the UI position after takeover
-        //
-        // do the whole recording again!
-        // yield return WaitRecordPressed(null);
-        //
-        // yield return UIToggle(false);
-        // // wait for current recording time to reach maxRecordingTime - end countdown beep
-        // yield return new WaitForSeconds(maxRecordingTime - finishCountdown);
-        //
-        // // play countdown beep
-        // yield return Countdown(finishCountdown);
-        //
-        // // stop recording
-        // currentRecordingTime = 0.0f;
-        // studyUI.recorder.StopRecording();
-        // // enable UI
-        // yield return UIToggle(true); // show UI after recording in front of user
-        // studyUI.instructionsText.text = rewatchRedoInstructions;
-        //
-        // // replay the redo again
-        // yield return WaitReplayPressed();
-        //
-        // // wait for replay to finish (can in theory be stopped by user when pressing the replay sphere again)
-        // while(studyUI.replaying) yield return null;
-        
-        // enable next button
-        studyUI.instructionsText.text = finishHowTo;
-        yield return WaitNextPressed();
-        
-        // cleanup the current recording
-        studyUI.recordingManager.UnloadRecording();
-        studyUI.recordingManager.ClearThumbnail();
-        
     }
 
     public IEnumerator ScenarioSelection()
@@ -839,6 +810,7 @@ public class StudyProcedureSteps : MonoBehaviour
                 studyUI.takeoverSelector.TakeoverLastReplay();
             }
         }
+        yield return null;
     }
 
     public IEnumerator WaitNextPressed()
