@@ -39,6 +39,12 @@ public class Recorder : MonoBehaviour
         _replayer.onReplayStart += OnReplayStart;
     }
 
+    // we use this when tracking has been lost and we need to start over but don't have any valid replayable data yet.
+    public void ClearRecording()
+    {
+        _recordingManager.UnloadRecording();
+    }
+
     public void RecordingValid(bool valid)
     {
         allInputValid = valid;
@@ -54,7 +60,10 @@ public class Recorder : MonoBehaviour
         if (_isRecording) return;
         Debug.Log("Start recording!");
 
-        if (!recording.flags.DataLoaded)
+        // this could also be because a recording we just started lost tracking
+        // in that case, we want to continue with that recording, and not a new one
+        // so we also check if the recording id is empty or nit
+        if (!recording.flags.DataLoaded && recording.recordingId == Guid.Empty) 
         {
             _recordingManager.InitNewRecording();
         }
@@ -98,9 +107,9 @@ public class Recorder : MonoBehaviour
 
     // we currently use this when a recording has become invalid and to remove the last added undo state
     // (which is the state that gets added before an UndoType.New in OnRecordingStart)
-    public void Undo()
+    public void Undo(bool invalidRecording)
     {
-        _recordingManager.Undo();
+        _recordingManager.Undo(invalidRecording);
     }
     
     private IEnumerator WaitForSaveReady()

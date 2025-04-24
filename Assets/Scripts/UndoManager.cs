@@ -53,11 +53,11 @@ public class UndoManager
       undoStack = new List<RecordableState>(this.maxUndos);
    }
 
-   public (UndoType, List<Guid>) Undo(Recording recording, List<GameObject> spawnedObjects)
+   public (UndoType, List<Guid>) Undo(Recording recording, List<GameObject> spawnedObjects, bool invalidRecording)
    {
       List<Guid> undoIds = null;
       var type = UndoType.None;
-      if (undoIndex > 0)
+      if (undoIndex > 0 || invalidRecording)
       {
          // check what undo type we need to perform
          type = undoStack[undoIndex].type;
@@ -65,38 +65,42 @@ public class UndoManager
          {
             case UndoType.New: // this was a new recordable, undoing it means to remove the recordable
                // this means that we need to unspawn the prefab and remove it from existing lists
-               undoIds = UndoNew(recording, spawnedObjects);
+               undoIds = UndoNew(recording, spawnedObjects, invalidRecording);
                break;
             
             case UndoType.Edit: // this was an existing recordable, only undo the changes
                // this means that we need to go back to the previous state and load it into the recordable
-               undoIds = Edit(recording, spawnedObjects, -1);
+               undoIds = Edit(recording, spawnedObjects, -1, invalidRecording);
                 
                break;
          }
          undoIndex--;
       }
-      else // we only have the initial state in the undo which we want to remove (it has no data)
-      {
-         RemoveLastUndoState();
-      }
-
+      
       return (type, undoIds);
    }
 
-   private List<Guid> UndoNew(Recording recording, List<GameObject> spawnedObjects)
+   private List<Guid> UndoNew(Recording recording, List<GameObject> spawnedObjects, bool invalidRecording)
    { 
       List<Guid> removedIds = new List<Guid>(1); // maybe in the future we might undo more than one...
-      // the last spawned object should be the one we need to unspawn
+      // the last spawned object should be the one we need to unspawn (unless tracking was invalid in which case there is none???)
       var state = undoStack[undoIndex];
       Debug.Log("UndoManager: UndoNew: undoIndex: " + undoIndex + " state: " + state);
-      removedIds.Add(state.id);
       // as we undo the recorded avatar we return list from recording to the pool
       pool.ReturnList(recording.recordableDataDict[state.id].dataFrames);
       recording.recordableDataDict.Remove(state.id);
+
+      if (invalidRecording)
+      {
+         RemoveLastUndoState();
+      }
+      else
+      {
+         removedIds.Add(state.id);
+         spawnManager.Despawn(spawnedObjects[^1]);
+         spawnedObjects.RemoveAt(spawnedObjects.Count - 1);
+      }
       
-      spawnManager.Despawn(spawnedObjects[^1]);
-      spawnedObjects.RemoveAt(spawnedObjects.Count - 1);
       return removedIds;
    }
    
@@ -128,43 +132,56 @@ public class UndoManager
    // frame range in which a change happened and only copy that...
    // this will save time, but because nothing is implemented yet that would allow this
    // we don't do it yet!
-   private List<Guid> Edit(Recording recording, List<GameObject> spawnedObjects, int prevNext)
+   private List<Guid> Edit(Recording recording, List<GameObject> spawnedObjects, int prevNext, bool invalidRecording)
    {
+      // TODO because there is no redo in the study I don't deal with it now because there is no time
+      
       List<Guid> undoIds = new List<Guid>(1); // maybe in the future we might undo more than one...
       // need to go to previous state
       // if previous state is not available, because the recording might have been loaded from file
       // and the first change was an edit, then we have to undo the edit and need the previous state of the recordable
-      Debug.Log("UndoManager: Edit: undoIndex: " + undoIndex + " prevNext: " + prevNext);
-      var state = undoStack[undoIndex + prevNext]; // +1 or -1
-      var recData = recording.recordableDataDict[state.id];
-      recData.numFrames = state.numFrames;
-      recData.fps = state.fps;
-      recData.prefabName = state.prefabName;
       
-      Debug.Log("UndoManager: Edit: recdata before" + recData.dataFrames.Count + " state (to be): " + state.dataFrames.Count);
-      
-      for (int i = 0; i < state.dataFrames.Count; i++)
+      // when recording is invalid, only one undo state is added at the beginning of the recording, but never the end
+      // so we just want to remove that one (normally there is always a state added before and after a recording)
+      if (invalidRecording)
       {
-         if (i >= recData.dataFrames.Count)
+         Debug.Log("UndoManager: Edit: invalid recording! undoIndex before removal: " + undoIndex);
+         RemoveLastUndoState(); // also adjusts the undoIndex
+      }
+      else
+      {
+         Debug.Log("UndoManager: Edit: undoIndex: " + undoIndex + " prevNext: " + prevNext);
+         var state = undoStack[undoIndex + prevNext]; // +1 or -1
+         var recData = recording.recordableDataDict[state.id];
+         recData.numFrames = state.numFrames;
+         recData.fps = state.fps;
+         recData.prefabName = state.prefabName;
+         
+         Debug.Log("UndoManager: Edit: recdata before" + recData.dataFrames.Count + " state (to be): " + state.dataFrames.Count);
+         
+         for (int i = 0; i < state.dataFrames.Count; i++)
          {
-            // we have more frames
-            recData.dataFrames.Add(state.dataFrames[i]);
+            if (i >= recData.dataFrames.Count)
+            {
+               // we have more frames
+               recData.dataFrames.Add(state.dataFrames[i]);
+            }
+            else
+            {
+               recData.dataFrames[i] = state.dataFrames[i];
+            }
          }
-         else
+         
+         // remove list entries beyond the new numFrames
+         if (recData.dataFrames.Count > state.numFrames)
          {
-            recData.dataFrames[i] = state.dataFrames[i];
+            recData.dataFrames.RemoveRange(state.numFrames, recData.dataFrames.Count - state.numFrames);
          }
+         
+         Debug.Log("UndoManager: Edit: recdata after removal/insertion: " + recording.recordableDataDict[state.id].dataFrames.Count);
+         undoIds.Add(state.id);
       }
       
-      // remove list entries beyond the new numFrames
-      if (recData.dataFrames.Count > state.numFrames)
-      {
-         recData.dataFrames.RemoveRange(state.numFrames, recData.dataFrames.Count - state.numFrames);
-      }
-      
-      Debug.Log("UndoManager: Edit: recdata after removal/insertion: " + recording.recordableDataDict[state.id].dataFrames.Count);
-      
-      undoIds.Add(state.id);
       return undoIds;
    }
 
@@ -181,7 +198,7 @@ public class UndoManager
                redoReplayables = RedoNew(recording, spawnedObjects);
                break;
             case UndoType.Edit:
-               Edit(recording, spawnedObjects, 1);
+               Edit(recording, spawnedObjects, 1, false);
                break;
          }
          undoIndex++;
@@ -239,9 +256,12 @@ public class UndoManager
    // we need to remove the last undo since the next time we record this would only be added again
    public void RemoveLastUndoState()
    {
-      // this is only used for the initial undo state at index 0 at the moment
       Debug.Log("UndoManager: RemoveLastUndoState: undoIndex " + undoIndex);
       undoStack.RemoveAt(undoIndex);
+      if (undoIndex > 0)
+      {
+         undoIndex--;
+      } // otherwise stay at 0 to not mess up the state stack update
    }
    
    /*

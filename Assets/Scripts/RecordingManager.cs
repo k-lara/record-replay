@@ -301,10 +301,10 @@ public class RecordingManager : MonoBehaviour
         }
     }
 
-    public void Undo()
+    public void Undo(bool invalidRecording = false)
     {
         // undoIds can be null if only edits and no respawning objects
-        (UndoManager.UndoType, List<Guid>) undoInfo = undoManager.Undo(Recording, spawnedObjects);
+        (UndoManager.UndoType, List<Guid>) undoInfo = undoManager.Undo(Recording, spawnedObjects, invalidRecording);
         if (undoInfo.Item1 != UndoManager.UndoType.None)
         {
             onRecordingUndo?.Invoke(this, undoInfo);
@@ -395,7 +395,7 @@ public class RecordingManager : MonoBehaviour
      */
     public void UnloadRecording()
     {
-        if (!Recording.flags.DataLoaded) return;
+        // if (!Recording.flags.DataLoaded) return; leave it like this! want to call it even if no data is loaded to clear the recording!
         undoManager.Clear(); // clear the undo stack
         listPool.Clear();
         Recording.Clear();

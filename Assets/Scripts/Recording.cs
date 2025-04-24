@@ -15,7 +15,7 @@ public class Recording
     // public string recordingSavePath { get; private set; } // path to the directory that has all the recording folders
     
     // contains the data of the recording which is the data from all recordables
-    public Dictionary<Guid, RecordableData> recordableDataDict { get; private set; }
+    public Dictionary<Guid, RecordableData> recordableDataDict = new();
     
     private Vector3 invalidVec3 = new(-1, -1, -1);
     private float invalidFloat = -1;
@@ -187,7 +187,9 @@ public class Recording
     public void InitNew()
     {
         recordingId = Guid.NewGuid();
-        recordableDataDict = new Dictionary<Guid, RecordableData>();
+        // recordableDataDict = new Dictionary<Guid, RecordableData>();
+        // clearing the old should just work as well
+        recordableDataDict.Clear();
         // recordingSavePath = Application.persistentDataPath;
         Debug.Log("Init new recording: " + recordingId);
     }
@@ -223,6 +225,7 @@ public class Recording
     
     public void Clear()
     {
+        Debug.Log("Clear recording: " + recordingId);
         listPool.Clear();
         recordingId = Guid.Empty;
         recordableDataDict.Clear();

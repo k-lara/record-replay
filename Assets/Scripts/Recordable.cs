@@ -257,7 +257,9 @@ public class Recordable : MonoBehaviour
             Debug.Log("Invalid input, stopping recording!!!! Hands: " 
                       + _inputManager.handTrackingValid +  " Face: " + _inputManager.faceTrackingValid + " Eye: " + _inputManager.eyeTrackingValid);
             _recorder.RecordingValid(false);
+            _recorder.recording.flags.NewDataAvailable = false;
             _recorder.StopRecording(false); // don't save a recording that has invalid tracking data (at least for now)
+            return; // don't want to continue, bc it would add another dataframe but the undo manager has already removed the if for this avatar from the recording
         }
         
         _frameInterval += Time.deltaTime;
@@ -420,13 +422,8 @@ public class Recordable : MonoBehaviour
             }
         
             // if this is the player it will only get a guid assigned when it starts a new recording
-            // OR when it doesn't have one already
-            // things changed slightly since we stop recordings when tracking is lost!!! which means
-            // we already have a guid but we don't have a recording yet (maybe this is unnecessary...)
-            if (_guid == Guid.Empty)
-            {
-                _guid = _recorder.recording.CreateNewRecordableData(Guid.Empty);
-            }
+            _guid = _recorder.recording.CreateNewRecordableData(Guid.Empty);
+            
             // initialize the undo stack with a base state (if already initialized it should add to the existing stack)
             _recorder.AddUndoState(UndoManager.UndoType.New, _guid, null);
             
@@ -470,7 +467,7 @@ public class Recordable : MonoBehaviour
             
             if (!_recorder.allInputValid)
             {
-                _recorder.Undo(); // will remove the undo state that was added in OnRecordingStart
+                _recorder.Undo(true); // will remove the undo state that was added in OnRecordingStart
             }
             else
             {

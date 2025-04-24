@@ -204,7 +204,7 @@ public class AvatarTakeover : MonoBehaviour
             
             if (!recorder.allInputValid)
             {
-                recorder.Undo(); // will remove the undo state that was added in SelectTakeoverReplayable
+                recorder.Undo(true); // will remove the undo state that was added in SelectTakeoverReplayable
                 
                 // we don't want to overwrite any data if it became invalid at some point
                 currentTakeoverOverwrite.Clear();
