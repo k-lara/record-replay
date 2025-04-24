@@ -123,7 +123,7 @@ public class UbiqHandTrackingDelegate : IOvrAvatarHandTrackingDelegate
     {
         if (_inputManager.ubiqAvatar.input.TryGet(out IHandSkeletonInput src))
         {
-            if (!src.leftHandSkeleton.poses[0].valid)
+            if (!src.leftHandSkeleton.poses[0].valid || !src.rightHandSkeleton.poses[0].valid)
             {
                 // Debug.Log("Got no hand data");
                 _inputManager.handTrackingValid = false;
