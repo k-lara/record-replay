@@ -23,6 +23,7 @@ public class StudyRecorderUI : MonoBehaviour
     public InteractableSphere scenario3Sphere;
     public InteractableSphere newUserSphere;
     public InteractableSphere resumeUserSphere;
+    public InteractableSphere nextAvatarSphere;
 
     public GameObject mainPanel;
     private Vector3 mainPanelPosition;
@@ -46,6 +47,7 @@ public class StudyRecorderUI : MonoBehaviour
     public bool recordingSaved;
     public bool newUserPressed;
     public bool resumeUserPressed;
+    public bool nextAvatarPressed;
     
     public TextMeshProUGUI instructionsText;
     public TextMeshProUGUI recordCountdownText;
@@ -86,6 +88,8 @@ public class StudyRecorderUI : MonoBehaviour
         scenario3Sphere.onSphereSelected += Scenario3ButtonPressed;
         newUserSphere.onSphereSelected += NewUserButtonPressed;
         resumeUserSphere.onSphereSelected += ResumeUserButtonPressed;
+        nextAvatarSphere.onSphereSelected += NextAvatarButtonPressed;
+        
         
         var audioSources = audioGameObject.GetComponents<AudioSource>();
         audioSourceLowBeep = audioSources[0];
@@ -213,6 +217,12 @@ public class StudyRecorderUI : MonoBehaviour
     {
         audioSourceButtonPress.Play();
         nextPressed = true;
+    }
+    
+    public void NextAvatarButtonPressed(object o, EventArgs e)
+    {
+        audioSourceButtonPress.Play();
+        nextAvatarPressed = true;
     }
     
     public void SkipButtonPressed(object o, EventArgs e)

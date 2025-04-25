@@ -7,6 +7,10 @@ using UnityEngine.Serialization;
 [RequireComponent(typeof(StudyProcedureSteps))]
 public class StudyProcedure : MonoBehaviour
 { 
+    
+    public XROrigin XrOrigin;
+    public float MetaAvatarDefaultCamHeight = 1.65f;
+    
     public float MaxFogValue = 0.35f;
 
     public Scenario scenario1;
@@ -31,12 +35,6 @@ public class StudyProcedure : MonoBehaviour
     {
         yield return steps.NewOrResumeUser();
     }
-    
-    public void EnableFog(bool value)
-    {
-        RenderSettings.fog = value;
-    }
-    
     
     // x axis points where the arrow points on the floor
     // public IEnumerator SetUserPosition(GameObject target)

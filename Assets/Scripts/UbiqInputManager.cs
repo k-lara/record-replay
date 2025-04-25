@@ -55,7 +55,7 @@ public class UbiqInputManager : OvrAvatarInputManager
     }
     
     private State[] state = new State[1];
-
+    
     protected void Awake()
     {
         if (!ubiqAvatar)
@@ -63,13 +63,14 @@ public class UbiqInputManager : OvrAvatarInputManager
             ubiqAvatar = GetComponent<Avatar>();
         }
     }
+    
 
     // if this avatar is not a user controlled avatar, we want it to be third-person with head!
     protected void Start()
     {
         _avatarEntity = gameObject.GetComponent<UbiqMetaAvatarEntity>();
         
-        var provider = gameObject.GetComponent<OvrAvatarFaceTrackingBehaviorOvrPlugin>();
+        // var provider = gameObject.GetComponent<OvrAvatarFaceTrackingBehaviorOvrPlugin>();
         
         // not sure how else to check... the peer uuid is empty? null or ""?
         // but a Replayable is definitely not user controlled so should work as a check too
@@ -77,6 +78,17 @@ public class UbiqInputManager : OvrAvatarInputManager
         { 
             _avatarEntity.SetView(CAPI.ovrAvatar2EntityViewFlags.ThirdPerson);
             isRecorded = true;
+            // var animBehavior = gameObject.GetComponent<OvrAvatarAnimationBehavior>();
+            // animBehavior._enableRemoteScaling = true;
+            // set the scale factor of the avatar
+            // var cam = Camera.main;
+            // if (cam != null)
+            // {
+            //     Debug.Log("User cam height: " + cam.transform.position.y);
+            //     var scale = cam.transform.position.y / defaultAvatarHeight;
+            //
+            //     gameObject.transform.localScale = new Vector3(scale, scale, scale);
+            // }
         }
     }
     
