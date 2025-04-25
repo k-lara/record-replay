@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -46,11 +47,7 @@ public class StudyProcedureSteps : MonoBehaviour
     private string replayInstructions = "Each character you record during the scenarios will be added to the scenario and replayed automatically whenever you record another character. \n" +
                                         "You won't have this option later, but just to see how your recording looks like, you can press the REPLAY button now!";
     
-    // private string redoInstructions = "Redo the recording, if tracking gets lost! Should you have moved from your initial starting position you will be teleported back.";
-    
     private string takeoverInstructions = "Press record again to overwrite your previous recording!";
-    
-    // private string rewatchRedoInstructions = "If you press replay again, you will see the new recording!";
     
     private string finishHowTo = "You are now ready to start the study! \n" +
                                  "Whenever instructions aren't clear, you can ask the experimenter for help! \n" +
@@ -62,17 +59,17 @@ public class StudyProcedureSteps : MonoBehaviour
                                        "The character descriptions are meant to give you an entry point into the character's role. Feel free to improvise as the scenario progresses.\n" +
                                        "No audio will be recorded.";
     
-    private string trackingLost = "Tracking was lost temporarily during the recording. Please redo the recording! \n " +
+    private string trackingLost = "Tracking was lost temporarily during the recording. Please rerecord the character! \n " +
                                    "You can check in the mirror if the tracking works as expected! \n" +
-                                   "Press the REDO button when you are ready!";
-    private string trackingLostTutorial = "Tracking was lost temporarily during the recording. Please redo the recording! \n " +
+                                   "Press the RERECORD button when you are ready!";
+    private string trackingLostTutorial = "Tracking was lost temporarily during the recording. Please rerecord the character! \n " +
                                    "You can check in the mirror if the tracking works as expected! \n" +
                                    "Press the RECORD button when you are ready!";
     
-    private string nextRecording = "Recording successful! :) \n" +
-                                   "Press the NEXT button and then go to the red highlighted location on the floor!" +
-                                   "Remeber to face the direction of the arrow on the floor before you start recording! \n" +
-                                   "During the recording you can move and look around freely!";
+    // private string nextRecording = "Recording successful! :) \n \n" +
+    //                                "Press the NEXT button and then go to the red highlighted location on the floor! \n \n" +
+    //                                "Remeber to face the direction of the arrow on the floor before you start recording! \n" +
+    //                                "During the recording you can move and look around freely!";
     
     private string run1Finished = "You finished 1/3 runs! :) \n " +
                                   "In the second run, you will rerecord the same characters one by one, but this time the characters you recorded before are already in the room and you can interact with them directly.";
@@ -86,22 +83,24 @@ public class StudyProcedureSteps : MonoBehaviour
     private string savingInProgress = "Saving recording...";
     private string savingComplete = "<color=green> Recording saved! </color>";
     
-    private string takeoverAvatarRun1 = "Once you press the REDO button, you will embody a previously recorded character. \n" +
-                                    "You will get the same character description for this character.\n" +
+    private string takeoverAvatarRun1 = "Once you press the NEXT CHARACTER button, you will embody a previously recorded character. \n" +
+                                    "You will get the same character description for this character.\n \n" +
                                     "This time, all other characters are already in the scene and you can react to them directly.";
 
-    private string takeoverAvatarRun2 = "Like before, press the REDO button and you will embody an already recorded character. \n" +
+    private string takeoverAvatarRun2 = "Like before, press the NEXT CHARACTER button and you will embody an already recorded character. \n" +
                                         "The acting instructions for the character will be the same.";
     
-    private string nextTakeover = "Press the REDO button to embody the next character!";
+    private string redoIfWantedInstructions = "Recording Succesful! :) \n \n" + 
+                                              "If you want to record this character again, press the RERECORD button! \n \n" +
+                                              "Otherwise, press the NEXT CHARACTER button to embody the next character!";
     
-    private string scenarioFinished = "You successfully finished the scenario! \n" +
+    private string scenarioFinished = "You successfully finished the scenario! :) \n" +
                                       "Press NEXT to select another scenario!";
     
-    private static string ARROW_EXPLANATION = "You will see arrows on the floor that indicate the positions of the characters you will embody. \n" + 
-                                              "The direction of the arrows shows which way to face when starting the recording.";
+    private static string ARROW_EXPLANATION = "\n \n You will see arrows on the floor that indicate the positions of the characters you will embody. \n" + 
+                                              "The direction of the arrows shows which way to face when starting the recording. During the recording you can move around freely.";
 
-    private string scenario1Introduction = "Scenario duration: 35 seconds \n" +
+    private string scenario1Introduction = "Scenario duration: 35 seconds \n \n" +
                                            "Two friends are starting a heated discussion." +
                                            "The room goes uncomfortably quiet as the other guests watch." + ARROW_EXPLANATION;
                                            
@@ -109,28 +108,51 @@ public class StudyProcedureSteps : MonoBehaviour
                                             "A fire breaks out during the party. The guests are urged to leave the room." + ARROW_EXPLANATION;
     private string scenario3Introduction = "Scenario duration: 30 seconds \n" +
                                            "Two coaches start fighting about who has the better team. The other guests get into a fight too." + ARROW_EXPLANATION;
-    private static string STAND_ON_ARROW = "(Make sure you are standing on the red arrow and facing the right direction!)\n \n";
+    
+    private static string STAND_ON_ARROW = "Make sure you are <color=red>standing on the red arrow</color> and facing the right direction before you start recording!\n \n";
 
     private static string IMPROVISE = "\n \n The character description is meant to give you some ideas. Feel free to improvise as the scenario unfolds!";
     // TODO: face in the direction of the arrows on the floor
-    private string s1c0 = STAND_ON_ARROW + "S1 Character 1 (Jules): Your friends at the table, Quinn and Ray, really love dogs. \n" +
-                          "You don't get their excitement at all and are rather bored." + IMPROVISE;
-    private string s1c1 = STAND_ON_ARROW + "S1 Character 2 (Quinn): You are so excited about your new dog and have to tell your friends Jules and Ray." + IMPROVISE;
-    private string s1c2 = STAND_ON_ARROW + "S1 Character 3 (Ray): You are happy for Quinn and don't understand why Jules is not interested." + IMPROVISE;
-    private string s1c3 = STAND_ON_ARROW + "S1 Character 4 (Parker): Toni is going through some hard times. You are trying to cheer them up." + IMPROVISE;
-    private string s1c4 = STAND_ON_ARROW + "S1 Character 5 (Toni): You are talking to Parker about your worries." + IMPROVISE;
+    private string s1c0 = STAND_ON_ARROW + "<b>(Jules): Your friends at the table, Quinn and Ray, really love dogs. You don't get their excitement at all and are rather bored.</b>" + IMPROVISE;
+    private string s1c1 = STAND_ON_ARROW + "<b>(Quinn): You are so excited about your new dog and have to tell your friends Jules and Ray.</b>" + IMPROVISE;
+    private string s1c2 = STAND_ON_ARROW + "<b>(Ray): You are happy for Quinn and don't understand why Jules is not interested.</b>" + IMPROVISE;
+    private string s1c3 = STAND_ON_ARROW + "<b>(Parker): Toni is going through some hard times. You are trying to cheer them up.</b>" + IMPROVISE;
+    private string s1c4 = STAND_ON_ARROW + "<b>(Toni): You are talking to Parker about your worries.</b>" + IMPROVISE;
     
-    private string s2c0 = STAND_ON_ARROW + "S2 Character 1 (Sky): You are offering drinks to your friends Dana and Alex." + IMPROVISE;
-    private string s2c1 = STAND_ON_ARROW + "S2 Character 2 (Eden): You are talking to your friend Jesse. As the fire breaks out Jesse starts coughing from the smoke. You support her and you leave together." + IMPROVISE;
-    private string s2c2 = STAND_ON_ARROW + "S2 Character 3 (Jesse): You are talking to your friend Eden. As the fire breaks out you start coughing. Eden supports you." + IMPROVISE;
-    private string s2c3 = STAND_ON_ARROW + "S2 Character 4 (Dana): Sky is offering you various drinks. You only like coke." + IMPROVISE;
-    private string s2c4 = STAND_ON_ARROW + "S2 Character 5 (Alex): Sky is offering you various drinks. You can't decide, and go with what Dana is having." + IMPROVISE;
+    private string s2c0 = STAND_ON_ARROW + "<b>(Sky): You are offering drinks to your friends Dana and Alex.</b>" + IMPROVISE;
+    private string s2c1 = STAND_ON_ARROW + "<b>(Eden): You are talking to your friend Jesse. As the fire breaks out Jesse starts coughing from the smoke. You support her and you leave together.</b>" + IMPROVISE;
+    private string s2c2 = STAND_ON_ARROW + "<b>(Jesse): You are talking to your friend Eden. As the fire breaks out you start coughing. Eden supports you.</b>" + IMPROVISE;
+    private string s2c3 = STAND_ON_ARROW + "<b>(Dana): Sky is offering you various drinks. You only like coke.</b>" + IMPROVISE;
+    private string s2c4 = STAND_ON_ARROW + "<b>(Alex): Sky is offering you various drinks. You can't decide, and go with what Dana is having.</b>" + IMPROVISE;
     
-    private string s3c0 = STAND_ON_ARROW + "S3 Character 1 (Ash): Your friend Charlie is provoking the other team. He is getting punched. You are trying to deescalate but it's not helping." + IMPROVISE;
-    private string s3c1 = STAND_ON_ARROW + "S3 Character 2 (Charlie): You are provoking the other team. They are starting a fist fight." + IMPROVISE;
-    private string s3c2 = STAND_ON_ARROW + "S3 Character 3 (Robin): You are not going to put up with Charlie provoking you and your team." + IMPROVISE;
-    private string s3c3 = STAND_ON_ARROW + "S3 Character 4 (Blake): You are furious about what Charlie said and don't want Ash who is trying to deescalate to interfere." + IMPROVISE;
-    private string s3c4 = STAND_ON_ARROW + "S3 Character 5 (Billie): You are contemplating the many choices at the buffet when you hear the fight behind you getting louder. You interfere and separate the guys." + IMPROVISE;
+    private string s3c0 = STAND_ON_ARROW + "<b>(Ash): Your friend Charlie is provoking the other team. He is getting punched. You are trying to deescalate but it's not helping.</b>" + IMPROVISE;
+    private string s3c1 = STAND_ON_ARROW + "<b>(Charlie): You are provoking the other team. They are starting a fist fight.</b>" + IMPROVISE;
+    private string s3c2 = STAND_ON_ARROW + "<b>(Robin): You are not going to put up with Charlie provoking you and your team." + IMPROVISE;
+    private string s3c3 = STAND_ON_ARROW + "<b>(Blake): You are furious about what Charlie said and don't want Ash who is trying to deescalate to interfere.</b>" + IMPROVISE;
+    private string s3c4 = STAND_ON_ARROW + "<b>(Billie): You are contemplating the many choices at the buffet when you hear the fight behind you getting louder. You interfere and separate the guys.</b>" + IMPROVISE;
+    
+    private static string headerS1 = "Scenario 1 ";
+    private static string headerS2 = "Scenario 2 ";
+    private static string headerS3 = "Scenario 3 ";
+    private static string headerC0 = "Character 1 ";
+    private static string headerC1 = "Character 2 ";
+    private static string headerC2 = "Character 3 ";
+    private static string headerC3 = "Character 4 ";
+    private static string headerC4 = "Character 5 ";
+
+    private static string newOrResumeInstructions =
+        "Are you NEW or do you want to RESUME your last session? \n \n Stand still when you press either of the buttons so your height can be adjusted to the avatars.";
+
+    private string GetScenarioHeader(int scenarioIndex)
+    {
+        if (scenarioIndex == 0)
+            return headerS1;
+        if (scenarioIndex == 1)
+            return headerS2;
+        if (scenarioIndex == 2)
+            return headerS3;
+        return "";
+    }
     
     private float maxRecordingTime = 10.0f; // 10 seconds for the test recording
     private float finishCountdown = 2.0f; // 2 seconds to finish the recording
@@ -156,6 +178,7 @@ public class StudyProcedureSteps : MonoBehaviour
         studyUI.skipSphere.gameObject.SetActive(false);
         studyUI.mirror.gameObject.SetActive(false);
         studyUI.nextSphere.gameObject.SetActive(false);
+        studyUI.nextAvatarSphere.gameObject.SetActive(false);
         
         cameraMain = Camera.main;
     }
@@ -169,14 +192,14 @@ public class StudyProcedureSteps : MonoBehaviour
         
         currentScenarioIndex = scenario.ScenarioIndex;
         Debug.Log("Starting Scenario " + scenario.ScenarioIndex + 1);
-        studyUI.instructionsText.text = scenarioIntro;
-        studyUI.headerText.text = scenarioRun1Header;
         studyUI.scenario1Sphere.gameObject.SetActive(false);
         studyUI.scenario2Sphere.gameObject.SetActive(false);
         studyUI.scenario3Sphere.gameObject.SetActive(false);
 
         if (!studyUI.recordingManager.CheckIfSaveExists("Run1", scenario))
         {
+            studyUI.instructionsText.text = scenarioIntro;
+            studyUI.headerText.text = scenarioRun1Header;
             yield return Run1(scenario, c0, c1, c2, c3, c4);
             yield return RunFinished(run1Finished, "Run1"); // save recording by default
             
@@ -234,14 +257,28 @@ public class StudyProcedureSteps : MonoBehaviour
         }
     }
 
+    public IEnumerator ResizeUser()
+    {
+     
+        var userCamHeight = cameraMain.transform.position.y;
+        var userCamHeightOffset = studyProcedure.MetaAvatarDefaultCamHeight - cameraMain.transform.position.y;
+        Debug.Log($"Resize user height from camera height: {userCamHeight:F} to {studyProcedure.MetaAvatarDefaultCamHeight:F} (diff: {userCamHeightOffset:F})");
+        var newCamHeight = new Vector3(studyProcedure.XrOrigin.transform.position.x, userCamHeightOffset, studyProcedure.XrOrigin.transform.position.z);
+        studyProcedure.XrOrigin.transform.position = newCamHeight;
+        
+        yield return null;
+    }
+
     public IEnumerator NewOrResumeUser()
     {
         studyUI.newUserSphere.gameObject.SetActive(true);
         studyUI.resumeUserSphere.gameObject.SetActive(true);
         yield return UIToggle(true);
-        studyUI.instructionsText.text = "Are you NEW or do you want to RESUME your last session?";
+        studyUI.instructionsText.text = newOrResumeInstructions;
         studyUI.headerText.text = "";
         while (!studyUI.newUserPressed && !studyUI.resumeUserPressed) yield return null;
+        
+        yield return ResizeUser();
         
         if (studyUI.newUserPressed)
         {
@@ -283,31 +320,29 @@ public class StudyProcedureSteps : MonoBehaviour
 
         yield return WaitNextPressed();
 
-        yield return PositionMirrorRecordNext(scenario, 0, c0);
+        yield return PositionMirrorRecordNext(scenario, 0, c0, GetScenarioHeader(scenario.ScenarioIndex) + headerC0);
         
-        yield return PositionMirrorRecordNext(scenario, 1, c1);
+        yield return PositionMirrorRecordNext(scenario, 1, c1, GetScenarioHeader(scenario.ScenarioIndex) + headerC1);
         
-        yield return PositionMirrorRecordNext(scenario, 2, c2);
+        yield return PositionMirrorRecordNext(scenario, 2, c2, GetScenarioHeader(scenario.ScenarioIndex) + headerC2);
         
-        yield return PositionMirrorRecordNext(scenario, 3, c3);
+        yield return PositionMirrorRecordNext(scenario, 3, c3, GetScenarioHeader(scenario.ScenarioIndex) + headerC3);
         
-        yield return PositionMirrorRecordNext(scenario, 4, c4, false);
+        yield return PositionMirrorRecordNext(scenario, 4, c4, GetScenarioHeader(scenario.ScenarioIndex) + headerC4, false);
     }
     
     /*
      * Positions the avatar at the designated spawn point, shows the mirror with the character description
      * and starts the recording. if this is not the last recording, it will show text for the next recording
      */
-    public IEnumerator PositionMirrorRecordNext(Scenario scenario, int spawnPoint, string characterDescription,
+    public IEnumerator PositionMirrorRecordNext(Scenario scenario, int spawnPoint, string characterDescription, string headerCharacterScenario,
         bool hasNext = true)
     {
-        yield return ActivateNextUserPositionAndAvatar(scenario, spawnPoint);
-        yield return ShowMirrorAndCharacterDescription(characterDescription);
+        yield return ActivateNextUserPosition(scenario, spawnPoint);
+        yield return SpawnNextAvatar(scenario, spawnPoint);
+        yield return ShowMirrorAndCharacterDescription(characterDescription, headerCharacterScenario);
 
-        yield return Recording(scenario, false, -1); // does the recording and redo if necessary
-        
-        if (hasNext)
-            yield return ReadyForNextRecording();
+        yield return Recording(scenario, studyProcedure.scenario1.AvatarManager.avatarPrefab, false, -1, hasNext); // does the recording and redo if necessary
     }
 
     public IEnumerator LoadRecording(Scenario scenario, string exclude = null)
@@ -323,8 +358,10 @@ public class StudyProcedureSteps : MonoBehaviour
         // Debug.Log("Coroutine: recording data loaded");
     }
 
-    public IEnumerator ActivateNextUserPositionAndAvatar(Scenario scenario, int index)
+    public IEnumerator ActivateNextUserPosition(Scenario scenario, int index)
     {
+        // cannot teleport the user since we are using hand tracking and real world room scale!
+        // yield return studyProcedure.SetUserPosition(scenario.UserSpawnPoints[index]);
         for (var p = 0; p < scenario.UserSpawnPoints.Count; p++)
         {
             if (p == index)
@@ -336,30 +373,32 @@ public class StudyProcedureSteps : MonoBehaviour
                 scenario.UserSpawnPoints[p].GetComponent<SpriteRenderer>().color = inactiveUserPosition;
             }
         }
-        
-        // cannot teleport the user since we are using hand tracking and real world room scale!
-        // yield return studyProcedure.SetUserPosition(scenario.UserSpawnPoints[index]);
-        
+
+        yield return null;
+    }
+
+    public IEnumerator SpawnNextAvatar(Scenario scenario, int index)
+    {
         scenario.AvatarManager.avatarPrefab = scenario.AvatarPrefabs[index];
         while (!scenario.avatarCreated) yield return null;
         scenario.avatarCreated = false;
     }
 
-    public IEnumerator ShowMirrorAndCharacterDescription(string text)
+    public IEnumerator ShowMirrorAndCharacterDescription(string text, string headerCharacterScenario)
     {
         yield return UIToggle(true, true); // show the UI in front of the user in new position
         yield return MirrorToggle(true);
         studyUI.instructionsText.text = text;
-        studyUI.headerText.text = headerCharacterDescription;
+        studyUI.headerText.text = headerCharacterDescription + " " + headerCharacterScenario;
     }
 
-    public IEnumerator ReadyForNextRecording()
-    {
-        // enable UI but disable the mirror because we only want to show it when next is pressed again
-        yield return UIToggle(true);
-        studyUI.instructionsText.text = nextRecording;
-        yield return WaitNextPressed();
-    }
+    // public IEnumerator ReadyForNextRecording()
+    // {
+    //     // enable UI but disable the mirror because we only want to show it when next is pressed again
+    //     yield return UIToggle(true);
+    //     studyUI.instructionsText.text = nextRecording;
+    //     yield return WaitNextPressed();
+    // }
 
     public IEnumerator ReadyForNextScenario(string fileName, bool save = true)
     {
@@ -379,11 +418,11 @@ public class StudyProcedureSteps : MonoBehaviour
         yield return WaitNextPressed();
     }
 
-    public IEnumerator ReadyForNextTakeover()
-    {
-        yield return UIToggle(true);
-        studyUI.instructionsText.text = nextTakeover;
-    }
+    // public IEnumerator ReadyForNextTakeover()
+    // {
+    //     yield return UIToggle(true);
+    //     studyUI.instructionsText.text = nextTakeover;
+    // }
 
     public IEnumerator RunFinished(string runNFinished, string fileName, bool save = true)
     {
@@ -410,14 +449,13 @@ public class StudyProcedureSteps : MonoBehaviour
     }
     
 
-    public IEnumerator TakeoverMirrorRecordNext(Scenario scenario, GameObject takeoverPrefab, int takeoverIndex, 
-        string characterDescription, bool hasNext = true)
+    public IEnumerator TakeoverMirrorRecordNext(Scenario scenario, GameObject takeoverPrefab, int takeoverIndex, int spawnPoint, 
+        string characterDescription, string headerCharacterScenario, bool hasNext = true)
     {
-        yield return WaitRedoPressed(takeoverPrefab, true, takeoverIndex);
-        yield return ShowMirrorAndCharacterDescription(characterDescription);
-        yield return Recording(scenario, true, takeoverIndex); // does the recording and redo if necessary
-        if (hasNext)
-            yield return ReadyForNextTakeover();
+        yield return ActivateNextUserPosition(scenario, spawnPoint);
+        yield return TakeoverNextAvatar(takeoverPrefab, true, takeoverIndex);
+        yield return ShowMirrorAndCharacterDescription(characterDescription, headerCharacterScenario);
+        yield return Recording(scenario, takeoverPrefab, true, takeoverIndex, hasNext); // does the recording and redo if necessary
     }
     
     public IEnumerator TakeoverRun(Scenario scenario, string takeoverRun, string c0, string c1, string c2, string c3, string c4)
@@ -433,18 +471,20 @@ public class StudyProcedureSteps : MonoBehaviour
         // this means we start from either the second/third avatar for takeover
         // e.g. 5 recorded + 2 base avatars = 7 avatars in total -> start at index 2 (excluding base avatars)
 
-        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[0], scenario.NumberBaseAvatars, c0);
+        yield return WaitNextAvatarPressed();
         
-        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[1], scenario.NumberBaseAvatars + 1, c1);
+        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[0], scenario.NumberBaseAvatars, 0, c0, GetScenarioHeader(scenario.ScenarioIndex) + headerC0);
         
-        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[2], scenario.NumberBaseAvatars + 2, c2);
+        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[1], scenario.NumberBaseAvatars + 1, 1, c1, GetScenarioHeader(scenario.ScenarioIndex) + headerC1);
         
-        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[3], scenario.NumberBaseAvatars + 3, c3);
+        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[2], scenario.NumberBaseAvatars + 2, 2, c2, GetScenarioHeader(scenario.ScenarioIndex) + headerC2);
+        
+        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[3], scenario.NumberBaseAvatars + 3, 3, c3, GetScenarioHeader(scenario.ScenarioIndex) + headerC3);
 
-        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[4], scenario.NumberBaseAvatars + 4, c4, false);
+        yield return TakeoverMirrorRecordNext(scenario, scenario.AvatarPrefabs[4], scenario.NumberBaseAvatars + 4, 4, c4, GetScenarioHeader(scenario.ScenarioIndex) + headerC4, false);
     }
 
-    public IEnumerator Recording(Scenario scenario, bool shouldTakeover, int takeoverIndex)
+    public IEnumerator Recording(Scenario scenario, GameObject takeoverPrefab, bool shouldTakeover, int takeoverIndex, bool hasNextRecording)
     {
         currentRecordingTime = 0.0f;
         
@@ -476,7 +516,7 @@ public class StudyProcedureSteps : MonoBehaviour
         if (studyUI.recording) // all good, tracking was not lost, stop recording now
         {
             studyUI.recorder.StopRecording();
-            yield return RedoIfWanted(scenario, takeoverIndex);
+            yield return RedoIfWanted(scenario, takeoverPrefab, takeoverIndex, hasNextRecording);
 
         }
         else // tracking was lost, recording is already stopped, attempt redo!
@@ -484,7 +524,7 @@ public class StudyProcedureSteps : MonoBehaviour
             // shouldTakeover is true when we redo an existing replay.
             // otherwise when only tracking was lost, and there isn't a replay yet
             // all we want is to redo the normal recording
-            yield return RedoRecording(scenario, shouldTakeover, takeoverIndex);
+            yield return RedoRecording(scenario, takeoverPrefab, shouldTakeover, takeoverIndex, hasNextRecording);
         }
         yield return null;
     }
@@ -493,30 +533,28 @@ public class StudyProcedureSteps : MonoBehaviour
      * Allows the user to redo a recording, even if it was fine(!), just in case they have
      * been doing something unintentional during the recording
      */
-    public IEnumerator RedoIfWanted(Scenario scenario, int takeoverIndex)
+    public IEnumerator RedoIfWanted(Scenario scenario, GameObject takeoverPrefab, int takeoverIndex, bool hasNextRecording)
     {
         yield return UIToggle(true);
         yield return MirrorToggle(true);
-        studyUI.instructionsText.text = "Recording Succesful! :) \n \n" + 
-                                        "If you want to redo the recording, press the REDO button! \n \n" +
-                                        "Otherwise, press the NEXT button to continue!";
-        yield return WaitRedoRecordingOrNext(scenario, studyProcedure.scenario1.AvatarManager.avatarPrefab, takeoverIndex);
+        studyUI.instructionsText.text = redoIfWantedInstructions;
+        yield return WaitRedoRecordingOrNextAvatar(scenario, takeoverPrefab, takeoverIndex, hasNextRecording);
     }
 
     // used when tracking failed!
     // when we are taking over and want to redo that we need to takeover the nth avatar again, not the last!
-    public IEnumerator RedoRecording(Scenario scenario, bool shouldTakeover, int takeoverIndex)
+    public IEnumerator RedoRecording(Scenario scenario, GameObject takeoverPrefab, bool shouldTakeover, int takeoverIndex, bool hasNextRecording)
     {
         studyUI.instructionsText.text = trackingLost;
         yield return UIToggle(true);
         yield return MirrorToggle(true);
 
-        yield return WaitRedoPressed(studyProcedure.scenario1.AvatarManager.avatarPrefab, shouldTakeover, takeoverIndex);
+        yield return WaitRedoPressed(takeoverPrefab, shouldTakeover, takeoverIndex);
         
         studyUI.instructionsText.text = takeoverInstructions;
         // yield return UIToggle(true); // just for adjusting the UI position after takeover
 
-        yield return Recording(scenario, shouldTakeover, takeoverIndex);
+        yield return Recording(scenario, takeoverPrefab, shouldTakeover, takeoverIndex, hasNextRecording);
     }
     
     public IEnumerator Introduction()
@@ -791,12 +829,40 @@ public class StudyProcedureSteps : MonoBehaviour
     public IEnumerator WaitRedoPressed(GameObject takeoverAvatar, bool shouldTakeover, int n = -1)
     {
         // any scenario is fine here as they all point to the same avatar manager!
-        
         studyUI.redoSphere.gameObject.SetActive(true);
         while (!studyUI.redoPressed) yield return null; // redo the recording
         studyUI.redoPressed = false;
         studyUI.redoSphere.gameObject.SetActive(false);
 
+        if (shouldTakeover)
+        {
+            studyUI.SetTakeoverAvatar(takeoverAvatar);
+
+            if (n != -1)
+            {
+                studyUI.takeoverSelector.TakeoverNthReplay(n);
+            }
+            else
+            {
+                studyUI.takeoverSelector.TakeoverLastReplay();
+            }
+        }
+        yield return null;
+    }
+
+    public IEnumerator WaitNextAvatarPressed()
+    {
+        // any scenario is fine here as they all point to the same avatar manager!
+        
+        studyUI.nextAvatarSphere.gameObject.SetActive(true);
+        while (!studyUI.nextAvatarPressed) yield return null; // redo the recording
+        studyUI.nextAvatarPressed = false;
+        studyUI.nextAvatarSphere.gameObject.SetActive(false);
+        yield return null;
+    }
+
+    public IEnumerator TakeoverNextAvatar(GameObject takeoverAvatar, bool shouldTakeover, int n = -1)
+    {
         if (shouldTakeover)
         {
             studyUI.SetTakeoverAvatar(takeoverAvatar);
@@ -823,17 +889,25 @@ public class StudyProcedureSteps : MonoBehaviour
     }
 
     // TODO MAYBE here we can also add a replay if wanted (but it might unnecessarily lengthen the data collection)
-    public IEnumerator WaitRedoRecordingOrNext(Scenario scenario, GameObject takeoverAvatar, int takeoverIndex)
+    public IEnumerator WaitRedoRecordingOrNextAvatar(Scenario scenario, GameObject takeoverAvatar, int takeoverIndex, bool hasNextRecording)
     {
         studyUI.redoSphere.gameObject.SetActive(true);
-        studyUI.nextSphere.gameObject.SetActive(true);
+        if (hasNextRecording)
+        {
+            studyUI.nextAvatarSphere.gameObject.SetActive(true);
+        }
+        else
+        {
+            studyUI.nextSphere.gameObject.SetActive(true);
+        }
         
-        while (!studyUI.redoPressed && !studyUI.nextPressed) yield return null;
+        while (!studyUI.redoPressed && !studyUI.nextAvatarPressed && !studyUI.nextPressed) yield return null;
 
         if (studyUI.redoPressed)
         {
             studyUI.redoPressed = false;
             studyUI.nextSphere.gameObject.SetActive(false);
+            studyUI.nextAvatarSphere.gameObject.SetActive(false);
             studyUI.redoSphere.gameObject.SetActive(false);
             
             studyUI.SetTakeoverAvatar(takeoverAvatar);
@@ -849,11 +923,20 @@ public class StudyProcedureSteps : MonoBehaviour
             studyUI.instructionsText.text = takeoverInstructions;
             // yield return UIToggle(true); // don't need it as we aren't teleporting!
 
-            yield return Recording(scenario, true, takeoverIndex);
+            yield return Recording(scenario, takeoverAvatar, true, takeoverIndex, hasNextRecording);
+        }
+        else if (studyUI.nextAvatarPressed)
+        {
+            
+            studyUI.nextAvatarPressed = false;
+            studyUI.nextAvatarSphere.gameObject.SetActive(false); 
+            studyUI.nextSphere.gameObject.SetActive(false);
+            studyUI.redoSphere.gameObject.SetActive(false);
         }
         else if (studyUI.nextPressed)
         {
             studyUI.nextPressed = false;
+            studyUI.nextAvatarSphere.gameObject.SetActive(false); 
             studyUI.nextSphere.gameObject.SetActive(false);
             studyUI.redoSphere.gameObject.SetActive(false);
             studyUI.headerText.text = "";
@@ -861,9 +944,6 @@ public class StudyProcedureSteps : MonoBehaviour
     }
 
     public void LeftMenuButtonGesturePerformed()
-    
-    
-    
     {
         if (!studyUI.recording)
         {
