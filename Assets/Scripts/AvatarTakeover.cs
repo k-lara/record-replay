@@ -200,7 +200,8 @@ public class AvatarTakeover : MonoBehaviour
             isTakingOver = false;
             replayable.OnUpdateReplayablePose -= OnUpdateReplayablePose;
 
-            ChangeBackPlayerPrefab();
+            // don't change back for user study, it is a bit too confusing!
+            ChangeBackPlayerPrefab(false);
             
             if (!recorder.allInputValid)
             {
@@ -225,21 +226,24 @@ public class AvatarTakeover : MonoBehaviour
         }
     }
 
-    private void ChangeBackPlayerPrefab()
+    private void ChangeBackPlayerPrefab(bool shouldChange)
     {
         if (playerPrefab != null)
         {
 
             if (playerPrefab == takeoverPrefab)
             {
+                // IN THE RECORDABLE OnRecordingStop the isTakingOver is set to false!!!! DO NOT SET IT HERE
                 Debug.Log("Don't need to change back! Takeover prefab is the same as player prefab!");
-                
             }
             else
             {
-                Debug.Log("Change back player prefab to: " + playerPrefab.name);
-                // change player prefab back to previous prefab
-                avatarManager.avatarPrefab = playerPrefab;
+                if (shouldChange)
+                {
+                    Debug.Log("Change back player prefab to: " + playerPrefab.name);
+                    // change player prefab back to previous prefab
+                    avatarManager.avatarPrefab = playerPrefab;
+                }
             }
             playerPrefab = null; // reset
             
@@ -255,8 +259,8 @@ public class AvatarTakeover : MonoBehaviour
         
         // we don't set isTakingOver to false for the Replayer as it can do it itself and might need to do it after this method has been called
         // we also don't set it back for the recordable, because OnRecording stop is called after this
-        // and we need to now OnRecordingStop that this was a takeover, so the recordable is setting it to false itself
-        // recordable.IsTakingOver = isTakingOver;
+        // IMPORTANT! and we need to now OnRecordingStop that this was a takeover, so the recordable is setting it to false itself
+        // recordable.IsTakingOver = isTakingOver; !!!!! IS RESET IN ON RECORDING STOP
     }
 
     private IEnumerator OverwriteData(Recording.Flags flags)
