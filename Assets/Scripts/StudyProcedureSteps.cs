@@ -22,114 +22,140 @@ public class StudyProcedureSteps : MonoBehaviour
 
     private int currentScenarioIndex = 0; // [0-2] for the three scenarios
     
-    private string headerIntroduction = "Introduction";
-    private string introduction = "You will experience 3 different scenarios in this room. \n" +
+    private static string headerIntroduction = "Introduction";
+    private static string introduction = "You will experience 3 different scenarios in this room. \n" +
                                   "In each scenario, you will have to react to something that is happening in the scene. \n" +
                                   "Your head and hand movements as well as your facial expressions will be recorded. \n";
     
-    private string headerTutorial = "Tutorial";
-    private string recordingInstructions = "Tutorial: How to do a recording? \n" +
+    private static string headerTutorial = "Tutorial";
+    private static string recordingInstructions = "Tutorial: How to do a recording? \n" +
                                            "\n" +
                                            "\"Pinch\" the record button to start a recording. It will always stop automatically.\n" +
                                            "There is a 5 second countdown before the recording starts and a 2 second countdown before it stops. \n" +
                                            "When tracking is lost temporarily, recording will stop immediately and you can try again. \n" +
                                            "To reposition the menu, do the menu gesture with your left hand!";
     
-    private string headerCharacterDescription = "Character Description";
+    private static string headerCharacterDescription = "Character Description";
     
-    private string mirrorInstructions = "Between recording sessions, you will always see your current avatar in the mirror. \n" +
+    private static string mirrorInstructions = "Between recording sessions, you will always see your current avatar in the mirror. \n" +
                                         "It can be quite satisfying to see your avatar's face move when yours does! :) \n" +
                                         "You might need to exaggerate your facial expressions to get the best results on the avatar. \n" +
                                         "You can also check if the tracking works as expected! \n" +
                                         "Before a recording, you will also get the character description for your current character and what your character should do during the recording! \n" +
                                         "Example: You are very happy about something and wave your hands!";
     
-    private string replayInstructions = "Each character you record during the scenarios will be added to the scenario and replayed automatically whenever you record another character. \n" +
+    private static string replayInstructions = "If you take a step to the side, you will see you recorded character. Each character you record during the scenarios will be added to the scenario and replayed automatically whenever you record another character. \n" +
                                         "You won't have this option later, but just to see how your recording looks like, you can press the REPLAY button now!";
     
-    private string takeoverInstructions = "Press record again to overwrite your previous recording!";
+    private static string takeoverInstructions = "Press record again to overwrite your previous recording!";
     
-    private string finishHowTo = "You are now ready to start the study! \n" +
+    private static string finishHowTo = "You are now ready to start the study! \n" +
                                  "Whenever instructions aren't clear, you can ask the experimenter for help! \n" +
                                  "It occasionally happens that tracking is lost and unrecoverable and we need to restart the app or the Quest.";
 
-    private string headerScenarioSelection = "Scenario Selection";
-    private string scenarioSelection = "You will experience 3 different incidents that are taking place at a Christmas party. \n" +
+    private static string headerScenarioSelection = "Scenario Selection";
+    private static string scenarioSelection = "You will experience 3 different incidents that are taking place at a Christmas party. \n" +
                                        "In each scenario, you will successively play the role of 5 different guests who are reacting to the incident." +
                                        "The character descriptions are meant to give you an entry point into the character's role. Feel free to improvise as the scenario progresses.\n" +
                                        "No audio will be recorded.";
     
-    private string trackingLost = "Tracking was lost temporarily during the recording. Please rerecord the character! \n " +
+    private static string trackingLost = "Tracking was lost temporarily during the recording. Please rerecord the character! \n " +
                                    "You can check in the mirror if the tracking works as expected! \n" +
                                    "Press the RERECORD button when you are ready!";
-    private string trackingLostTutorial = "Tracking was lost temporarily during the recording. Please rerecord the character! \n " +
+    private static string trackingLostTutorial = "Tracking was lost temporarily during the recording. Please rerecord the character! \n " +
                                    "You can check in the mirror if the tracking works as expected! \n" +
                                    "Press the RECORD button when you are ready!";
     
-    // private string nextRecording = "Recording successful! :) \n \n" +
+    // private static string nextRecording = "Recording successful! :) \n \n" +
     //                                "Press the NEXT button and then go to the red highlighted location on the floor! \n \n" +
     //                                "Remeber to face the direction of the arrow on the floor before you start recording! \n" +
     //                                "During the recording you can move and look around freely!";
     
-    private string run1Finished = "You finished 1/3 runs! :) \n " +
+    private static string run1Finished = "You finished 1/3 runs! :) \n " +
                                   "In the second run, you will rerecord the same characters one by one, but this time the characters you recorded before are already in the room and you can interact with them directly.";
-    private string run2Finished = "You finished 2/3 runs! :) \n " +
+    private static string run2Finished = "You finished 2/3 runs! :) \n " +
                                   "This is the last scenario run. You will do exactly the same as in the previous run. This is to see if the recordings can be improved even further.";
 
     private string scenarioRun1Header => "Scenario " + (currentScenarioIndex + 1) + " / Run 1";
     private string scenarioRun2Header => "Scenario " + (currentScenarioIndex + 1) + " / Run 2";
     private string scenarioRun3Header => "Scenario " + (currentScenarioIndex + 1) + " / Run 3";
 
-    private string savingInProgress = "Saving recording...";
-    private string savingComplete = "<color=green> Recording saved! </color>";
+    private static string savingInProgress = "Saving recording...";
+    private static string savingComplete = "<color=green> Recording saved! </color>";
     
-    private string takeoverAvatarRun1 = "Once you press the NEXT CHARACTER button, you will embody a previously recorded character. \n" +
+    private static string takeoverAvatarRun1 = "Once you press the NEXT CHARACTER button, you will embody a previously recorded character. \n" +
                                     "You will get the same character description for this character.\n \n" +
                                     "This time, all other characters are already in the scene and you can react to them directly.";
 
-    private string takeoverAvatarRun2 = "Like before, press the NEXT CHARACTER button and you will embody an already recorded character. \n" +
+    private static string takeoverAvatarRun2 = "Like before, press the NEXT CHARACTER button and you will embody an already recorded character. \n" +
                                         "The acting instructions for the character will be the same.";
     
-    private string redoIfWantedInstructions = "Recording Succesful! :) \n \n" + 
+    private static string redoIfWantedInstructions = "Recording Succesful! :) \n \n" + 
                                               "If you want to record this character again, press the RERECORD button! \n \n" +
                                               "Otherwise, press the NEXT CHARACTER button to embody the next character!";
+    private static string redoIfWantedLastCharacter ="Recording Succesful! :) \n \n" + 
+                                              "If you want to record this character again, press the RERECORD button! \n \n" +
+                                                "Otherwise, press the NEXT button to finish the scenario!";
     
-    private string scenarioFinished = "You successfully finished the scenario! :) \n" +
+    private static string scenarioFinished = "You successfully finished the scenario! :) \n" +
                                       "Press NEXT to select another scenario!";
     
-    private static string ARROW_EXPLANATION = "\n \n You will see arrows on the floor that indicate the positions of the characters you will embody. \n" + 
-                                              "The direction of the arrows shows which way to face when starting the recording. During the recording you can move around freely.";
+    private static string ARROW_EXPLANATION = "\n \n The arrows on the floor indicate the positions of the characters you will embody. \n" + 
+                                              "Face in the direction of the arrows when starting the recording. During the recording you can move around freely.";
 
-    private string scenario1Introduction = "Scenario duration: 35 seconds \n \n" +
-                                           "Two friends are starting a heated discussion." +
+    private static string scenario1Introduction = "Scenario duration: 35 seconds \n \n" +
+                                           "Two friends are starting a heated argument." +
                                            "The room goes uncomfortably quiet as the other guests watch." + ARROW_EXPLANATION;
                                            
-    private string scenario2Introduction = "Scenario duration: 30 seconds \n" +
-                                            "A fire breaks out during the party. The guests are urged to leave the room." + ARROW_EXPLANATION;
-    private string scenario3Introduction = "Scenario duration: 30 seconds \n" +
-                                           "Two coaches start fighting about who has the better team. The other guests get into a fight too." + ARROW_EXPLANATION;
+    private static string scenario2Introduction = "Scenario duration: 30 seconds \n" +
+                                            "A fire breaks out during the party. The guests are scared. Everyone is urged to leave the room." + ARROW_EXPLANATION;
+    private static string scenario3Introduction = "Scenario duration: 30 seconds \n" +
+                                           "Two coaches start fighting about who has the better team. Riled up by the coaches, the teams start fighting too." + ARROW_EXPLANATION;
     
-    private static string STAND_ON_ARROW = "Make sure you are <color=red>standing on the red arrow</color> and facing the right direction before you start recording!\n \n";
+    private static string STAND_ON_ARROW = "Stand on the <color=red> red arrow</color> and face the right direction before you start recording!\n \n";
 
-    private static string IMPROVISE = "\n \n The character description is meant to give you some ideas. Feel free to improvise as the scenario unfolds!";
+    private static string IMPROVISE = "\n \n Feel free to improvise as the scenario unfolds!";
     // TODO: face in the direction of the arrows on the floor
-    private string s1c0 = STAND_ON_ARROW + "<b>(Jules): Your friends at the table, Quinn and Ray, really love dogs. You don't get their excitement at all and are rather bored.</b>" + IMPROVISE;
-    private string s1c1 = STAND_ON_ARROW + "<b>(Quinn): You are so excited about your new dog and have to tell your friends Jules and Ray.</b>" + IMPROVISE;
-    private string s1c2 = STAND_ON_ARROW + "<b>(Ray): You are happy for Quinn and don't understand why Jules is not interested.</b>" + IMPROVISE;
-    private string s1c3 = STAND_ON_ARROW + "<b>(Parker): Toni is going through some hard times. You are trying to cheer them up.</b>" + IMPROVISE;
-    private string s1c4 = STAND_ON_ARROW + "<b>(Toni): You are talking to Parker about your worries.</b>" + IMPROVISE;
+    private static string s1c0 = STAND_ON_ARROW + "<b>Jules: Your friends Quinn and Ray really love dogs. You are rather bored by their conversation. You find the argument that has broken out pretty unnecessary.</b>" + IMPROVISE;
+    private static string s1c1 = STAND_ON_ARROW + "<b>Quinn: You are so excited about your new dog. You feel embarrassed about the argument.</b>" + IMPROVISE;
+    private static string s1c2 = STAND_ON_ARROW + "<b>Ray: You love dogs and don't understand Jule's lack of interest. You would never have such an argument in public.</b>" + IMPROVISE;
+    private static string s1c3 = STAND_ON_ARROW + "<b>Parker: You are trying to cheer you friend up. You find the argument justified.</b>" + IMPROVISE;
+    private static string s1c4 = STAND_ON_ARROW + "<b>Toni: You are talking about your worries. You are following the argument with concern.</b>" + IMPROVISE;
     
-    private string s2c0 = STAND_ON_ARROW + "<b>(Sky): You are offering drinks to your friends Dana and Alex.</b>" + IMPROVISE;
-    private string s2c1 = STAND_ON_ARROW + "<b>(Eden): You are talking to your friend Jesse. As the fire breaks out Jesse starts coughing from the smoke. You support her and you leave together.</b>" + IMPROVISE;
-    private string s2c2 = STAND_ON_ARROW + "<b>(Jesse): You are talking to your friend Eden. As the fire breaks out you start coughing. Eden supports you.</b>" + IMPROVISE;
-    private string s2c3 = STAND_ON_ARROW + "<b>(Dana): Sky is offering you various drinks. You only like coke.</b>" + IMPROVISE;
-    private string s2c4 = STAND_ON_ARROW + "<b>(Alex): Sky is offering you various drinks. You can't decide, and go with what Dana is having.</b>" + IMPROVISE;
+    private static string s2c0 = STAND_ON_ARROW + "<b>Sky: You are offering drinks to your friends. When you hear about the fire, you leave with them.</b>" + IMPROVISE;
+    private static string s2c1 = STAND_ON_ARROW + "<b>Eden: You are talking to your friend Jesse. When you hear about the fire, you leave with Jesse, who started coughing from the smoke and needs your help.</b>" + IMPROVISE;
+    private static string s2c2 = STAND_ON_ARROW + "<b>Jesse: You are talking to your friend Eden. When you hear about the fire, you leave with Eden. But you start coughing and need help from Eden.</b>" + IMPROVISE;
+    private static string s2c3 = STAND_ON_ARROW + "<b>Dana: Sky is offering you drinks. You only like coke. When you hear about the fire you leave with your friends.</b>" + IMPROVISE;
+    private static string s2c4 = STAND_ON_ARROW + "<b>Alex: Sky is offering you drinks. You can't decide and take what Dana is having. When you hear about the fire you leave with your friends.</b>" + IMPROVISE;
     
-    private string s3c0 = STAND_ON_ARROW + "<b>(Ash): Your friend Charlie is provoking the other team. He is getting punched. You are trying to deescalate but it's not helping.</b>" + IMPROVISE;
-    private string s3c1 = STAND_ON_ARROW + "<b>(Charlie): You are provoking the other team. They are starting a fist fight.</b>" + IMPROVISE;
-    private string s3c2 = STAND_ON_ARROW + "<b>(Robin): You are not going to put up with Charlie provoking you and your team." + IMPROVISE;
-    private string s3c3 = STAND_ON_ARROW + "<b>(Blake): You are furious about what Charlie said and don't want Ash who is trying to deescalate to interfere.</b>" + IMPROVISE;
-    private string s3c4 = STAND_ON_ARROW + "<b>(Billie): You are contemplating the many choices at the buffet when you hear the fight behind you getting louder. You interfere and separate the guys.</b>" + IMPROVISE;
+    private static string s3c0 = STAND_ON_ARROW + "<b>Ash: Your teammate tells you that they don't think much about the other team. You agree. When your teammate starts provoking the other team you try to deescalate. It is not helping.</b>" + IMPROVISE;
+    private static string s3c1 = STAND_ON_ARROW + "<b>Charlie: When your coach starts ranting about the other team, you agree. You start provoking/intimidating the other team at the buffet.</b>" + IMPROVISE;
+    private static string s3c2 = STAND_ON_ARROW + "<b>Robin: You and your team are at the buffet as you hear the argument. You are not going to put up with the insults from the other team. You join the fight." + IMPROVISE;
+    private static string s3c3 = STAND_ON_ARROW + "<b>Blake: You are at the buffet as you hear the argument. You are furious and join the fight.</b>" + IMPROVISE;
+    private static string s3c4 = STAND_ON_ARROW + "<b>Billie: You are at the buffet when the argument starts. You hate fighting. When everyone starts fighting you step between the two groups and force them to stop.</b>" + IMPROVISE;
+    
+    private static string charactersToEmbodyHeader = "The characters you will embody are: \n";
+
+    private static string s1Characters =
+        "Jules: Your friends really love dogs. You are rather bored by their conversation. You find the argument that has broken out pretty unnecessary. \n" +
+        "Quinn: You are so excited about your new dog. You feel embarrassed about the argument.\n" +
+        "Ray: You love dogs and don't understand Jule's lack of interest. You would never have such an argument in public.\n" +
+        "Parker: You are trying to cheer you friend up. You find the argument justified.\n" +
+        "Toni: You are talking about your worries. You are following the argument with concern.";
+    
+    private static string s2Characters =
+        "Sky: You are offering drinks to your friends. When you hear about the fire, you leave with them.\n" +
+        "Eden: You are talking to your friend Jesse. When you hear about the fire, you leave with Jesse, who started coughing from the smoke and needs your help.\n" +
+        "Jesse: You are talking to your friend Eden. When you hear about the fire, you leave with Eden. But you start coughing and need help from Eden.\n" +
+        "Dana: Sky is offering you drinks. You only like coke. When you hear about the fire you leave with your friends.\n" +
+        "Alex: Sky is offering you drinks. You can't decide and take what Dana is having. When you hear about the fire you leave with your friends.";
+    
+    private static string s3Characters =
+        "Ash: Your teammate tells you that they don't think much about the other team. You agree. When your teammate starts provoking the other team you try to deescalate. It is not helping.\n" +
+        "Charlie: When your coach starts ranting about the other team, you agree. The other team is a joke. You start provoking the other team at the buffet.\n" +
+        "Robin: You and your team are at the buffet as you hear the argument. You are not going to put up with the insults from the other team. You join the fight.\n" +
+        "Blake: You are at the buffet as you hear the argument. You are furious and join the fight.\n" +
+        "Billie: You are at the buffet when the argument starts. You hate fighting. When everyone starts fighting you step between the two groups and force them to stop.\n";
     
     private static string headerS1 = "Scenario 1 ";
     private static string headerS2 = "Scenario 2 ";
@@ -143,6 +169,9 @@ public class StudyProcedureSteps : MonoBehaviour
     private static string newOrResumeInstructions =
         "Are you NEW or do you want to RESUME your last session? \n \n Stand still when you press either of the buttons so your height can be adjusted to the avatars.";
 
+    private static float defaultFontSize = 0.03f;
+    private static float smallerFontSize = 0.025f;
+        
     private string GetScenarioHeader(int scenarioIndex)
     {
         if (scenarioIndex == 0)
@@ -163,7 +192,7 @@ public class StudyProcedureSteps : MonoBehaviour
     private float particeStartTime = 5.0f;
     private bool particlesOn = false;
     
-    void Awake()
+    void Start()
     {
         studyProcedure = GetComponent<StudyProcedure>();
         studyUI = GetComponentInChildren<StudyRecorderUI>();
@@ -181,8 +210,16 @@ public class StudyProcedureSteps : MonoBehaviour
         studyUI.nextAvatarSphere.gameObject.SetActive(false);
         
         cameraMain = Camera.main;
+        
+        StartCoroutine(StudyCoroutine());
     }
-    public IEnumerator Scenario(Scenario scenario, string scenarioIntro, string c0, string c1, string c2, string c3, string c4)
+    
+    IEnumerator StudyCoroutine()
+    {
+        yield return NewOrResumeUser();
+    }
+    
+    public IEnumerator Scenario(Scenario scenario, string scenarioIntro, string allCharacterDescriptions, string c0, string c1, string c2, string c3, string c4)
     {   
         // set the correct background audio for the current scenario
         scenario.backgroundAudioSource.clip = scenario.backgroundAudio;
@@ -200,6 +237,9 @@ public class StudyProcedureSteps : MonoBehaviour
         {
             studyUI.instructionsText.text = scenarioIntro;
             studyUI.headerText.text = scenarioRun1Header;
+
+            yield return ShowAllCharacterDescriptions(allCharacterDescriptions);
+            
             yield return Run1(scenario, c0, c1, c2, c3, c4);
             yield return RunFinished(run1Finished, "Run1"); // save recording by default
             
@@ -257,6 +297,15 @@ public class StudyProcedureSteps : MonoBehaviour
         }
     }
 
+    public IEnumerator ShowAllCharacterDescriptions(string characterTexts)
+    {
+        yield return WaitNextPressed();
+        studyUI.instructionsText.fontSize = smallerFontSize;
+        studyUI.headerText.text = charactersToEmbodyHeader;
+        studyUI.instructionsText.text = characterTexts;
+        yield return null;
+    }
+    
     public IEnumerator ResizeUser()
     {
      
@@ -388,6 +437,7 @@ public class StudyProcedureSteps : MonoBehaviour
     {
         yield return UIToggle(true, true); // show the UI in front of the user in new position
         yield return MirrorToggle(true);
+        studyUI.instructionsText.fontSize = defaultFontSize;
         studyUI.instructionsText.text = text;
         studyUI.headerText.text = headerCharacterDescription + " " + headerCharacterScenario;
     }
@@ -537,7 +587,14 @@ public class StudyProcedureSteps : MonoBehaviour
     {
         yield return UIToggle(true);
         yield return MirrorToggle(true);
-        studyUI.instructionsText.text = redoIfWantedInstructions;
+        if (hasNextRecording)
+        {
+            studyUI.instructionsText.text = redoIfWantedInstructions;
+        }
+        else
+        {
+            studyUI.instructionsText.text = redoIfWantedLastCharacter;
+        }
         yield return WaitRedoRecordingOrNextAvatar(scenario, takeoverPrefab, takeoverIndex, hasNextRecording);
     }
 
@@ -665,7 +722,7 @@ public class StudyProcedureSteps : MonoBehaviour
             yield return EnableUserSpawnPoints(studyProcedure.scenario1);
             yield return DisableUserSpawnPoints(studyProcedure.scenario2);
             yield return DisableUserSpawnPoints(studyProcedure.scenario3);
-            yield return Scenario(studyProcedure.scenario1, scenario1Introduction, s1c0, s1c1, s1c2, s1c3, s1c4);
+            yield return Scenario(studyProcedure.scenario1, scenario1Introduction, s1Characters, s1c0, s1c1, s1c2, s1c3, s1c4);
         }
         else if (studyUI.scenario2Pressed)
         {
@@ -673,7 +730,7 @@ public class StudyProcedureSteps : MonoBehaviour
             yield return EnableUserSpawnPoints(studyProcedure.scenario2);
             yield return DisableUserSpawnPoints(studyProcedure.scenario1);
             yield return DisableUserSpawnPoints(studyProcedure.scenario3);
-            yield return Scenario(studyProcedure.scenario2, scenario2Introduction, s2c0, s2c1, s2c2, s2c3, s2c4);
+            yield return Scenario(studyProcedure.scenario2, scenario2Introduction, s2Characters, s2c0, s2c1, s2c2, s2c3, s2c4);
         }
         else if (studyUI.scenario3Pressed)
         {
@@ -681,7 +738,7 @@ public class StudyProcedureSteps : MonoBehaviour
             yield return EnableUserSpawnPoints(studyProcedure.scenario3);
             yield return DisableUserSpawnPoints(studyProcedure.scenario1);
             yield return DisableUserSpawnPoints(studyProcedure.scenario2);
-            yield return Scenario(studyProcedure.scenario3, scenario3Introduction, s3c0, s3c1, s3c2, s3c3, s3c4);
+            yield return Scenario(studyProcedure.scenario3, scenario3Introduction, s3Characters, s3c0, s3c1, s3c2, s3c3, s3c4);
         }
     }
 
