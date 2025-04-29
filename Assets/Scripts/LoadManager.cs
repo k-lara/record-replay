@@ -28,7 +28,7 @@ public class LoadManager
     {
         var recordingThumbnails = new List<Recording.ThumbnailData>();
         
-        var dirInfos = new DirectoryInfo(pathToRecordings).EnumerateDirectories().OrderBy(d => d.CreationTime).ToList();
+        var dirInfos = new DirectoryInfo(pathToRecordings).EnumerateDirectories().OrderBy(d => d.Name).ToList();
 
         foreach (var info in dirInfos)
         {
