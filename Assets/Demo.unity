@@ -1756,13 +1756,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 121867956}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.37803605, y: -0.59756917, z: 0.5975691, w: -0.37803587}
-  m_LocalPosition: {x: -0.211, y: 0.021, z: -0.694}
+  m_LocalRotation: {x: -0.6252716, y: -0.33020553, z: 0.33020562, w: -0.62527126}
+  m_LocalPosition: {x: -0.205, y: 0.021, z: -0.439}
   m_LocalScale: {x: 0.05999999, y: 0.06000001, z: 0.06}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1955265500}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 244.637}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 304.323}
 --- !u!212 &121867958
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -1948,6 +1948,7 @@ GameObject:
   - component: {fileID: 136107637}
   - component: {fileID: 136107636}
   - component: {fileID: 136107639}
+  - component: {fileID: 136107640}
   m_Layer: 0
   m_Name: Recorder
   m_TagString: Recorder
@@ -2036,10 +2037,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8211a65cd6e291748b8df4b641df29ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  pathToRecordings: C:\Users\klara\AppData\LocalLow\klara\RecordReplay2\2025-04-26_13-51-16
   poolCapacity: 2
   listCapacity: 1200
   undoSaves: 2
   backupSaves: 5
+  usePredefinedPath: 0
   autoSave: 0
   hasBaseRecordings: 1
   loadOnStartup: 0
@@ -2077,6 +2080,26 @@ MonoBehaviour:
   recordCountdownText: {fileID: 1229467765}
   replayNumberText: {fileID: 371847517}
   thumbnailInfoText: {fileID: 1029127775}
+--- !u!114 &136107640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136107631}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c9c481622924f74d99719d8d1c412ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  s1Sphere: {fileID: 1143499626}
+  s2Sphere: {fileID: 1827295453}
+  s3Sphere: {fileID: 1812911430}
+  s1: {fileID: 972140227}
+  s2: {fileID: 972140230}
+  s3: {fileID: 972140232}
+  backgroundAudioSource: {fileID: 1089207932}
+  XrOrigin: {fileID: 543311633}
 --- !u!1001 &145113474
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10816,13 +10839,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 348646083}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.6565144, y: 0.26265782, z: -0.2626578, w: -0.65651405}
-  m_LocalPosition: {x: -0.426, y: 0.003, z: -1.948}
+  m_LocalRotation: {x: -0.026180314, y: 0.70662224, z: -0.70662177, w: -0.026180249}
+  m_LocalPosition: {x: -1.469, y: 0.003, z: -1.703}
   m_LocalScale: {x: 0.059999995, y: 0.059999984, z: 0.06}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1955265500}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: -316.389}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: -184.244}
 --- !u!212 &348646085
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -23268,7 +23291,6 @@ GameObject:
   - component: {fileID: 972140227}
   - component: {fileID: 972140230}
   - component: {fileID: 972140232}
-  - component: {fileID: 972140233}
   m_Layer: 0
   m_Name: Study Record Replay
   m_TagString: Untagged
@@ -23321,12 +23343,13 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 972140226}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e5da1fc37ae18be44a16a59d59ac66c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   XrOrigin: {fileID: 543311633}
+  MetaAvatarDefaultCamHeight: 1.65
   MaxFogValue: 0.3
   scenario1: {fileID: 972140227}
   scenario2: {fileID: 972140230}
@@ -23437,25 +23460,6 @@ MonoBehaviour:
   - {fileID: 4739647367867002628, guid: d5f26a57b54779841b032c79655f0bda, type: 3}
   AvatarManager: {fileID: 8839457145026391852}
   avatarCreated: 0
---- !u!114 &972140233
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 972140226}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c9c481622924f74d99719d8d1c412ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  s1Sphere: {fileID: 1143499626}
-  s2Sphere: {fileID: 1827295453}
-  s3Sphere: {fileID: 1812911430}
-  s1: {fileID: 972140227}
-  s2: {fileID: 972140230}
-  s3: {fileID: 972140232}
-  backgroundAudioSource: {fileID: 1089207932}
 --- !u!1 &977872930
 GameObject:
   m_ObjectHideFlags: 0
@@ -23481,13 +23485,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 977872930}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.15099698, y: 0.69079655, z: -0.69079655, w: 0.15099716}
-  m_LocalPosition: {x: 0.268, y: 0.003, z: -1.403}
+  m_LocalRotation: {x: -0.33794922, y: 0.6211202, z: -0.62112033, w: -0.3379491}
+  m_LocalPosition: {x: 0.232, y: 0.003, z: -1.146}
   m_LocalScale: {x: 0.060000002, y: 0.05999999, z: 0.06}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1955265500}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: -155.34}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: -237.101}
 --- !u!212 &977872932
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -45965,13 +45969,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1933582168}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.68288463, y: -0.18349038, z: 0.1834904, w: 0.6828845}
-  m_LocalPosition: {x: -0.975, y: 0.003, z: -1.327}
+  m_LocalRotation: {x: 0.009338194, y: -0.7070453, z: 0.707045, w: 0.009338197}
+  m_LocalPosition: {x: -1.496, y: 0.003, z: -1.004}
   m_LocalScale: {x: 0.06, y: 0.05999999, z: 0.06}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1955265500}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 30.08}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 178.487}
 --- !u!212 &1933582170
 SpriteRenderer:
   m_ObjectHideFlags: 0
