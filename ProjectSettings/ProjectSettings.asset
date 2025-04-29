@@ -163,7 +163,7 @@ PlayerSettings:
   androidSupportedAspectRatio: 1
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
-    Android: com.vrm.unity.VRTestApp
+    Android: com.klara.RecordReplay2.Study
     Standalone: com.klara.Record-Replay-2.0
   buildNumber:
     Standalone: 0

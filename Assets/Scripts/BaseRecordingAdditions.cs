@@ -1,19 +1,18 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.XR.CoreUtils;
 using UnityEngine;
 
 public class BaseRecordingAdditions : MonoBehaviour
 {
     private RecorderUI recorderUI;
-    private StudyRecorderUI studyRecorderUI;
-    StudyProcedure studyProcedure;
     
     private float MaxFogValue = 0.35f;
 
     private Recorder recorder; 
     private Replayer replayer;
-    private RecordingManager recordingManager;
+    // private RecordingManager recordingManager;
 
     public InteractableSphere s1Sphere;
     public InteractableSphere s2Sphere;
@@ -40,15 +39,20 @@ public class BaseRecordingAdditions : MonoBehaviour
     private bool particlesOn;
     private float particleStartTime = 5.0f;
     
+    public XROrigin XrOrigin;
+    private Camera cameraMain;
+    private const float MetaAvatarDefaultCamHeight = 1.65f;
+
+    
     // Start is called before the first frame update
     void Start()
     {
+        cameraMain = Camera.main;
         var recorderGameObject = GameObject.FindWithTag("Recorder");
         recorder = recorderGameObject.GetComponent<Recorder>();
         replayer = recorderGameObject.GetComponent<Replayer>();
-        recordingManager = recorderGameObject.GetComponent<RecordingManager>();
+        // recordingManager = recorderGameObject.GetComponent<RecordingManager>();
         recorderUI = recorderGameObject.GetComponent<RecorderUI>();
-        studyRecorderUI = GetComponentInChildren<StudyRecorderUI>();
         recorder.onRecordingStart += OnRecordingStart;
         recorder.onRecordingStop += OnRecordingStop;
         replayer.onReplayStart += OnReplayStart;
@@ -68,14 +72,6 @@ public class BaseRecordingAdditions : MonoBehaviour
             // check the time of the current audio clip based on the background audio
             if (backgroundAudioSource.isPlaying)
             {
-                if (currentTime >= recordingLength)
-                {
-                    Debug.Log(currentTime + " >= " + recordingLength + " stop recording");
-                    // stop the recording
-                    recorderUI.MakeButtonSound();
-                    recorder.StopRecording();
-                }
-
                 if (!particlesOn)
                 {
                     if (s2Selected && currentTime >= particleStartTime)
@@ -90,6 +86,12 @@ public class BaseRecordingAdditions : MonoBehaviour
                     RenderSettings.fogDensity = fogValue;
                 }
             }
+            else
+            {
+                // stop the recording
+                recorderUI.MakeButtonSound();
+                recorder.StopRecording();
+            }
             currentTime += Time.deltaTime;
         }
 
@@ -100,9 +102,21 @@ public class BaseRecordingAdditions : MonoBehaviour
             
         }
     }
+    
+    
+    public IEnumerator ResizeUser()
+    {
+        var userCamHeight = cameraMain.transform.position.y;
+        var userCamHeightOffset = MetaAvatarDefaultCamHeight - cameraMain.transform.position.y;
+        Debug.Log($"Resize user height from camera height: {userCamHeight:F} to {MetaAvatarDefaultCamHeight:F} (diff: {userCamHeightOffset:F})");
+        var newCamHeight = new Vector3(XrOrigin.transform.position.x, userCamHeightOffset, XrOrigin.transform.position.z);
+        XrOrigin.transform.position = newCamHeight;
+        yield return null;
+    }
 
     private void OnS1SphereSelected(object o, EventArgs e)
     {
+        StartCoroutine(ResizeUser());
         backgroundAudioSource.clip = s1.backgroundAudio;
         s1.person1AudioSource.clip = s1.person1Audio;
         s1.person2AudioSource.clip = s1.person2Audio;
@@ -116,26 +130,26 @@ public class BaseRecordingAdditions : MonoBehaviour
     
     private void OnS2SphereSelected(object o, EventArgs e)
     {
+        StartCoroutine(ResizeUser());
         backgroundAudioSource.clip = s2.backgroundAudio;
         s2.person1AudioSource.clip = s2.person1Audio;
-        // s2.person2AudioSource.clip = s2.person2Audio;
         s2Selected = true;
         s1Selected = s3Selected = false;
         Debug.Log("AudioClips: " + s2.person1Audio.name + " " + s2.backgroundAudio.name);
         Debug.Log("MonoStereo: " + s2.person1AudioSource.clip.channels);
-        Debug.Log("MonoStereo: " + s2.person2AudioSource.clip.channels);
         Debug.Log("MonoStereo: " + backgroundAudioSource.clip.channels);
     }
     private void OnS3SphereSelected(object o, EventArgs e)
     {
+        StartCoroutine(ResizeUser());
         backgroundAudioSource.clip = s3.backgroundAudio;
         s3.person1AudioSource.clip = s3.person1Audio;
         s3.person2AudioSource.clip = s3.person2Audio;
         s3Selected = true;
         s1Selected = s2Selected = false;
         Debug.Log("AudioClips: " + s3.person1Audio.name + " " + s3.person2Audio.name + " " + s3.backgroundAudio.name);
-        Debug.Log("MonoStereo: " + s2.person1AudioSource.clip.channels);
-        Debug.Log("MonoStereo: " + s2.person2AudioSource.clip.channels);
+        Debug.Log("MonoStereo: " + s3.person1AudioSource.clip.channels);
+        Debug.Log("MonoStereo: " + s3.person2AudioSource.clip.channels);
         Debug.Log("MonoStereo: " + backgroundAudioSource.clip.channels);
     }
     private void OnRecordingStart(object o, EventArgs e)

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Ubiq.Spawning;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.PlayerLoop;
 
@@ -24,12 +25,14 @@ public class RecordingManager : MonoBehaviour
          *          - [recordableID]_motion.txt
          *          - [recordableID]_audio.txt
      */
-    public string pathToRecordings { get; set; } // the path to the directory that has all the recording folders
+    public string pathToRecordings; // the path to the directory that has all the recording folders
     public int poolCapacity; // the capacity of the recordable pool
     public int listCapacity; // the capacity of the recordable lists
     public int undoSaves; // the number of undo saves to keep
     public int backupSaves;
 
+    public bool usePredefinedPath; // uses a predefined path to the recordings, otherwise use the default ones set at runtime
+    
     public bool autoSave;
     
     // for user study
@@ -111,7 +114,10 @@ public class RecordingManager : MonoBehaviour
         
         if (!hasBaseRecordings) // do everything as usual if we don't have base recordings
         {
-            pathToRecordings = Application.persistentDataPath;
+            if (!usePredefinedPath)
+            {
+                pathToRecordings = Application.persistentDataPath;
+            }
             currentThumbnailIndex = -1;
             loadManager = new LoadManager(spawnManager, prefabCatalogue, pathToRecordings);
             saveManager = new SaveManager(pathToRecordings, backupSaves);
