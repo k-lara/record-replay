@@ -228,7 +228,7 @@ public class StudyProcedureSteps : MonoBehaviour
         RenderSettings.fog = false;
         
         currentScenarioIndex = scenario.ScenarioIndex;
-        Debug.Log("Starting Scenario " + scenario.ScenarioIndex + 1);
+        Debug.Log("Starting Scenario " + (scenario.ScenarioIndex + 1));
         studyUI.scenario1Sphere.gameObject.SetActive(false);
         studyUI.scenario2Sphere.gameObject.SetActive(false);
         studyUI.scenario3Sphere.gameObject.SetActive(false);
