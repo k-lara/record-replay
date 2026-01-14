@@ -9,6 +9,10 @@ TagManager:
   - Button
   - MetaInputLeft
   - MetaInputRight
+  - S1
+  - S2
+  - S3
+  - Camera2.2
   layers:
   - Default
   - TransparentFX
@@ -18,11 +22,11 @@ TagManager:
   - UI
   - Avatar
   - Environment
-  - 
-  - 
+  - Camera2.2
+  - Camera3
   - Character
   - MirroredCharacter
-  - 
+  - Camera2
   - 
   - 
   - 
