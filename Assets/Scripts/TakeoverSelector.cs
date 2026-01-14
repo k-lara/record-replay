@@ -80,7 +80,7 @@ public class TakeoverSelector : MonoBehaviour
         onTakeoverSelected?.Invoke(this, selectedReplayableObject);
         selectedReplayableObject = null;
         
-        Debug.Log("Takeover last replay: " + lastInteractable.Key);
+        // Debug.Log("Takeover last replay: " + lastInteractable.Key);
     }
 
     public void TakeoverNthReplay(int n)
@@ -91,7 +91,7 @@ public class TakeoverSelector : MonoBehaviour
         selectedReplayableObject = nthInteractable.Value.transform.parent.gameObject;
         onTakeoverSelected?.Invoke(this, selectedReplayableObject);
         selectedReplayableObject = null;
-        Debug.Log("Takeover " + n + ". replay: " + nthInteractable.Key);
+        // Debug.Log("Takeover " + n + ". replay: " + nthInteractable.Key);
     }
     
     // called when selectEntered on replayable avatar
@@ -160,7 +160,7 @@ public class TakeoverSelector : MonoBehaviour
         // sphere.transform.localPosition = new Vector3(0.4f, 0, 0);
         // sphere.transform.localRotation = Quaternion.identity;
         interactableSpheres.Add(replayable.Key, sphere);
-        Debug.Log("Add interactable to replayable: " + replayable.Key);
+        // Debug.Log("Add interactable to replayable: " + replayable.Key);
     }
 
     private void OnRecordingUndo(object o, (UndoManager.UndoType, List<Guid>) args)

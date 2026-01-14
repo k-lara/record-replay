@@ -92,7 +92,7 @@ public class AudioReplayable : MonoBehaviour
     {
         if (!m_IsLoaded) return;
         m_AudioSource.Play();
-        Debug.Log("Replay audio from start");
+        // Debug.Log("Replay audio from start");
     }
 
     // on replay is called when we already have the spawned objects and the data is loaded from the files
@@ -139,7 +139,7 @@ public class AudioReplayable : MonoBehaviour
             AudioSettings.outputSampleRate, false);
         m_AudioSource.clip.SetData(data, 0);
         m_IsLoaded = true;
-        Debug.Log("Audio data loaded");
+        // Debug.Log("Audio data loaded");
     }
     
     // we check which game object this AudioReplayable is attached to

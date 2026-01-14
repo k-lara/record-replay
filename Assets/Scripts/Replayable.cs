@@ -99,7 +99,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
     
     private void OnReplayStart(object o, EventArgs e)
     {
-        Debug.Log("Replayable OnReplayStart(): id: " + replayableId);
+        // Debug.Log("Replayable OnReplayStart(): id: " + replayableId);
         
         _isPlaying = true;
     }
@@ -256,7 +256,7 @@ public class Replayable : MonoBehaviour, IHeadAndHandsInput, IHandSkeletonInput
     // here we don't have a recording with data loaded, so we have to set the pose from the frame we have in the thumbnail
     public void SetReplayablePose(ReplayablePose pose)
     {
-        Debug.Log("SetReplayablePose from ReplayablePose: head pos x" + pose.head.position.x);
+        // Debug.Log("SetReplayablePose from ReplayablePose: head pos x" + pose.head.position.x);
         _replayablePose = pose;
     }
 

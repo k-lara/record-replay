@@ -122,11 +122,11 @@ public class AvatarTakeover : MonoBehaviour
                 break;
             
             default:
-                Debug.Log("No valid setting");
+                // Debug.Log("No valid setting");
                 break;
         }
         
-        Debug.Log("Set takeover start to frame: " + takeoverStart);
+        // Debug.Log("Set takeover start to frame: " + takeoverStart);
     }
     
     // select a replayable in the scene for takeover
@@ -136,7 +136,7 @@ public class AvatarTakeover : MonoBehaviour
     // TODO if the user has set their own range, the takeover start is set to a few seconds before that range
     private void OnTakeoverSelected(object o, GameObject go)
     {
-        Debug.Log("Takeover selected: " + go.name);
+        // Debug.Log("Takeover selected: " + go.name);
         isTakingOver = true;
         replayable = go.GetComponent<Replayable>();
         // this has to be called once we know which replayable to take over
@@ -145,16 +145,16 @@ public class AvatarTakeover : MonoBehaviour
         // make replayable invisible
         if (replayable.gameObject.TryGetComponent<UbiqMetaAvatarEntity>(out var metaAvatar))
         {
-            Debug.Log("SelectTakeoverReplayable: Hide replayable avatar!");
+            // Debug.Log("SelectTakeoverReplayable: Hide replayable avatar!");
             metaAvatar.SetView(Oculus.Avatar2.CAPI.ovrAvatar2EntityViewFlags.None);
         }
         
-        Debug.Log("Change the player's prefab to the takeover prefab");   
+        // Debug.Log("Change the player's prefab to the takeover prefab");   
         // once the new prefab has been spawned OnAvatarCreated will be called where we add the recordable
 
         if (avatarManager.avatarPrefab == takeoverPrefab)
         {
-            Debug.Log("Takeover prefab is the same as player prefab!");
+            // Debug.Log("Takeover prefab is the same as player prefab!");
             recordable = avatarManager.LocalAvatar.gameObject.GetComponent<Recordable>();
             recordable.OnUpdateRecordablePose += OnUpdateRecordablePose;
             recordable.IsTakingOver = isTakingOver;
@@ -294,7 +294,7 @@ public class AvatarTakeover : MonoBehaviour
                     // compute t
                     t = (float)(i - takeoverStart) / (int)(recorder.fps * takeoverDuration);
                     j = i - (takeoverStart + 1);
-                    Debug.Log(i + " " + j + " t: " + t);
+                    // Debug.Log(i + " " + j + " t: " + t);
                     
                     // interpolate
                     var dataFrame = replayer.recording.recordableDataDict[replayable.replayableId].dataFrames[i];
@@ -318,7 +318,7 @@ public class AvatarTakeover : MonoBehaviour
                 // Debug.Log("add new data to replayable from: " + (j + 1) + " to " + currentTakeoverOverwrite.Count);
                 for (var i = j + 1; i < currentTakeoverOverwrite.Count; i++)
                 {
-                    Debug.Log(numFrames + " i " + i);
+                    // Debug.Log(numFrames + " i " + i);
                     replayer.recording.AddDataFrame(replayable.replayableId, numFrames, currentTakeoverOverwrite[i]);
                     numFrames++;
                 }

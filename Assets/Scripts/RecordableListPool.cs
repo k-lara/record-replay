@@ -56,7 +56,7 @@ public class RecordableListPool
         // we also add it to the list pool
         var newList = new List<Recording.RecordableDataFrame>(listCapacity);
         listPool.Add(newList);
-        Debug.Log("Add new list to pool: # lists: " + listPool.Count);
+        // Debug.Log("Add new list to pool: # lists: " + listPool.Count);
         return newList;
     }
     
@@ -65,7 +65,7 @@ public class RecordableListPool
     {
         list.Clear();
         freeLists.Enqueue(list);
-        Debug.Log("Return list to pool: free lists: " + freeLists.Count);
+        // Debug.Log("Return list to pool: free lists: " + freeLists.Count);
     }
     
     // clears the lists in the pool, but not the pool itself!
@@ -77,7 +77,7 @@ public class RecordableListPool
             list.Clear();
             freeLists.Enqueue(list);
         }
-        Debug.Log("Clear list pool: free lists: " + freeLists.Count);
+        // Debug.Log("Clear list pool: free lists: " + freeLists.Count);
     }
     // clears the list pool and fills it with new lists with initial capacity
     public void ResetPool()

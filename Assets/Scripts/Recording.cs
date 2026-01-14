@@ -191,7 +191,7 @@ public class Recording
         // clearing the old should just work as well
         recordableDataDict.Clear();
         // recordingSavePath = Application.persistentDataPath;
-        Debug.Log("Init new recording: " + recordingId);
+        // Debug.Log("Init new recording: " + recordingId);
     }
     
     // when a new recording is happening we need to add the recordable data to the dict
@@ -209,13 +209,13 @@ public class Recording
             recId = guid;
         }
         recordableDataDict.Add(recId, recData);
-        Debug.Log("Create recordable data: " + recId);
+        // Debug.Log("Create recordable data: " + recId);
         return recId;
     }
     
     public void UpdateMetaData(Guid id, int numFrames, int fps, string prefabName)
     {
-        Debug.Log("Update meta data: " + id + " " + numFrames + " " + fps + " " + prefabName);
+        // Debug.Log("Update meta data: " + id + " " + numFrames + " " + fps + " " + prefabName);
         
         var metaData = recordableDataDict[id];
         metaData.numFrames = numFrames;
@@ -248,7 +248,7 @@ public class Recording
             dataFrames.Add(new RecordableDataFrame(){frameNr = dummyFrame});
             dummyFrame++;
         }
-        Debug.Log("Recording: TryAddEmptyDataFrames(): " + recordableDataDict[id].dataFrames.Count);
+        // Debug.Log("Recording: TryAddEmptyDataFrames(): " + recordableDataDict[id].dataFrames.Count);
     }
     
     public void AddDataFrame(Guid id, int frame, Recordable.RecordablePose pose)

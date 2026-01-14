@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,10 +24,14 @@ public class LoadManager
     
     private string pathToRecordings;
     
+    // well this is a mess but I just want it to be working
+    public List<string> pathsParticipantRuns = new();
+    
     // on startup all existing thumbnails are loaded so that the user can choose which recording to load
     public async Task<List<Recording.ThumbnailData>> LoadThumbnailData()
     {
         var recordingThumbnails = new List<Recording.ThumbnailData>();
+        pathsParticipantRuns.Clear();
         
         var dirInfos = new DirectoryInfo(pathToRecordings).EnumerateDirectories().OrderBy(d => d.Name).ToList();
 
@@ -46,10 +51,104 @@ public class LoadManager
                 var thumbnailData = JsonUtility.FromJson<Recording.ThumbnailData>(fromFile);
                 Debug.Log("Thumbnail data last save: " + lastSave.Name);
                 recordingThumbnails.Add(thumbnailData); // most recent thumbnail !!!
-                
+                pathsParticipantRuns.Add(lastSave.FullName);
             }
         }
         return recordingThumbnails;
+    }
+
+    // for processing the participant data!
+    public async Task<List<Recording.ThumbnailData>> LoadAllParticipantThumbnailData(int scenarioIndex, int runIndex)
+    {
+        string run;
+        Debug.Log("Load " + (scenarioIndex == 0 ? "ALL scenarios" : "Scenario " + scenarioIndex) + 
+                  " and " + (runIndex == 0 ? "ALL runs" : "Run " + runIndex));
+        
+        var format = "yyyy-MM-dd_HH-mm-ss";
+
+        if (runIndex == 0) // if we haven't set which run, we just take all runs
+        {
+            run = "R";
+        }
+        else
+        {
+            run = "Run" + runIndex;
+        }
+        
+        var recordingThumbnails = new List<Recording.ThumbnailData>();
+        pathsParticipantRuns.Clear();
+        // here pathToRecordings needs to be the top most folder (the participant folder)
+        // in the participant folder are the subforlders for each of the three scenarios
+        // inside the scenario subfolders are the 3 folders for each recording run (+ base recording)
+        
+        // var participantFolders = new DirectoryInfo(pathToRecordings).EnumerateDirectories().OrderBy(d => d.CreationTime).ToList(); // participant folders
+        var participantFolders = new DirectoryInfo(pathToRecordings).EnumerateDirectories().
+            OrderBy(d => DateTime.TryParseExact(d.Name, format, CultureInfo.CurrentCulture, DateTimeStyles.None, out _)).ToList(); // participant folders
+
+        if (participantFolders.Count == 0)
+        {
+            // try and parse by participant id instead!
+            participantFolders = new DirectoryInfo(pathToRecordings).EnumerateDirectories().OrderBy(d => d.Name).ToList();
+        }
+        
+        foreach (var participant in participantFolders)
+        {
+            Debug.Log("Participant folder: " + participant.Name);
+            List<DirectoryInfo> scenarioFolders;
+            if (scenarioIndex == 0)
+            {
+                scenarioFolders = participant.EnumerateDirectories().OrderBy(d => d.Name).ToList(); // scenario folders
+            }
+            else
+            {
+                scenarioFolders = participant.EnumerateDirectories().Where(d => d.Name.StartsWith(scenarioIndex.ToString())).ToList();
+            }
+
+            foreach (var scenario in scenarioFolders)
+            {
+                Debug.Log("Scenario: " + scenario.Name[0]);
+                var recordingFolders = scenario.EnumerateDirectories().Where(d => d.Name.Contains(run)).OrderBy(d => d.Name).ToList(); // recordings Runs 1-3
+                foreach (var recording in recordingFolders)
+                {
+                    var thumbnailPath = Path.Combine(recording.FullName, "thumbnail.txt");
+                    if (File.Exists(thumbnailPath))
+                    {
+                        var fromFile = await File.ReadAllTextAsync(thumbnailPath);
+                        var thumbnailData = JsonUtility.FromJson<Recording.ThumbnailData>(fromFile);
+                        Debug.Log("Thumbnail data: " + recording.Name.Substring(0, 4));
+                        recordingThumbnails.Add(thumbnailData); // most recent thumbnail !!!
+                        pathsParticipantRuns.Add(recording.FullName);
+                    }
+                }
+            }
+        }
+        return recordingThumbnails;
+    }
+    
+    // for loading the participant data, our pathToRecordings is one level deeper than usual because each participant has their own recording folder
+    public async Task LoadParticipantRecordingData(RecordableListPool pool, Recording recording,
+        Recording.ThumbnailData thumbnail, int pathParticipantRunIndex)
+    {
+        recording.SetRecordingId(new Guid(thumbnail.recordingId)) ;
+        var dirInfo = new DirectoryInfo(pathsParticipantRuns[pathParticipantRunIndex]);
+        
+        var recordableDataDict = new Dictionary<Guid, Recording.RecordableData>();
+
+        foreach (var recordableId in thumbnail.recordableIds)
+        {
+            var filePath = Path.Combine(dirInfo.FullName, recordableId + "_motion.txt");
+            if (File.Exists(filePath))
+            {
+                var recordableDataJson = await File.ReadAllTextAsync(filePath);
+                var recordableData = new Recording.RecordableData();
+                recordableData.dataFrames = pool.GetList();
+                JsonUtility.FromJsonOverwrite(recordableDataJson, recordableData);
+                
+                recordableDataDict.Add(new Guid(recordableId), recordableData);
+            }
+        }
+        recording.SetRecordableDataDict(recordableDataDict);
+        Debug.Log("Load Participant: " + dirInfo.FullName);
     }
     
     // we load the corresponding recording data of the thumbnail
@@ -93,19 +192,19 @@ public class LoadManager
      */
     public List<GameObject> CreateFromThumbnail(Recording.ThumbnailData thumbnail, ref List<GameObject> currentSpawned)
     {
-        Debug.Log("Create from thumbnail");
+        // Debug.Log("Create from thumbnail");
         List<GameObject> newlySpawned = new();
         for (var i = 0; i < thumbnail.prefabNames.Count; i++)
         {
             var name = thumbnail.prefabNames[i];
             // GameObject prefab = null; //currentSpawned.Find(obj => obj.name == name + "(Clone)");
             Replayable replayable;
-            Debug.Log(prefabCatalogue[name]);
+            // Debug.Log(prefabCatalogue[name]);
             // if (prefab == null)
             // {
-            Debug.Log("Create fresh prefab: " + name);
+            // Debug.Log("Create fresh prefab: " + name);
             var go = spawnManager.SpawnWithPeerScope(prefabCatalogue[name]);
-            Debug.Log(go);
+            // Debug.Log(go);
             replayable = go.AddComponent<Replayable>();
             newlySpawned.Add(go);
             // }
@@ -122,7 +221,7 @@ public class LoadManager
         }
         
         // currentSpawned = newPrefabs;
-        Debug.Log("spawnedObjects currentSpawned: " + currentSpawned.Count + "");
+        // Debug.Log("spawnedObjects currentSpawned: " + currentSpawned.Count + "");
         return newlySpawned;
     }
     
@@ -130,13 +229,13 @@ public class LoadManager
     {
         var newSpawned = new List<GameObject>();
         
-        Debug.Log("Spawn new replayable objects if any!");
+        // Debug.Log("Spawn new replayable objects if any!");
         foreach (var entry in recording.recordableDataDict)
         {
-            Debug.Log(entry.Key + " is spawned: " + replayablesDict.ContainsKey(entry.Key));
+            // Debug.Log(entry.Key + " is spawned: " + replayablesDict.ContainsKey(entry.Key));
             if (replayablesDict.ContainsKey(entry.Key)) continue;
             
-            Debug.Log(entry.Value.prefabName);
+            // Debug.Log(entry.Value.prefabName);
             var go = spawnManager.SpawnWithPeerScope(prefabCatalogue[entry.Value.prefabName]);
             newSpawned.Add(go);
             
@@ -149,7 +248,7 @@ public class LoadManager
             replayable.SetReplayablePose(0); 
             replayable.SetIsLocal(true);
             replayablesDict.Add(entry.Key, replayable);
-            Debug.Log("Spawned new replayable (id: " + entry.Key + ")");
+            // Debug.Log("Spawned new replayable (id: " + entry.Key + ")");
         }
         return newSpawned;
     }

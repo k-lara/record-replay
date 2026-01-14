@@ -86,7 +86,7 @@ public class Recorder : MonoBehaviour
         recording.flags.IsRecording = _isRecording = false;
         // each recordable adds its metadata to the thumbnail in their OnRecordingStop()
         onRecordingStop?.Invoke(this, recording.flags);
-        Debug.Log(recording.ToString());
+        // Debug.Log(recording.ToString());
 
         if (save)
         {

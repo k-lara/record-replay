@@ -1002,6 +1002,7 @@ public class StudyProcedureSteps : MonoBehaviour
 
     public void LeftMenuButtonGesturePerformed()
     {
+        if (!gameObject.activeInHierarchy) return;
         if (!studyUI.recording)
         {
             StartCoroutine(UIToggle(true));

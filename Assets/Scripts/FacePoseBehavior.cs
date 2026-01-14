@@ -1,10 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using Meta.XR.Movement.FaceTracking.Samples;
 using Oculus.Avatar2;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class FacePoseBehavior : OvrAvatarFacePoseBehavior
 {

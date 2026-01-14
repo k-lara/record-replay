@@ -62,7 +62,7 @@ public class ReplayInfo : MonoBehaviour
         m_AudioReplayable = GetComponent<AudioReplayable>();
         if (m_AudioReplayable)
         {
-            Debug.Log("Add AudioInfoPainter");
+            // Debug.Log("Add AudioInfoPainter");
             m_AudioReplayable.OnAudioReplayLoaded += OnAudioReplayLoaded;
             gameObject.AddComponent<AudioInfoPainter>();
 

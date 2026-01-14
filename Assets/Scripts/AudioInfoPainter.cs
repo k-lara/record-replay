@@ -61,7 +61,7 @@ public class AudioInfoPainter : MonoBehaviour
     private void OnReplayInfoAudioDataLoaded(object o, AudioReplayable.AudioInfoData audioInfoData)
     {
         m_AudioInfoData = audioInfoData;
-        Debug.Log("OnReplayInfoAudioDataLoaded " + audioInfoData.data.Length);
+        // Debug.Log("OnReplayInfoAudioDataLoaded " + audioInfoData.data.Length);
         
         // add a line renderer to a game object at the head position of the avatar
         m_LineRendererObject = new GameObject("AudioInfo");

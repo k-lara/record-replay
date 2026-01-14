@@ -109,7 +109,7 @@ public class RecorderUI : MonoBehaviour
         
         // won't use frame slider in study
         // frameSlider.onTChanged += SetFrameManually;
-        // _replayer.onFrameUpdate += SetSliderFromFrame;
+        _replayer.onFrameUpdate += SetSliderFromFrame;
         _replayer.onReplayStart += OnReplayStart;
         _replayer.onReplayStop += OnReplayStop;
         _recorder.onRecordingStart += OnRecordingStart;

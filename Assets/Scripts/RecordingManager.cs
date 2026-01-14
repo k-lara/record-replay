@@ -32,6 +32,7 @@ public class RecordingManager : MonoBehaviour
     public int backupSaves;
 
     public bool usePredefinedPath; // uses a predefined path to the recordings, otherwise use the default ones set at runtime
+    public bool getAllParticipantRecordings; // if true, we get all the recordings from the participant folders
     
     public bool autoSave;
     
@@ -42,6 +43,12 @@ public class RecordingManager : MonoBehaviour
     // the base recording will be in the root folder together with the participant folders
     public bool hasBaseRecordings;
     public bool loadOnStartup; // if true, we load the most recent recording on startup
+    [Tooltip("0 for all runs, 1 for run 1, 2 for run 2, etc.")]
+    [Range(0,3)]
+    public int selectedRuns; // 0 for all runs, 1 for run 1, 2 for run 2, etc
+    [Tooltip("0 for all scenarios, 1 for scenario 1, 2 for scenario 2, etc.")]
+    [Range(0, 3)]
+    public int scenarioIndex; // 0 for all scenarios, 1 for scenario 1, 2 for scenario 2, etc
     
     private RecordableListPool listPool;
     private UndoManager undoManager;
@@ -51,7 +58,7 @@ public class RecordingManager : MonoBehaviour
 
     public Recording Recording { get; private set; } // the current/prospective recording in memory (has recording id)
     private List<Recording.ThumbnailData> recordingThumbnails = new(); // of most recent save
-    private int currentThumbnailIndex;
+    public int currentThumbnailIndex;
     private List<GameObject> spawnedObjects = new(); // the spawned prefabs for the current thumbnail
     
     private Dictionary<string, GameObject> prefabCatalogue { get; set; }
@@ -74,16 +81,16 @@ public class RecordingManager : MonoBehaviour
 
     public void OnDestroy()
     {
-        Debug.Log("RecordingManager OnDestroy()");
+        // Debug.Log("RecordingManager OnDestroy()");
         // finish tasks if they are still running
         if (loadTask != null)
         {
-            Debug.Log("Disposing load task");
+            // Debug.Log("Disposing load task");
             loadTask.Dispose();
         }
         if (thumbnailsTask != null)
         {
-            Debug.Log("Disposing thumbnails task");
+            // Debug.Log("Disposing thumbnails task");
             thumbnailsTask.Dispose();
         }
 
@@ -103,7 +110,7 @@ public class RecordingManager : MonoBehaviour
         prefabCatalogue = new Dictionary<string, GameObject>();
         foreach (var prefab in spawnManager.catalogue.prefabs)
         {
-            Debug.Log("Add: " + prefab.name);
+            // Debug.Log("Add: " + prefab.name);
             prefabCatalogue.Add(prefab.name, prefab);
         }
         
@@ -114,15 +121,31 @@ public class RecordingManager : MonoBehaviour
         
         if (!hasBaseRecordings) // do everything as usual if we don't have base recordings
         {
-            if (!usePredefinedPath)
+            if (usePredefinedPath)
+            {
+                Debug.Log("Use predefined path: " + pathToRecordings);
+            }
+            else
             {
                 pathToRecordings = Application.persistentDataPath;
             }
-            currentThumbnailIndex = -1;
+            
+            
+            // currentThumbnailIndex = -1;
             loadManager = new LoadManager(spawnManager, prefabCatalogue, pathToRecordings);
             saveManager = new SaveManager(pathToRecordings, backupSaves);
             StartCoroutine(PrepareThumbnails());
         }
+    }
+
+    public string GetParticipantId(int thumbnailIndex)
+    {
+        var path = loadManager.pathsParticipantRuns[thumbnailIndex];
+        // get the substring with participant id "P[1-8]" using regex
+        var regex = new System.Text.RegularExpressions.Regex(@"P\d+");
+        var match = regex.Match(path);
+        Debug.Log("ParticipantId " + match.Value);
+        return match.Value.Substring(1,1);
     }
 
     public bool PreparePreviousUserFolder()
@@ -142,7 +165,7 @@ public class RecordingManager : MonoBehaviour
         else
         {
             pathToRecordings = userFolder[^1].FullName;
-            Debug.Log("Previous user folder: " + pathToRecordings);
+            // Debug.Log("Previous user folder: " + pathToRecordings);
             
             loadManager = new LoadManager(spawnManager, prefabCatalogue, pathToRecordings);
             saveManager = new SaveManager(pathToRecordings, backupSaves);
@@ -180,7 +203,7 @@ public class RecordingManager : MonoBehaviour
                 var savePath = Path.Combine(newPath, save.Name);
                 foreach (var file in save.EnumerateFiles())
                 {
-                    Debug.Log("Copy: " + file.Name + " to: " + file.FullName);
+                    // Debug.Log("Copy: " + file.Name + " to: " + file.FullName);
                     file.CopyTo(Path.Combine(savePath, file.Name));
                 }
             }
@@ -238,16 +261,24 @@ public class RecordingManager : MonoBehaviour
      */
     public async void LoadRecording(string exclude = null)
     {
-        Debug.Log("data loaded: " + Recording.flags.DataLoaded + " spawned objects: " + spawnedObjects.Count + " current thumbnail: " + currentThumbnailIndex);
+        // Debug.Log("data loaded: " + Recording.flags.DataLoaded + " spawned objects: " + spawnedObjects.Count + " current thumbnail: " + currentThumbnailIndex);
         // don't load if data is already loaded, or there are no spawned objects or there are no thumbnails that we could load from
         if (Recording.flags.DataLoaded || spawnedObjects.Count == 0 || currentThumbnailIndex == -1) return;
-        
-        await Task.Run(() => loadManager.LoadRecordingData(listPool, Recording, recordingThumbnails[currentThumbnailIndex]));
+
+        if (getAllParticipantRecordings)
+        {
+            await Task.Run(() => loadManager.LoadParticipantRecordingData(listPool, Recording,
+                recordingThumbnails[currentThumbnailIndex], currentThumbnailIndex));
+        }
+        else
+        {
+            await Task.Run(() => loadManager.LoadRecordingData(listPool, Recording, recordingThumbnails[currentThumbnailIndex]));
+        }
         
         Debug.Log("Recording loaded!");
         Recording.flags.DataLoaded = true;
-        Debug.Log(Recording.ToString());
-        Debug.Log(Recording.RecordingFlagsToString());
+        // Debug.Log(Recording.ToString());
+        // Debug.Log(Recording.RecordingFlagsToString());
         onRecordingLoaded?.Invoke(this, EventArgs.Empty);
         onReplayablesSpawnedAndLoaded?.Invoke(this, EventArgs.Empty);
     }
@@ -278,7 +309,7 @@ public class RecordingManager : MonoBehaviour
      */
     public async void SaveRecording(string fileName = null)
     {
-        Debug.Log("save in progress: " + saveInProgress);
+        // Debug.Log("save in progress: " + saveInProgress);
         if (saveInProgress) return;// to prevent manual save while autosave is in progress
         if (Recording.flags.NewDataAvailable && Recording.flags.SaveReady && !Recording.flags.IsRecording)
         {
@@ -295,7 +326,7 @@ public class RecordingManager : MonoBehaviour
                 recordingThumbnails.Add(newThumbnailData);
                 currentThumbnailIndex = recordingThumbnails.Count - 1;
             }
-            Debug.Log("Recording saved!");
+            // Debug.Log("Recording saved!");
             Recording.flags.NewDataAvailable = false;
             saveInProgress = false;
             onRecordingSaved?.Invoke(this, EventArgs.Empty);
@@ -335,7 +366,15 @@ public class RecordingManager : MonoBehaviour
     private IEnumerator PrepareThumbnails()
     {
         Debug.Log("Prepare thumbnails");
-        thumbnailsTask = Task.Run(() => loadManager.LoadThumbnailData());
+
+        if (getAllParticipantRecordings)
+        {
+            thumbnailsTask = Task.Run(() => loadManager.LoadAllParticipantThumbnailData(scenarioIndex, selectedRuns));
+        }
+        else
+        {
+            thumbnailsTask = Task.Run(() => loadManager.LoadThumbnailData());
+        }
         thumbnailsTask.Wait();
         recordingThumbnails = thumbnailsTask.Result;
         
@@ -345,8 +384,19 @@ public class RecordingManager : MonoBehaviour
             // only spawn objects if we have at least one thumbnail
             if (recordingThumbnails.Count > 0)
             {
-                currentThumbnailIndex = recordingThumbnails.Count - 1; // load most recent one
-                yield return CreateFromThumbnail(currentThumbnailIndex);
+                if (getAllParticipantRecordings)
+                {
+                    // currentThumbnailIndex = 0; // start from beginning
+                    if (currentThumbnailIndex >= 0 && currentThumbnailIndex < recordingThumbnails.Count)
+                    {
+                        yield return CreateFromThumbnail(currentThumbnailIndex);
+                    }
+                }
+                else
+                {
+                    currentThumbnailIndex = recordingThumbnails.Count - 1; // load most recent one
+                    yield return CreateFromThumbnail(currentThumbnailIndex);
+                }
             }
         }
     }

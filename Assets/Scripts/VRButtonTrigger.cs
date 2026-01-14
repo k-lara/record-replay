@@ -19,7 +19,7 @@ public class VRButtonTrigger : MonoBehaviour
         if (other.CompareTag("Button") && !_deadTimeActive)
         {
             onPressed.Invoke();
-            Debug.Log("Button pressed");
+            // Debug.Log("Button pressed");
         }
     }
 

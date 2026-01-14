@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using Oculus.Avatar2;
 using UnityEngine;
 
@@ -38,7 +36,7 @@ public class EyePoseBehavior : OvrAvatarEyePoseBehavior
         }
         else
         {
-            Debug.Log("(Replay)");
+            // Debug.Log("(Replay)");
         }
     }
     

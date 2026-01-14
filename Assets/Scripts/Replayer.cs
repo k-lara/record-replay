@@ -206,7 +206,7 @@ public class Replayer : MonoBehaviour
     {
         UpdateMaxFrameNumber();
         // _isLoaded = true;
-        Debug.Log("Replayer: OnReplayablesSpawned(): max frames: " + _frameNr);
+        // Debug.Log("Replayer: OnReplayablesSpawned(): max frames: " + _frameNr);
         onReplaySpawned?.Invoke(this, _replayablesDict);
     }
 
@@ -221,7 +221,7 @@ public class Replayer : MonoBehaviour
                 _frameNr = entry.Value.dataFrames.Count;
             }
         }
-        Debug.Log("Max frame number: " + _frameNr);
+        // Debug.Log("Max frame number: " + _frameNr);
     }
     
     // Here we do not have data loaded.
@@ -235,7 +235,7 @@ public class Replayer : MonoBehaviour
             var replayable = go.GetComponent<Replayable>();
             _replayablesDict.Add(replayable.replayableId, replayable);
         }
-        Debug.Log("Replayer: OnThumbnailSpawned(): # Replayables: " + _replayablesDict.Count);
+        // Debug.Log("Replayer: OnThumbnailSpawned(): # Replayables: " + _replayablesDict.Count);
     }
 
     private void OnRecordingLoaded(object o, EventArgs e)

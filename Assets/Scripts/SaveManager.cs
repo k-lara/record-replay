@@ -26,7 +26,7 @@ public class SaveManager
     {
         if (t != null)
         {
-            Debug.Log("Dispose save task");
+            // Debug.Log("Dispose save task");
             t.Dispose();
         }
     }
@@ -64,7 +64,7 @@ public class SaveManager
         else
         {
             // create a new folder for the recording
-            Debug.Log("Creating new recording folder");
+            // Debug.Log("Creating new recording folder");
             var newDirInfo = new DirectoryInfo(recordingPath);
             newDirInfo.Create();
             
@@ -80,7 +80,7 @@ public class SaveManager
             previousSaves[0].Delete(true);
         }
         
-        Debug.Log("New recording saved!");
+        // Debug.Log("New recording saved!");
         timeSinceLastSave = 0;
         return thumbnailData;
     }

@@ -254,8 +254,8 @@ public class Recordable : MonoBehaviour
 
         if (!_inputManager.AllInputValid())
         {
-            Debug.Log("Invalid input, stopping recording!!!! Hands: " 
-                      + _inputManager.handTrackingValid +  " Face: " + _inputManager.faceTrackingValid + " Eye: " + _inputManager.eyeTrackingValid);
+            // Debug.Log("Invalid input, stopping recording!!!! Hands: " 
+            //           + _inputManager.handTrackingValid +  " Face: " + _inputManager.faceTrackingValid + " Eye: " + _inputManager.eyeTrackingValid);
             _recorder.RecordingValid(false);
             _recorder.recording.flags.NewDataAvailable = false;
             _recorder.StopRecording(false); // don't save a recording that has invalid tracking data (at least for now)
@@ -404,7 +404,7 @@ public class Recordable : MonoBehaviour
             
             if (currentFloatFrame == 0)
             {
-                Debug.Log("Start recording from frame 0");
+                // Debug.Log("Start recording from frame 0");
                 _currentFrameNr = 0;
             }
             else
@@ -418,7 +418,7 @@ public class Recordable : MonoBehaviour
                 {
                     _currentFrameNr = (int)currentFloatFrame;
                 }
-                Debug.Log("Start recording from frame " + _currentFrameNr);
+                // Debug.Log("Start recording from frame " + _currentFrameNr);
             }
         
             // if this is the player it will only get a guid assigned when it starts a new recording
@@ -441,7 +441,7 @@ public class Recordable : MonoBehaviour
         {
             // if this is an existing replay who we want to take over then we already have a guid from the replayer
             // so we don't need a new one (unlike above)
-            Debug.Log("Takeover!");
+            // Debug.Log("Takeover!");
             
             // if we are doing a takeover, we start from frame 0. we know where to insert this data later so frame number is not important
             // TODO: I hope this makes sense because I didn't have it like that before
@@ -462,7 +462,7 @@ public class Recordable : MonoBehaviour
 
         if (!_isTakingOver)
         {
-            Debug.Log(_recorder.recording.recordableDataDict[_guid].dataFrames.Count);
+            // Debug.Log(_recorder.recording.recordableDataDict[_guid].dataFrames.Count);
 
             
             if (!_recorder.allInputValid)

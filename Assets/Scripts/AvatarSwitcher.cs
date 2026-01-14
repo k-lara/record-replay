@@ -4,6 +4,7 @@ using UnityEngine;
 public class AvatarSwitcher : MonoBehaviour
 {
     public GameObject[] avatars;
+    public bool showAvatar;
     private int currentAvatarIndex = 0;
     private AvatarManager avatarManager;
 
@@ -19,7 +20,15 @@ public class AvatarSwitcher : MonoBehaviour
             currentAvatarIndex = PlayerPrefs.GetInt("AvatarIndex");
         }
 
-        avatarManager.avatarPrefab = avatars[currentAvatarIndex];
+        if (showAvatar)
+        {
+            avatarManager.avatarPrefab = avatars[currentAvatarIndex];
+        }
+        else
+        {
+            avatarManager.avatarPrefab = null;
+        }
+
     }
 
     
